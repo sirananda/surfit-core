@@ -5,14 +5,29 @@ from engine import run_saw
 from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
 from models import RunContext
 
-# On Streamlit Cloud the source tree is read-only.
-# Copy the DB to /tmp once per process so writes persist for the session.
+# Streamlit Cloud source tree is read-only — use /tmp for writable DB.
 _CLOUD_DB = Path("/tmp/surfit_runs.db")
-if not _CLOUD_DB.exists():
-    _src = Path(DEFAULT_DB_PATH)
-    if _src.exists():
-        shutil.copy2(str(_src), str(_CLOUD_DB))
+_src = Path(DEFAULT_DB_PATH)
+if not _CLOUD_DB.exists() and _src.exists():
+    shutil.copy2(str(_src), str(_CLOUD_DB))
 DB_PATH = str(_CLOUD_DB)
+# Always ensure schema exists at DB_PATH
+_init_conn = sqlite3.connect(DB_PATH)
+_init_conn.executescript("""
+    CREATE TABLE IF NOT EXISTS execution_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        timestamp_iso TEXT NOT NULL,
+        run_id TEXT NOT NULL,
+        saw_id TEXT NOT NULL,
+        node_id TEXT NOT NULL,
+        tool_name TEXT DEFAULT '',
+        decision TEXT NOT NULL,
+        latency_ms REAL DEFAULT 0,
+        error TEXT
+    );
+""")
+_init_conn.commit()
+_init_conn.close()
 
 CSS = """
 <style>
@@ -73,6 +88,12 @@ body, .stMarkdown, .stMarkdown p, .stSelectbox label p,
 [data-testid="stDataFrame"] canvas { background: #111d30 !important; }
 .dvn-scroller { background: #111d30 !important; }
 [data-testid="stDataFrameResizable"] { background: #111d30 !important; }
+
+/* MARKDOWN TABLES */
+.stMarkdown table { color: #e2eaf5 !important; width: 100%; }
+.stMarkdown table th { color: #e2eaf5 !important; font-weight: 600; border-bottom: 1px solid #1e3050; }
+.stMarkdown table td { color: #e2eaf5 !important; border-bottom: 1px solid #1e3050; padding: 8px 12px; }
+.stMarkdown table tr:last-child td { border-bottom: none; }
 
 /* INFO/WARNING */
 [data-testid="stInfoBox"] { background: rgba(38,192,255,0.07) !important; border: 1px solid rgba(38,192,255,0.2) !important; border-radius: 8px !important; }
@@ -248,7 +269,7 @@ with tab1:
         approval_granted = st.checkbox("Approve write step", value=True)
         wait_ms          = st.slider("Human approval wait (ms)", 0, 3000, 500, step=100)
         st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
-        run_button       = st.button("▶  Run SAW", type="primary", use_container_width=True)
+        run_button       = st.button("▶  Run SAW", use_container_width=True)
 
     with col2:
         if run_button:
@@ -263,9 +284,7 @@ with tab1:
             with st.spinner("Running SAW..."):
                 result = run_saw(spec, ctx, conn)
 
-            # Force commit then open fresh connection so reads see written data
             conn.commit()
-            log_conn = sqlite3.connect(DB_PATH)
 
             badge_cls  = "sf-badge-ok" if result.status == "completed" else "sf-badge-err"
             badge_icon = "✦" if result.status == "completed" else "✕"
@@ -283,13 +302,30 @@ with tab1:
 
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
-            logs = get_run_logs(log_conn, ctx.run_id)
-            log_conn.close()
+            logs = get_run_logs(conn, ctx.run_id)
             if logs:
-                df_logs = pd.DataFrame(logs)
-                df_logs = df_logs[["timestamp_iso","node_id","tool_name","decision","latency_ms","error"]]
-                df_logs.columns = ["Timestamp","Node","Tool","Decision","Latency (ms)","Error"]
-                st.dataframe(df_logs, use_container_width=True, hide_index=True)
+                rows_html = ""
+                for row in logs:
+                    ts = str(row.get("timestamp_iso",""))[:19].replace("T"," ")
+                    node = row.get("node_id","")
+                    tool = row.get("tool_name","") or "—"
+                    dec = row.get("decision","")
+                    lat = f"{row.get('latency_ms',0):.2f}"
+                    err = row.get("error","") or "—"
+                    dec_color = "#26c0ff" if dec == "allow" else "#ff731e"
+                    rows_html += f'<tr><td>{ts}</td><td>{node}</td><td>{tool}</td><td style="color:{dec_color}">{dec}</td><td>{lat}</td><td>{err}</td></tr>'
+                st.markdown(f'''<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">
+<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">
+<thead><tr style="border-bottom:1px solid #1e3050;">
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Timestamp</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Node</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Tool</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Decision</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Latency (ms)</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Error</th>
+</tr></thead>
+<tbody style="color:#e2eaf5;">{rows_html}</tbody>
+</table></div>''', unsafe_allow_html=True)
             else:
                 st.markdown('<p style="color:#7a9ab8;font-size:13px;">No log entries found.</p>', unsafe_allow_html=True)
 
@@ -302,7 +338,18 @@ with tab1:
                     st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
                     st.markdown('<div class="sf-label">Output Summary</div>', unsafe_allow_html=True)
                     if metrics_table:
-                        st.markdown(metrics_table)
+                        # Convert markdown table to styled HTML
+                        lines = [l.strip() for l in metrics_table.strip().split("\n") if l.strip() and not l.strip().startswith("|---")]
+                        if len(lines) >= 2:
+                            headers = [c.strip() for c in lines[0].split("|") if c.strip()]
+                            th = "".join(f'<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;border-bottom:1px solid #1e3050;">{h}</th>' for h in headers)
+                            body = ""
+                            for line in lines[1:]:
+                                cells = [c.strip() for c in line.split("|") if c.strip()]
+                                body += "<tr>" + "".join(f'<td style="padding:10px 14px;color:#e2eaf5;border-bottom:1px solid #1a2a40;">{c}</td>' for c in cells) + "</tr>"
+                            st.markdown(f'<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:13px;"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown(f'<div style="color:#e2eaf5;">{metrics_table}</div>', unsafe_allow_html=True)
                     if commentary:
                         st.info(commentary)
         else:
@@ -313,9 +360,23 @@ with tab2:
     st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
     history = load_run_history()
     if history is not None and not history.empty:
-        display = history.copy()
-        display["run_id"] = display["run_id"].str[:8]
-        display.columns = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
-        st.dataframe(display, use_container_width=True, hide_index=True)
+        history = history.copy()
+        history["run_id"] = history["run_id"].str[:8]
+        rows_html = ""
+        for _, row in history.iterrows():
+            status_color = "#26c0ff" if row["status"] == "completed" else "#ff731e"
+            rows_html += f'<tr><td>{row["run_id"]}</td><td>{row["saw_id"]}</td><td style="color:{status_color}">{row["status"]}</td><td>{row["system_ms"]}</td><td>{row["human_wait_ms"]}</td><td>{str(row["started_at"])[:19].replace("T"," ")}</td></tr>'
+        st.markdown(f'''<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">
+<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">
+<thead><tr style="border-bottom:1px solid #1e3050;">
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Run ID</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">SAW</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Status</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">System (ms)</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Human Wait (ms)</th>
+<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Started At</th>
+</tr></thead>
+<tbody style="color:#e2eaf5;">{rows_html}</tbody>
+</table></div>''', unsafe_allow_html=True)
     else:
         st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
