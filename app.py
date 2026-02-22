@@ -285,7 +285,7 @@ with tab1:
                 df_logs.columns = ["Timestamp","Node","Tool","Decision","Latency (ms)","Error"]
                 st.dataframe(df_logs, use_container_width=True, hide_index=True)
             else:
-                st.markdown('<div style="color:#7a9ab8;font-size:12px;padding:8px 0;letter-spacing:0.05em;">No log entries recorded.</div>', unsafe_allow_html=True)
+                st.markdown('<div style="color:#7a9ab8;font-size:13px;padding:16px 0;letter-spacing:0.05em;">No execution log data — the SAW engine may not be logging to this session's database.</div>', unsafe_allow_html=True)
 
             if result.status == "completed":
                 summary_node  = SUMMARY_NODE[saw_choice]
