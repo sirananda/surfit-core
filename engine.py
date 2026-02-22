@@ -121,7 +121,7 @@ def default_input_resolver(
     if node_id == "n_reconcile" and "n_salesforce_pull" in ctx.state:
         return {
             "salesforce": ctx.state.get("n_salesforce_pull", {}),
-            "stripe": ctx.state.get("n_stripe_pull", {}),
+            "stripe": ctx.state.get("n_stripe_payouts", {}),
         }
 
     if node_id == "n_generate_summary":
@@ -143,13 +143,13 @@ def default_input_resolver(
     if node_id == "n_qb_pull":
         return {"period": "2025-Q1"}
 
-    if node_id == "n_stripe_pull" and "n_qb_pull" in ctx.state:
+    if node_id == "n_stripe_payouts":
         return {"period": "2025-Q1"}
 
     if node_id == "n_reconcile" and "n_qb_pull" in ctx.state:
         return {
             "expenses": ctx.state.get("n_qb_pull", {}),
-            "payouts": ctx.state.get("n_stripe_pull", {}),
+            "payouts": ctx.state.get("n_stripe_payouts", {}),
         }
 
     if node_id == "n_gen_report":

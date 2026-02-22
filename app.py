@@ -45,7 +45,7 @@ REVENUE_RECON_SPEC = {
         "nodes": [
             {"id": "n_start",        "type": "start"},
             {"id": "n_qb_pull",      "type": "tool_call",     "tool": "tool_quickbooks_read_expenses",  "sensitivity": "medium"},
-            {"id": "n_stripe_pull",  "type": "tool_call",     "tool": "tool_stripe_read_payouts",       "sensitivity": "medium"},
+            {"id": "n_stripe_payouts",  "type": "tool_call",     "tool": "tool_stripe_read_payouts",       "sensitivity": "medium"},
             {"id": "n_reconcile",    "type": "tool_call",     "tool": "tool_reconcile_revenue",         "sensitivity": "medium"},
             {"id": "n_gen_report",   "type": "tool_call",     "tool": "tool_generate_revenue_report",   "sensitivity": "medium"},
             {"id": "n_approval",     "type": "approval_gate", "tool": "human_approval",                 "sensitivity": "high"},
@@ -54,8 +54,8 @@ REVENUE_RECON_SPEC = {
         ],
         "edges": [
             {"from": "n_start",        "to": "n_qb_pull"},
-            {"from": "n_qb_pull",      "to": "n_stripe_pull"},
-            {"from": "n_stripe_pull",  "to": "n_reconcile"},
+            {"from": "n_qb_pull",      "to": "n_stripe_payouts"},
+            {"from": "n_stripe_payouts",  "to": "n_reconcile"},
             {"from": "n_reconcile",    "to": "n_gen_report"},
             {"from": "n_gen_report",   "to": "n_approval"},
             {"from": "n_approval",     "to": "n_write_report"},
