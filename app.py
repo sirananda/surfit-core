@@ -31,27 +31,23 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 [role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
 [role="option"]:hover { background-color: #1e3050 !important; }
 
-/* CHECKBOX — kill ALL backgrounds, orange box only */
-.stCheckbox, .stCheckbox *, .stCheckbox label, .stCheckbox label *,
-.stCheckbox label:hover, .stCheckbox label:focus, .stCheckbox label:active,
-.stCheckbox > div, .stCheckbox > div > label,
-[data-testid="stCheckbox"], [data-testid="stCheckbox"] * {
-    background: transparent !important;
-    background-color: transparent !important;
-}
-[data-baseweb="checkbox"] > div:first-child {
+/* CHECKBOX */
+.stCheckbox label { background: transparent !important; }
+.stCheckbox label:hover { background: transparent !important; }
+.stCheckbox label p { font-size: 14px !important; color: #e2eaf5 !important; }
+[data-baseweb="checkbox"] span[role="checkbox"] {
     background-color: transparent !important;
     border: 2px solid #ff731e !important;
     border-radius: 4px !important;
-    min-width: 18px !important;
-    min-height: 18px !important;
 }
-[data-baseweb="checkbox"] input:checked ~ div:first-of-type,
-[data-baseweb="checkbox"] > div[aria-checked="true"] {
+[data-baseweb="checkbox"] span[role="checkbox"][aria-checked="true"] {
     background-color: #ff731e !important;
     border-color: #ff731e !important;
 }
-.stCheckbox label span { display: none !important; }
+[data-baseweb="checkbox"]:hover span[role="checkbox"] {
+    border-color: #ff731e !important;
+    background: transparent !important;
+}
 
 /* SLIDER — orange */
 .stSlider label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
@@ -248,8 +244,7 @@ with tab1:
     with col1:
         st.markdown('<div class="sf-label">Controls</div>', unsafe_allow_html=True)
         saw_choice       = st.selectbox("Select SAW", list(SAW_REGISTRY.keys()))
-        st.markdown('<div style="font-size:14px;color:#e2eaf5;margin:8px 0 4px;display:flex;align-items:center;gap:8px;">Approve write step</div>', unsafe_allow_html=True)
-        approval_granted = st.checkbox("Approve write step", value=True, label_visibility="hidden")
+        approval_granted = st.checkbox("Approve write step", value=True)
         wait_ms          = st.slider("Human approval wait (ms)", 0, 3000, 500, step=100)
         st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
         run_button       = st.button("▶  Run SAW", type="primary", use_container_width=True)
@@ -310,19 +305,15 @@ with tab1:
                 unsafe_allow_html=True)
 
 with tab2:
+    import pandas as pd
     st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
     history, err = load_run_history()
-
     if err:
-        st.markdown(f'<div class="sf-cloud-note">⚠ Database: {err}</div>', unsafe_allow_html=True)
-    elif history is not None and len(history) > 0:
-        import pandas as pd
-        history["run_id"] = history["run_id"].str[:8]
-        history.columns   = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
-        st.dataframe(history, use_container_width=True, hide_index=True)
+        st.markdown(f'<div class="sf-cloud-note">⚠ DB error: {err}</div>', unsafe_allow_html=True)
+    elif history is None or len(history) == 0:
+        st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
     else:
-        st.markdown(
-            f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run history appears here after your first SAW run</div></div>',
-            unsafe_allow_html=True)
-        # Note: Streamlit Cloud resets the filesystem on each deploy.
-        # Run a SAW above and history will populate for this session.
+        display = history.copy()
+        display["run_id"] = display["run_id"].str[:8]
+        display.columns = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
+        st.dataframe(display, use_container_width=True, hide_index=True)
