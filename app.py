@@ -31,25 +31,27 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 [role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
 [role="option"]:hover { background-color: #1e3050 !important; }
 
-/* CHECKBOX — orange checkmark only, no label highlight */
-.stCheckbox { background: transparent !important; }
-.stCheckbox label { background: transparent !important; padding: 0 !important; }
-.stCheckbox label p { color: #e2eaf5 !important; font-size: 14px !important; background: transparent !important; }
-.stCheckbox label:hover p { color: #e2eaf5 !important; background: transparent !important; }
+/* CHECKBOX — kill ALL backgrounds, orange box only */
+.stCheckbox, .stCheckbox *, .stCheckbox label, .stCheckbox label *,
+.stCheckbox label:hover, .stCheckbox label:focus, .stCheckbox label:active,
+.stCheckbox > div, .stCheckbox > div > label,
+[data-testid="stCheckbox"], [data-testid="stCheckbox"] * {
+    background: transparent !important;
+    background-color: transparent !important;
+}
 [data-baseweb="checkbox"] > div:first-child {
     background-color: transparent !important;
     border: 2px solid #ff731e !important;
     border-radius: 4px !important;
+    min-width: 18px !important;
+    min-height: 18px !important;
 }
-[data-baseweb="checkbox"] input:checked + div,
-[data-baseweb="checkbox"] > div[data-checked="true"] {
+[data-baseweb="checkbox"] input:checked ~ div:first-of-type,
+[data-baseweb="checkbox"] > div[aria-checked="true"] {
     background-color: #ff731e !important;
     border-color: #ff731e !important;
 }
-/* Kill any highlight/focus background on the label row */
-.stCheckbox [data-testid="stWidgetLabel"] { background: transparent !important; }
-.stCheckbox > label { background: transparent !important; border-radius: 0 !important; }
-.stCheckbox > label:hover { background: transparent !important; }
+.stCheckbox label span { display: none !important; }
 
 /* SLIDER — orange */
 .stSlider label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
@@ -246,7 +248,8 @@ with tab1:
     with col1:
         st.markdown('<div class="sf-label">Controls</div>', unsafe_allow_html=True)
         saw_choice       = st.selectbox("Select SAW", list(SAW_REGISTRY.keys()))
-        approval_granted = st.checkbox("Approve write step", value=True)
+        st.markdown('<div style="font-size:14px;color:#e2eaf5;margin:8px 0 4px;display:flex;align-items:center;gap:8px;">Approve write step</div>', unsafe_allow_html=True)
+        approval_granted = st.checkbox("Approve write step", value=True, label_visibility="hidden")
         wait_ms          = st.slider("Human approval wait (ms)", 0, 3000, 500, step=100)
         st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
         run_button       = st.button("▶  Run SAW", type="primary", use_container_width=True)
@@ -279,15 +282,15 @@ with tab1:
 
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
+            import pandas as pd
             logs = get_run_logs(conn, ctx.run_id)
-            if logs:
-                import pandas as pd
+            if logs and len(logs) > 0:
                 df_logs = pd.DataFrame(logs)
                 df_logs = df_logs[["timestamp_iso","node_id","tool_name","decision","latency_ms","error"]]
                 df_logs.columns = ["Timestamp","Node","Tool","Decision","Latency (ms)","Error"]
                 st.dataframe(df_logs, use_container_width=True, hide_index=True)
             else:
-                st.markdown('<div style="color:#7a9ab8;font-size:12px;padding:8px 0;">No log entries found.</div>', unsafe_allow_html=True)
+                st.markdown('<div style="color:#7a9ab8;font-size:12px;padding:8px 0;letter-spacing:0.05em;">No log entries recorded.</div>', unsafe_allow_html=True)
 
             if result.status == "completed":
                 summary_node  = SUMMARY_NODE[saw_choice]
@@ -312,7 +315,7 @@ with tab2:
 
     if err:
         st.markdown(f'<div class="sf-cloud-note">⚠ Database: {err}</div>', unsafe_allow_html=True)
-    elif history is not None and not history.empty:
+    elif history is not None and len(history) > 0:
         import pandas as pd
         history["run_id"] = history["run_id"].str[:8]
         history.columns   = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
