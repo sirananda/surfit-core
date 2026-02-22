@@ -1,8 +1,18 @@
-import sqlite3, uuid
+import sqlite3, uuid, os, shutil
+from pathlib import Path
 import streamlit as st
 from engine import run_saw
 from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
 from models import RunContext
+
+# On Streamlit Cloud the source tree is read-only.
+# Copy the DB to /tmp once per process so writes persist for the session.
+_CLOUD_DB = Path("/tmp/surfit_runs.db")
+if not _CLOUD_DB.exists():
+    _src = Path(DEFAULT_DB_PATH)
+    if _src.exists():
+        shutil.copy2(str(_src), str(_CLOUD_DB))
+DB_PATH = str(_CLOUD_DB)
 
 CSS = """
 <style>
@@ -200,7 +210,7 @@ SUMMARY_NODE = {
 def load_run_history():
     import pandas as pd
     try:
-        conn = sqlite3.connect(str(DEFAULT_DB_PATH))
+        conn = sqlite3.connect(DB_PATH)
         df = pd.read_sql_query("""
             SELECT run_id, saw_id,
                 MAX(CASE WHEN node_id = 'n_end' THEN 'completed' ELSE NULL END) as status,
@@ -244,7 +254,7 @@ with tab1:
         if run_button:
             import pandas as pd
             spec = SAW_REGISTRY[saw_choice]
-            conn = init_db(DEFAULT_DB_PATH)
+            conn = init_db(DB_PATH)
             ctx  = RunContext(
                 run_id=str(uuid.uuid4()),
                 saw_id=spec["saw_id"],
@@ -255,7 +265,7 @@ with tab1:
 
             # Force commit then open fresh connection so reads see written data
             conn.commit()
-            log_conn = sqlite3.connect(str(DEFAULT_DB_PATH))
+            log_conn = sqlite3.connect(DB_PATH)
 
             badge_cls  = "sf-badge-ok" if result.status == "completed" else "sf-badge-err"
             badge_icon = "✦" if result.status == "completed" else "✕"
@@ -292,9 +302,9 @@ with tab1:
                     st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
                     st.markdown('<div class="sf-label">Output Summary</div>', unsafe_allow_html=True)
                     if metrics_table:
-                        st.markdown(f'<div style="color:#e2eaf5;">{metrics_table}</div>', unsafe_allow_html=True)
+                        st.markdown(metrics_table)
                     if commentary:
-                        st.markdown(f'<div style="background:rgba(38,192,255,0.07);border:1px solid rgba(38,192,255,0.2);border-radius:8px;padding:14px 18px;color:#e2eaf5;font-size:14px;">{commentary}</div>', unsafe_allow_html=True)
+                        st.info(commentary)
         else:
             st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Select a SAW and click Run SAW</div></div>', unsafe_allow_html=True)
 
