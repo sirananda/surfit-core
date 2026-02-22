@@ -1,7 +1,7 @@
 import sqlite3, uuid
 import streamlit as st
 from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, init_db
+from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
 from models import RunContext
 
 CSS = """
@@ -29,10 +29,12 @@ body, .stMarkdown, .stMarkdown p, .stSelectbox label p,
 
 /* SELECT */
 .stSelectbox label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
-.stSelectbox > div > div, [data-baseweb="select"] > div { background-color: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 8px !important; }
+.stSelectbox > div > div, [data-baseweb="select"] > div { background-color: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 8px !important; color: #e2eaf5 !important; }
+.stSelectbox > div > div *, [data-baseweb="select"] > div * { color: #e2eaf5 !important; }
 [data-baseweb="popover"] { background-color: #111d30 !important; border: 1px solid #1e3050 !important; }
 [role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
-[role="option"]:hover { background-color: #1e3050 !important; }
+[role="option"]:hover { background-color: #1e3050 !important; color: #e2eaf5 !important; }
+[role="option"] * { color: #e2eaf5 !important; }
 
 /* CHECKBOX */
 .stCheckbox label { background: transparent !important; }
@@ -198,7 +200,7 @@ SUMMARY_NODE = {
 def load_run_history():
     import pandas as pd
     try:
-        conn = sqlite3.connect("surfit_runs.db")
+        conn = sqlite3.connect(str(DEFAULT_DB_PATH))
         df = pd.read_sql_query("""
             SELECT run_id, saw_id,
                 MAX(CASE WHEN node_id = 'n_end' THEN 'completed' ELSE NULL END) as status,
@@ -242,7 +244,7 @@ with tab1:
         if run_button:
             import pandas as pd
             spec = SAW_REGISTRY[saw_choice]
-            conn = init_db("surfit_runs.db")
+            conn = init_db(DEFAULT_DB_PATH)
             ctx  = RunContext(
                 run_id=str(uuid.uuid4()),
                 saw_id=spec["saw_id"],
