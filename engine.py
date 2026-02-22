@@ -115,10 +115,10 @@ def default_input_resolver(
     if node_id == "n_salesforce_pull":
         return {"date_range": "2025-Q1", "segment": "enterprise"}
 
-    if node_id == "n_stripe_pull" and ctx.saw_id == "board_metrics_v1":
+    if node_id == "n_stripe_pull" and "n_salesforce_pull" in ctx.state:
         return {"date_range": "2025-Q1", "currency": "usd"}
 
-    if node_id == "n_reconcile" and ctx.saw_id == "board_metrics_v1":
+    if node_id == "n_reconcile" and "n_salesforce_pull" in ctx.state:
         return {
             "salesforce": ctx.state.get("n_salesforce_pull", {}),
             "stripe": ctx.state.get("n_stripe_pull", {}),
@@ -143,10 +143,10 @@ def default_input_resolver(
     if node_id == "n_qb_pull":
         return {"period": "2025-Q1"}
 
-    if node_id == "n_stripe_pull" and ctx.saw_id == "revenue_reconciliation_v1":
+    if node_id == "n_stripe_pull" and "n_qb_pull" in ctx.state:
         return {"period": "2025-Q1"}
 
-    if node_id == "n_reconcile" and ctx.saw_id == "revenue_reconciliation_v1":
+    if node_id == "n_reconcile" and "n_qb_pull" in ctx.state:
         return {
             "expenses": ctx.state.get("n_qb_pull", {}),
             "payouts": ctx.state.get("n_stripe_pull", {}),
