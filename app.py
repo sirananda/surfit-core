@@ -74,8 +74,11 @@ body, .stMarkdown, .stMarkdown p, .stSelectbox label p,
 [data-testid="stSliderThumb"] { background: #ff731e !important; border: none !important; }
 
 /* BUTTON */
-.stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; }
-.stButton > button:hover { box-shadow: 0 4px 24px rgba(255,115,30,0.45) !important; }
+.stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; outline: none !important; box-shadow: none !important; }
+.stButton > button:hover { box-shadow: 0 4px 24px rgba(38,192,255,0.35) !important; outline: none !important; }
+.stButton > button:focus { outline: none !important; box-shadow: none !important; border: none !important; }
+.stButton > button:active { outline: none !important; box-shadow: none !important; border: none !important; }
+.stButton > button:focus-visible { outline: none !important; box-shadow: none !important; }
 
 /* METRICS */
 [data-testid="metric-container"] { background: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 10px !important; padding: 20px 24px !important; }
