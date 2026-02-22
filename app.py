@@ -253,6 +253,10 @@ with tab1:
             with st.spinner("Running SAW..."):
                 result = run_saw(spec, ctx, conn)
 
+            # Force commit then open fresh connection so reads see written data
+            conn.commit()
+            log_conn = sqlite3.connect(str(DEFAULT_DB_PATH))
+
             badge_cls  = "sf-badge-ok" if result.status == "completed" else "sf-badge-err"
             badge_icon = "✦" if result.status == "completed" else "✕"
             st.markdown(f'<div class="sf-badge {badge_cls}">{badge_icon}&nbsp;&nbsp;{result.status.upper()}</div>', unsafe_allow_html=True)
@@ -269,7 +273,8 @@ with tab1:
 
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
-            logs = get_run_logs(conn, ctx.run_id)
+            logs = get_run_logs(log_conn, ctx.run_id)
+            log_conn.close()
             if logs:
                 df_logs = pd.DataFrame(logs)
                 df_logs = df_logs[["timestamp_iso","node_id","tool_name","decision","latency_ms","error"]]
@@ -287,9 +292,9 @@ with tab1:
                     st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
                     st.markdown('<div class="sf-label">Output Summary</div>', unsafe_allow_html=True)
                     if metrics_table:
-                        st.markdown(metrics_table)
+                        st.markdown(f'<div style="color:#e2eaf5;">{metrics_table}</div>', unsafe_allow_html=True)
                     if commentary:
-                        st.info(commentary)
+                        st.markdown(f'<div style="background:rgba(38,192,255,0.07);border:1px solid rgba(38,192,255,0.2);border-radius:8px;padding:14px 18px;color:#e2eaf5;font-size:14px;">{commentary}</div>', unsafe_allow_html=True)
         else:
             st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Select a SAW and click Run SAW</div></div>', unsafe_allow_html=True)
 
