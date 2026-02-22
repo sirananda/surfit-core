@@ -74,14 +74,52 @@ REVENUE_RECON_SPEC = {
     },
 }
 
+
+BUDGET_REFORECAST_SPEC = {
+    "saw_id": "budget_reforecast_v1",
+    "graph": {
+        "nodes": [
+            {"id": "n_start",          "type": "start"},
+            {"id": "n_pull_actuals",   "type": "tool_call",     "tool": "tool_pull_actuals",       "sensitivity": "medium"},
+            {"id": "n_pull_budget",    "type": "tool_call",     "tool": "tool_pull_budget",        "sensitivity": "medium"},
+            {"id": "n_variance",       "type": "tool_call",     "tool": "tool_variance_analysis",  "sensitivity": "medium"},
+            {"id": "n_gen_reforecast", "type": "tool_call",     "tool": "tool_gen_reforecast",     "sensitivity": "medium"},
+            {"id": "n_approval",       "type": "approval_gate", "tool": "human_approval",          "sensitivity": "high"},
+            {"id": "n_update_plan",    "type": "tool_call",     "tool": "tool_update_plan",        "sensitivity": "medium", "write_action": True},
+            {"id": "n_end",            "type": "end"},
+        ],
+        "edges": [
+            {"from": "n_start",          "to": "n_pull_actuals"},
+            {"from": "n_pull_actuals",   "to": "n_pull_budget"},
+            {"from": "n_pull_budget",    "to": "n_variance"},
+            {"from": "n_variance",       "to": "n_gen_reforecast"},
+            {"from": "n_gen_reforecast", "to": "n_approval"},
+            {"from": "n_approval",       "to": "n_update_plan"},
+            {"from": "n_update_plan",    "to": "n_end"},
+        ],
+    },
+    "policy_bundle": {
+        "policy_id": "budget_reforecast_policy_v1",
+        "sensitivity_level": "medium",
+        "tools": {
+            "allowlist": ["tool_pull_actuals","tool_pull_budget","tool_variance_analysis","tool_gen_reforecast","tool_update_plan","tool_logger_write"],
+            "denylist":  ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"],
+        },
+        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
+        "write_restrictions": {},
+    },
+}
+
 SAW_REGISTRY = {
     "Board Metrics Aggregation": BOARD_METRICS_SPEC,
     "Revenue Reconciliation":    REVENUE_RECON_SPEC,
+    "Budget Reforecast":         BUDGET_REFORECAST_SPEC,
 }
 
 SUMMARY_NODE = {
     "Board Metrics Aggregation": "n_generate_summary",
     "Revenue Reconciliation":    "n_gen_report",
+    "Budget Reforecast":         "n_gen_reforecast",
 }
 
 def load_run_history():

@@ -158,6 +158,35 @@ def default_input_resolver(
     if node_id == "n_write_report":
         return {"report": ctx.state.get("n_gen_report", {})}
 
+    # ── Budget Reforecast ──────────────────────────────────────────
+    if node_id == "n_pull_actuals":
+        return {"period": "2025-Q1"}
+
+    if node_id == "n_pull_budget":
+        return {"period": "2025-Q1"}
+
+    if node_id in ("n_variance_analysis", "n_variance"):
+        actuals_data = ctx.state.get("n_pull_actuals", {})
+        budget_data  = ctx.state.get("n_pull_budget", {})
+        return {
+            "actuals": actuals_data.get("actuals", actuals_data),
+            "budget":  budget_data.get("budget", budget_data),
+        }
+
+    if node_id == "n_gen_reforecast":
+        variance_data = ctx.state.get("n_variance", ctx.state.get("n_variance_analysis", {}))
+        return {
+            "lines": variance_data.get("lines", {}),
+            "flags": variance_data.get("flags", []),
+        }
+
+    if node_id == "n_update_plan":
+        reforecast_data = ctx.state.get("n_gen_reforecast", {})
+        return {
+            "confidence": reforecast_data.get("confidence", "Medium"),
+            "full_year_delta": reforecast_data.get("full_year_delta", 0),
+        }
+
     return {}
 
 

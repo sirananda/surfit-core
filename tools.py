@@ -229,6 +229,102 @@ def tool_write_revenue_report(inputs: dict, ctx) -> ToolResult:
         "destination": "finance_reports/q1_revenue_reconciliation.pdf",
     })
 
+
+# ── Budget Reforecast Tools ───────────────────────────────────────
+
+def tool_pull_actuals(inputs: dict, ctx) -> ToolResult:
+    return ToolResult(tool_name="tool_pull_actuals", success=True, data={
+        "period": inputs.get("period", "2025-Q1"),
+        "actuals": {
+            "revenue":    2_055_000.00,
+            "cogs":         620_000.00,
+            "headcount":    940_000.00,
+            "opex":         310_000.00,
+            "marketing":    195_000.00,
+        }
+    })
+
+def tool_pull_budget(inputs: dict, ctx) -> ToolResult:
+    return ToolResult(tool_name="tool_pull_budget", success=True, data={
+        "period": inputs.get("period", "2025-Q1"),
+        "budget": {
+            "revenue":    2_200_000.00,
+            "cogs":         600_000.00,
+            "headcount":    820_000.00,
+            "opex":         300_000.00,
+            "marketing":    180_000.00,
+        }
+    })
+
+def tool_variance_analysis(inputs: dict, ctx) -> ToolResult:
+    actuals = inputs.get("actuals", {})
+    budget  = inputs.get("budget", {})
+    THRESHOLD = 10.0
+    lines = {}
+    flags = []
+    for key in budget:
+        a = actuals.get(key, 0)
+        b = budget.get(key, 1)
+        if key == "revenue":
+            variance_pct = round(((a - b) / b) * 100, 1)
+            status = "under" if variance_pct < -THRESHOLD else "over" if variance_pct > THRESHOLD else "on_track"
+        else:
+            variance_pct = round(((a - b) / b) * 100, 1)
+            status = "over" if variance_pct > THRESHOLD else "under" if variance_pct < -THRESHOLD else "on_track"
+        lines[key] = {
+            "actual": a,
+            "budget": b,
+            "variance_pct": variance_pct,
+            "status": status,
+        }
+        if status != "on_track":
+            flags.append(key)
+    return ToolResult(tool_name="tool_variance_analysis", success=True, data={
+        "lines": lines,
+        "flags": flags,
+        "flag_count": len(flags),
+    })
+
+def tool_gen_reforecast(inputs: dict, ctx) -> ToolResult:
+    lines  = inputs.get("lines", {})
+    flags  = inputs.get("flags", [])
+    QUARTERS = 4
+    rows = "| Category | Actual | Budget | Variance | Status |\n|---|---|---|---|---|\n"
+    full_year_delta = 0
+    for key, d in lines.items():
+        icon = "⚠️" if d["status"] != "on_track" else "✅"
+        rows += (
+            f"| {key.capitalize()} "
+            f"| ${d['actual']:,.0f} "
+            f"| ${d['budget']:,.0f} "
+            f"| {d['variance_pct']:+.1f}% "
+            f"| {icon} {d['status'].replace('_',' ')} |\n"
+        )
+        full_year_delta += (d["actual"] - d["budget"]) * QUARTERS
+    confidence = "High" if len(flags) == 0 else "Medium" if len(flags) <= 2 else "Low"
+    flag_names = ", ".join(f.capitalize() for f in flags) if flags else "None"
+    commentary = (
+        f"Q1 actuals show {len(flags)} line(s) outside the 10% variance threshold: {flag_names}. "
+        f"Full-year reforecast delta is ${full_year_delta:+,.0f} vs original plan. "
+        f"Reforecast confidence: {confidence}. "
+        + ("No material adjustments required." if not flags
+           else "Review flagged lines before approving reforecast write.")
+    )
+    return ToolResult(tool_name="tool_gen_reforecast", success=True, data={
+        "metrics_table_markdown": rows,
+        "commentary": commentary,
+        "confidence": confidence,
+        "full_year_delta": full_year_delta,
+        "flags": flags,
+    })
+
+def tool_update_plan(inputs: dict, ctx) -> ToolResult:
+    return ToolResult(tool_name="tool_update_plan", success=True, data={
+        "status": "written",
+        "destination": "planning_tool/q1_reforecast_2025.xlsx",
+        "confidence": inputs.get("confidence", "Medium"),
+    })
+
 # ── Tool registry (used by the engine to resolve tool names) ──────
 
 TOOL_REGISTRY: dict[str, callable] = {
@@ -243,4 +339,9 @@ TOOL_REGISTRY: dict[str, callable] = {
     "tool_reconcile_revenue": tool_reconcile_revenue,
     "tool_generate_revenue_report": tool_generate_revenue_report,
     "tool_write_revenue_report": tool_write_revenue_report,
+    "tool_pull_actuals": tool_pull_actuals,
+    "tool_pull_budget": tool_pull_budget,
+    "tool_variance_analysis": tool_variance_analysis,
+    "tool_gen_reforecast": tool_gen_reforecast,
+    "tool_update_plan": tool_update_plan,
 }
