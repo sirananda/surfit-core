@@ -14,7 +14,11 @@ section.main, section.main > div { background-color: #0b1220 !important; }
 .main .block-container { background-color: #0b1220 !important; padding: 0 2rem 2rem !important; max-width: 100% !important; }
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
 #MainMenu, footer { visibility: hidden; }
-html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-serif !important; color: #e2eaf5 !important; }
+
+/* Global text — but NOT inside dataframes */
+body, .stMarkdown, .stMarkdown p, .stSelectbox label p,
+.stSlider label p, .stCheckbox label p,
+[data-testid="stMetricLabel"] p { font-family: 'DM Sans', sans-serif !important; }
 
 /* TABS */
 .stTabs [data-baseweb="tab-list"] { background: transparent !important; border-bottom: 1px solid #1e3050 !important; gap: 0 !important; padding: 0 !important; }
@@ -26,7 +30,6 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 /* SELECT */
 .stSelectbox label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
 .stSelectbox > div > div, [data-baseweb="select"] > div { background-color: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 8px !important; }
-.stSelectbox > div > div:hover { border-color: #ff731e !important; }
 [data-baseweb="popover"] { background-color: #111d30 !important; border: 1px solid #1e3050 !important; }
 [role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
 [role="option"]:hover { background-color: #1e3050 !important; }
@@ -34,53 +37,43 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 /* CHECKBOX */
 .stCheckbox label { background: transparent !important; }
 .stCheckbox label:hover { background: transparent !important; }
-.stCheckbox label p { font-size: 14px !important; color: #e2eaf5 !important; }
-[data-baseweb="checkbox"] span[role="checkbox"] {
-    background-color: transparent !important;
-    border: 2px solid #ff731e !important;
-    border-radius: 4px !important;
-}
-[data-baseweb="checkbox"] span[role="checkbox"][aria-checked="true"] {
-    background-color: #ff731e !important;
-    border-color: #ff731e !important;
-}
-[data-baseweb="checkbox"]:hover span[role="checkbox"] {
-    border-color: #ff731e !important;
-    background: transparent !important;
-}
+.stCheckbox label p { color: #e2eaf5 !important; font-size: 14px !important; }
+[data-baseweb="checkbox"] span[role="checkbox"] { border: 2px solid #ff731e !important; border-radius: 4px !important; background: transparent !important; }
+[data-baseweb="checkbox"] span[role="checkbox"][aria-checked="true"] { background-color: #ff731e !important; border-color: #ff731e !important; }
 
-/* SLIDER — orange */
+/* SLIDER */
 .stSlider label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
 [data-testid="stSliderTrackFill"] { background: #ff731e !important; }
-[data-testid="stSliderThumb"] { background: #ff731e !important; border: none !important; box-shadow: 0 0 0 4px rgba(255,115,30,0.2) !important; }
-[data-testid="stSliderTrack"] > div:first-child { background: #1e3050 !important; }
+[data-testid="stSliderThumb"] { background: #ff731e !important; border: none !important; }
 
 /* BUTTON */
-.stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; transition: box-shadow 0.15s ease !important; }
-.stButton > button:hover { box-shadow: 0 4px 24px rgba(255,115,30,0.45) !important; outline: 1px solid rgba(255,115,30,0.5) !important; }
+.stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; }
+.stButton > button:hover { box-shadow: 0 4px 24px rgba(255,115,30,0.45) !important; }
 
 /* METRICS */
 [data-testid="metric-container"] { background: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 10px !important; padding: 20px 24px !important; }
 [data-testid="stMetricLabel"] p { font-size: 10px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
 [data-testid="stMetricValue"], [data-testid="stMetricValue"] > div { font-weight: 300 !important; font-size: 26px !important; color: #26c0ff !important; }
 
-/* DATAFRAME */
+/* DATAFRAME — explicit dark background + light text so data is visible */
 [data-testid="stDataFrame"] { border: 1px solid #1e3050 !important; border-radius: 10px !important; overflow: hidden !important; }
-.dvn-scroller, [data-testid="stDataFrameResizable"] { background: #111d30 !important; }
+[data-testid="stDataFrame"] * { color: #e2eaf5 !important; }
+[data-testid="stDataFrame"] canvas { background: #111d30 !important; }
+.dvn-scroller { background: #111d30 !important; }
+[data-testid="stDataFrameResizable"] { background: #111d30 !important; }
 
 /* INFO/WARNING */
 [data-testid="stInfoBox"] { background: rgba(38,192,255,0.07) !important; border: 1px solid rgba(38,192,255,0.2) !important; border-radius: 8px !important; }
 [data-testid="stWarningBox"] { background: rgba(255,115,30,0.08) !important; border: 1px solid rgba(255,115,30,0.25) !important; border-radius: 8px !important; }
 [data-testid="stSpinner"] > div { border-top-color: #ff731e !important; }
 
-.sf-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a9ab8; margin-bottom: 10px; }
+.sf-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a9ab8; margin-bottom: 10px; font-family: 'DM Sans', sans-serif; }
 .sf-hr { border: none; border-top: 1px solid #1e3050; margin: 20px 0; }
-.sf-badge { display:inline-flex; align-items:center; gap:8px; padding:8px 18px; border-radius:6px; font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:20px; }
+.sf-badge { display:inline-flex; align-items:center; gap:8px; padding:8px 18px; border-radius:6px; font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:20px; font-family:'DM Sans',sans-serif; }
 .sf-badge-ok  { background:rgba(38,192,255,0.1);  color:#26c0ff; border:1px solid rgba(38,192,255,0.3); }
 .sf-badge-err { background:rgba(255,115,30,0.1);  color:#ff731e; border:1px solid rgba(255,115,30,0.3); }
 .sf-empty { text-align:center; padding:80px 0; opacity:0.3; }
-.sf-empty-text { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#7a9ab8; margin-top:12px; }
-.sf-cloud-note { background:rgba(255,115,30,0.07); border:1px solid rgba(255,115,30,0.2); border-radius:8px; padding:14px 18px; font-size:12px; color:#7a9ab8; margin-top:8px; }
+.sf-empty-text { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#7a9ab8; margin-top:12px; font-family:'DM Sans',sans-serif; }
 </style>
 """
 
@@ -92,11 +85,11 @@ WORDMARK = (
     + WAVE +
     '<div>'
     '<div style="font-family:Righteous,cursive;font-size:22px;line-height:1;display:flex;align-items:baseline;">'
-    '<span style="color:#26c0ff;font-family:Righteous,cursive;font-size:22px;">SURFIT</span>'
+    '<span style="color:#26c0ff;font-family:Righteous,cursive;">SURFIT</span>'
     '<span style="color:#7a9ab8;font-family:Righteous,cursive;font-size:15px;margin:0 2px;">.</span>'
-    '<span style="color:#ff731e;font-family:Righteous,cursive;font-size:22px;">AI</span>'
+    '<span style="color:#ff731e;font-family:Righteous,cursive;">AI</span>'
     '</div>'
-    '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#7a9ab8;margin-top:3px;">SAW Platform</div>'
+    '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#7a9ab8;margin-top:3px;font-family:DM Sans,sans-serif;">SAW Platform</div>'
     '</div></div>'
 )
 
@@ -205,13 +198,7 @@ SUMMARY_NODE = {
 def load_run_history():
     import pandas as pd
     try:
-        conn = sqlite3.connect("surfit_runs.db", check_same_thread=False)
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM execution_log")
-        count = cursor.fetchone()[0]
-        if count == 0:
-            conn.close()
-            return None, None
+        conn = sqlite3.connect("surfit_runs.db")
         df = pd.read_sql_query("""
             SELECT run_id, saw_id,
                 MAX(CASE WHEN node_id = 'n_end' THEN 'completed' ELSE NULL END) as status,
@@ -224,25 +211,21 @@ def load_run_history():
         """, conn)
         conn.close()
         df["status"] = df["status"].fillna("denied")
-        return df, None
+        return df
     except Exception as e:
-        return None, str(e)
+        return None
 
-# ── INIT ───────────────────────────────────────────────────────
+# ── PAGE ───────────────────────────────────────────────────────
 st.set_page_config(page_title="SurFit — SAW Platform", layout="wide", page_icon="〰")
 st.markdown(CSS, unsafe_allow_html=True)
 
-# ── HEADER ─────────────────────────────────────────────────────
 hc1, hc2 = st.columns([3, 1])
 with hc1:
     st.markdown(WORDMARK, unsafe_allow_html=True)
 with hc2:
-    st.markdown(
-        '<div style="text-align:right;padding:20px 0 12px;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a9ab8;opacity:0.5;">Powered by SurFit.AI</div>',
-        unsafe_allow_html=True)
+    st.markdown('<div style="text-align:right;padding:20px 0 12px;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a9ab8;opacity:0.5;">Powered by SurFit.AI</div>', unsafe_allow_html=True)
 st.markdown('<hr style="border:none;border-top:1px solid #1e3050;margin:0 0 4px;">', unsafe_allow_html=True)
 
-# ── TABS ───────────────────────────────────────────────────────
 tab1, tab2 = st.tabs(["▶  Run SAW", "  Run History"])
 
 with tab1:
@@ -257,6 +240,7 @@ with tab1:
 
     with col2:
         if run_button:
+            import pandas as pd
             spec = SAW_REGISTRY[saw_choice]
             conn = init_db("surfit_runs.db")
             ctx  = RunContext(
@@ -283,17 +267,14 @@ with tab1:
 
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
-            import pandas as pd
-            read_conn = sqlite3.connect("surfit_runs.db")
-            logs = get_run_logs(read_conn, ctx.run_id)
-            read_conn.close()
-            if logs and len(logs) > 0:
+            logs = get_run_logs(conn, ctx.run_id)
+            if logs:
                 df_logs = pd.DataFrame(logs)
                 df_logs = df_logs[["timestamp_iso","node_id","tool_name","decision","latency_ms","error"]]
                 df_logs.columns = ["Timestamp","Node","Tool","Decision","Latency (ms)","Error"]
                 st.dataframe(df_logs, use_container_width=True, hide_index=True)
             else:
-                st.markdown('<div style="color:#7a9ab8;font-size:13px;padding:16px 0;">No log entries found.</div>', unsafe_allow_html=True)
+                st.markdown('<p style="color:#7a9ab8;font-size:13px;">No log entries found.</p>', unsafe_allow_html=True)
 
             if result.status == "completed":
                 summary_node  = SUMMARY_NODE[saw_choice]
@@ -308,20 +289,16 @@ with tab1:
                     if commentary:
                         st.info(commentary)
         else:
-            st.markdown(
-                f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Select a SAW and click Run SAW</div></div>',
-                unsafe_allow_html=True)
+            st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Select a SAW and click Run SAW</div></div>', unsafe_allow_html=True)
 
 with tab2:
     import pandas as pd
     st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
-    history, err = load_run_history()
-    if err:
-        st.markdown(f'<div class="sf-cloud-note">⚠ DB error: {err}</div>', unsafe_allow_html=True)
-    elif history is None or len(history) == 0:
-        st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
-    else:
+    history = load_run_history()
+    if history is not None and not history.empty:
         display = history.copy()
         display["run_id"] = display["run_id"].str[:8]
         display.columns = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
         st.dataframe(display, use_container_width=True, hide_index=True)
+    else:
+        st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
