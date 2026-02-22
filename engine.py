@@ -108,19 +108,17 @@ def default_input_resolver(
     ctx: RunContext,
 ) -> dict:
     """
-    Wires upstream node outputs into downstream node inputs for the
-    Board Metrics Aggregation SAW.
-
-    Uses ctx.state[<upstream_node_id>] which is populated by the engine
-    after each successful tool call.
+    Wires upstream node outputs into downstream node inputs.
+    Handles both Board Metrics Aggregation and Revenue Reconciliation SAWs.
     """
+    # ── Board Metrics Aggregation ──────────────────────────────────
     if node_id == "n_salesforce_pull":
         return {"date_range": "2025-Q1", "segment": "enterprise"}
 
-    if node_id == "n_stripe_pull":
+    if node_id == "n_stripe_pull" and ctx.saw_id == "board_metrics_v1":
         return {"date_range": "2025-Q1", "currency": "usd"}
 
-    if node_id == "n_reconcile":
+    if node_id == "n_reconcile" and ctx.saw_id == "board_metrics_v1":
         return {
             "salesforce": ctx.state.get("n_salesforce_pull", {}),
             "stripe": ctx.state.get("n_stripe_pull", {}),
@@ -141,21 +139,21 @@ def default_input_resolver(
             "commentary": summary_data.get("commentary", ""),
         }
 
-    # Revenue Reconciliation wiring
+    # ── Revenue Reconciliation ─────────────────────────────────────
     if node_id == "n_qb_pull":
         return {"period": "2025-Q1"}
 
-    if node_id == "n_stripe_pull":
+    if node_id == "n_stripe_pull" and ctx.saw_id == "revenue_reconciliation_v1":
         return {"period": "2025-Q1"}
 
-    if node_id == "n_reconcile":
+    if node_id == "n_reconcile" and ctx.saw_id == "revenue_reconciliation_v1":
         return {
             "expenses": ctx.state.get("n_qb_pull", {}),
             "payouts": ctx.state.get("n_stripe_pull", {}),
         }
 
     if node_id == "n_gen_report":
-        return {"reconciled": ctx.state.get("n_reconcile", {}).get("data", ctx.state.get("n_reconcile", {}))}
+        return {"reconciled": ctx.state.get("n_reconcile", {})}
 
     if node_id == "n_write_report":
         return {"report": ctx.state.get("n_gen_report", {})}

@@ -199,7 +199,8 @@ def tool_reconcile_revenue(inputs: dict, ctx) -> ToolResult:
     })
 
 def tool_generate_revenue_report(inputs: dict, ctx) -> ToolResult:
-    data = inputs.get("reconciled", {})
+    raw = inputs.get("reconciled", {})
+    data = raw.get("data", raw) if isinstance(raw, dict) else {}
     net = data.get("net_position_usd", 0)
     margin = data.get("margin_pct", 0)
     flagged = data.get("flagged", False)
