@@ -31,10 +31,25 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 [role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
 [role="option"]:hover { background-color: #1e3050 !important; }
 
-/* CHECKBOX — orange */
-.stCheckbox label p { color: #e2eaf5 !important; font-size: 14px !important; }
-[data-baseweb="checkbox"] div { border-color: #ff731e !important; }
-[data-baseweb="checkbox"] input:checked ~ div { background-color: #ff731e !important; border-color: #ff731e !important; }
+/* CHECKBOX — orange checkmark only, no label highlight */
+.stCheckbox { background: transparent !important; }
+.stCheckbox label { background: transparent !important; padding: 0 !important; }
+.stCheckbox label p { color: #e2eaf5 !important; font-size: 14px !important; background: transparent !important; }
+.stCheckbox label:hover p { color: #e2eaf5 !important; background: transparent !important; }
+[data-baseweb="checkbox"] > div:first-child {
+    background-color: transparent !important;
+    border: 2px solid #ff731e !important;
+    border-radius: 4px !important;
+}
+[data-baseweb="checkbox"] input:checked + div,
+[data-baseweb="checkbox"] > div[data-checked="true"] {
+    background-color: #ff731e !important;
+    border-color: #ff731e !important;
+}
+/* Kill any highlight/focus background on the label row */
+.stCheckbox [data-testid="stWidgetLabel"] { background: transparent !important; }
+.stCheckbox > label { background: transparent !important; border-radius: 0 !important; }
+.stCheckbox > label:hover { background: transparent !important; }
 
 /* SLIDER — orange */
 .stSlider label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
@@ -44,7 +59,7 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 
 /* BUTTON */
 .stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; transition: box-shadow 0.15s ease !important; }
-.stButton > button:hover { box-shadow: 0 4px 24px rgba(255,115,30,0.45) !important; border: 1px solid rgba(255,115,30,0.6) !important; }
+.stButton > button:hover { box-shadow: 0 4px 24px rgba(255,115,30,0.45) !important; outline: 1px solid rgba(255,115,30,0.5) !important; }
 
 /* METRICS */
 [data-testid="metric-container"] { background: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 10px !important; padding: 20px 24px !important; }
@@ -58,8 +73,6 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 /* INFO/WARNING */
 [data-testid="stInfoBox"] { background: rgba(38,192,255,0.07) !important; border: 1px solid rgba(38,192,255,0.2) !important; border-radius: 8px !important; }
 [data-testid="stWarningBox"] { background: rgba(255,115,30,0.08) !important; border: 1px solid rgba(255,115,30,0.25) !important; border-radius: 8px !important; }
-
-/* SPINNER — orange */
 [data-testid="stSpinner"] > div { border-top-color: #ff731e !important; }
 
 .sf-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a9ab8; margin-bottom: 10px; }
@@ -69,6 +82,7 @@ html, body, p, span, div, label, [class*="css"] { font-family: 'DM Sans', sans-s
 .sf-badge-err { background:rgba(255,115,30,0.1);  color:#ff731e; border:1px solid rgba(255,115,30,0.3); }
 .sf-empty { text-align:center; padding:80px 0; opacity:0.3; }
 .sf-empty-text { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#7a9ab8; margin-top:12px; }
+.sf-cloud-note { background:rgba(255,115,30,0.07); border:1px solid rgba(255,115,30,0.2); border-radius:8px; padding:14px 18px; font-size:12px; color:#7a9ab8; margin-top:8px; }
 </style>
 """
 
@@ -174,7 +188,7 @@ BUDGET_REFORECAST_SPEC = {
     "policy_bundle": {
         "policy_id": "budget_reforecast_policy_v1", "sensitivity_level": "medium",
         "tools": {"allowlist": ["tool_pull_actuals","tool_pull_budget","tool_variance_analysis","tool_gen_reforecast","tool_update_plan","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
-        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dom": False},
+        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
         "write_restrictions": {},
     },
 }
@@ -206,7 +220,7 @@ def load_run_history():
         """, conn)
         conn.close()
         df["status"] = df["status"].fillna("denied")
-        return df
+        return df, None
     except Exception as e:
         return None, str(e)
 
@@ -273,7 +287,7 @@ with tab1:
                 df_logs.columns = ["Timestamp","Node","Tool","Decision","Latency (ms)","Error"]
                 st.dataframe(df_logs, use_container_width=True, hide_index=True)
             else:
-                st.markdown('<div style="color:#7a9ab8;font-size:12px;">No log entries found.</div>', unsafe_allow_html=True)
+                st.markdown('<div style="color:#7a9ab8;font-size:12px;padding:8px 0;">No log entries found.</div>', unsafe_allow_html=True)
 
             if result.status == "completed":
                 summary_node  = SUMMARY_NODE[saw_choice]
@@ -294,21 +308,18 @@ with tab1:
 
 with tab2:
     st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
-    result = load_run_history()
+    history, err = load_run_history()
 
-    # handle both (df, err) tuple and plain df return
-    if isinstance(result, tuple):
-        history, err = result
-        st.markdown(f'<div style="color:#ff731e;font-size:11px;padding:8px 0;">DB error: {err}</div>', unsafe_allow_html=True)
-    else:
-        history = result
-
-    if history is not None and not history.empty:
+    if err:
+        st.markdown(f'<div class="sf-cloud-note">⚠ Database: {err}</div>', unsafe_allow_html=True)
+    elif history is not None and not history.empty:
         import pandas as pd
         history["run_id"] = history["run_id"].str[:8]
         history.columns   = ["Run ID","SAW","Status","System (ms)","Human Wait (ms)","Started At"]
         st.dataframe(history, use_container_width=True, hide_index=True)
     else:
         st.markdown(
-            f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">No runs yet — go to Run SAW and fire one off</div></div>',
+            f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run history appears here after your first SAW run</div></div>',
             unsafe_allow_html=True)
+        # Note: Streamlit Cloud resets the filesystem on each deploy.
+        # Run a SAW above and history will populate for this session.
