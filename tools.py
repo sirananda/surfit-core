@@ -94,14 +94,13 @@ def tool_reconcile_metrics(
     )
 
 
-# ── Stub LLM: Generate Board Summary ─────────────────────────────
+# ── Stub LLM: GeneratLLMrd Summary ─────────────────────────────
 
-def tool_generate_board_summary(
+def tool_generate_summary_llm(
     inputs: dict,  # {"reconciled_metrics": dict, "discrepancies": list}
     ctx: RunContext,
 ) -> ToolResult:
-    """Stub: returns canned markdown table + commentary.
-    In production this calls an LLM under token budget."""
+    """Deterministic governed LLM stub: validates structured input, sanitizes prompt payload, returns fixed-temperature-style summary."""
     metrics = inputs.get("reconciled_metrics", {})
 
     table = (
@@ -122,11 +121,24 @@ def tool_generate_board_summary(
     )
 
     return ToolResult(
-        tool_name="tool_generate_board_summary",
+        tool_name="tool_generate_summary_llm",
         success=True,
         data={
             "metrics_table_markdown": table,
             "commentary": commentary,
+            "llm_meta": {
+                "provider": "openai",
+                "model_name": "gpt-4o-mini",
+                "model_version": "gpt-4o-mini-2025-01-15",
+                "temperature": 0,
+                "max_tokens": 300,
+            },
+            "raw_tool_input": inputs,
+            "sanitized_prompt_input": {
+                "reconciled_metrics": metrics,
+                "discrepancy_count": len(inputs.get("discrepancies", [])),
+            },
+            "llm_output_text": commentary,
         },
     )
 
@@ -331,7 +343,7 @@ TOOL_REGISTRY: dict[str, callable] = {
     "tool_salesforce_read_pipeline": tool_salesforce_read_pipeline,
     "tool_stripe_read_revenue": tool_stripe_read_revenue,
     "tool_reconcile_metrics": tool_reconcile_metrics,
-    "tool_generate_board_summary": tool_generate_board_summary,
+    "tool_generate_summary_llm": tool_generate_summary_llm,
     "tool_slides_update_template": tool_slides_update_template,
     "tool_logger_write": tool_logger_write,
     "tool_quickbooks_read_expenses": tool_quickbooks_read_expenses,

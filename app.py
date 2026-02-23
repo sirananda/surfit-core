@@ -173,7 +173,7 @@ BOARD_METRICS_SPEC = {
             {"id": "n_salesforce_pull",  "type": "tool_call",     "tool": "tool_salesforce_read_pipeline", "sensitivity": "medium"},
             {"id": "n_stripe_pull",      "type": "tool_call",     "tool": "tool_stripe_read_revenue",      "sensitivity": "medium"},
             {"id": "n_reconcile",        "type": "tool_call",     "tool": "tool_reconcile_metrics",        "sensitivity": "medium"},
-            {"id": "n_generate_summary", "type": "tool_call",     "tool": "tool_generate_board_summary",   "sensitivity": "medium"},
+            {"id": "n_generate_summary", "type": "tool_call",     "tool": "tool_generate_summary_llm",   "sensitivity": "medium"},
             {"id": "n_approval",         "type": "approval_gate", "tool": "human_approval",                "sensitivity": "high"},
             {"id": "n_update_slides",    "type": "tool_call",     "tool": "tool_slides_update_template",   "sensitivity": "medium", "write_action": True},
             {"id": "n_end",              "type": "end"},
@@ -190,7 +190,7 @@ BOARD_METRICS_SPEC = {
     },
     "policy_bundle": {
         "policy_id": "board_metrics_policy_v1", "sensitivity_level": "medium",
-        "tools": {"allowlist": ["tool_salesforce_read_pipeline","tool_stripe_read_revenue","tool_reconcile_metrics","tool_generate_board_summary","tool_slides_update_template","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
+        "tools": {"allowlist": ["tool_salesforce_read_pipeline","tool_stripe_read_revenue","tool_reconcile_metrics","tool_generate_summary_llm","tool_slides_update_template","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
         "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
         "write_restrictions": {"tool_slides_update_template": {"allowed_template_ids": ["TEMPLATE_DECK_V1"], "allow_create_new_decks": False}},
     },
