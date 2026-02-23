@@ -15,13 +15,21 @@ from __future__ import annotations
 
 import sqlite3
 import time
+import json
+import hashlib
+from datetime import datetime, timezone
 from dataclasses import dataclass, field
 from typing import Any
 
 from models import Decision, LogEntry, RunContext, ToolResult
 from policy import policy_check, policy_from_spec, INFRA_TOOLS
 from tools import TOOL_REGISTRY
-from logger import write_log
+from logger import (
+    write_log,
+    upsert_run_start,
+    update_run_approval,
+    update_run_status,
+)
 
 
 # ── RunSummary ─────────────────────────────────────────────────────
@@ -39,6 +47,9 @@ class RunSummary:
     final_outputs: dict[str, Any] = field(default_factory=dict)
     denial_reason: str | None = None
 
+def compute_policy_hash(policy_bundle: dict) -> str:
+    canonical = json.dumps(policy_bundle, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 # ── Log helper ─────────────────────────────────────────────────────
 
@@ -313,6 +324,21 @@ def run_saw(
     policy = policy_from_spec(saw_spec)
     start_id = _find_start_node(node_map)
     resolver = input_resolver if input_resolver is not None else default_input_resolver
+    policy_bundle = saw_spec.get("policy_bundle", {})
+    policy_hash = compute_policy_hash(policy_bundle)
+    policy_version = policy_bundle.get("policy_id", "unknown")
+    policy_snapshot = json.dumps(policy_bundle, sort_keys=True, separators=(",", ":"))
+
+    upsert_run_start(
+        conn=conn,
+        run_id=ctx.run_id,
+        saw_id=ctx.saw_id,
+        started_at=datetime.now(timezone.utc).isoformat(),
+        status="running",
+        policy_hash=policy_hash,
+        policy_version=policy_version,
+        policy_snapshot=policy_snapshot,
+    )
 
     summary = RunSummary(
         run_id=ctx.run_id,
@@ -342,6 +368,18 @@ def run_saw(
         # ── APPROVAL GATE ─────────────────────────────────────────
         elif node_type == "approval_gate":
             approved, wait_ms, error = _handle_approval_gate(ctx, node, saw_spec)
+            approved_by = ctx.state.get("_approved_by")
+            approval_note = ctx.state.get("_approval_note")
+            approved_at = datetime.now(timezone.utc).isoformat() if approved else None
+
+            update_run_approval(
+                conn=conn,
+                run_id=ctx.run_id,
+                approved_by=approved_by,
+                approved_at=approved_at,
+                approval_note=approval_note,
+            )
+
             summary.human_wait_time_ms += wait_ms
 
             _log_event(
@@ -396,5 +434,5 @@ def run_saw(
     summary.total_time_ms = round(
         summary.system_time_ms + summary.human_wait_time_ms, 2
     )
-
+    update_run_status(conn, ctx.run_id, summary.status)
     return summary
