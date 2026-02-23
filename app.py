@@ -225,6 +225,8 @@ SAW_REGISTRY = {
     "Revenue Reconciliation":    REVENUE_RECON_SPEC,
     "Budget Reforecast":         BUDGET_REFORECAST_SPEC,
 }
+SAW_SPEC_BY_ID = {spec["saw_id"]: spec for spec in SAW_REGISTRY.values()}
+
 SUMMARY_NODE = {
     "Board Metrics Aggregation": "n_generate_summary",
     "Revenue Reconciliation":    "n_gen_report",
@@ -514,13 +516,81 @@ with tab2:
     import pandas as pd
     st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
     history = load_run_history()
+    drill_run_id = st.text_input("Run ID drill-down", placeholder="Paste full run_id from DB")
+
     if history is not None and not history.empty:
         history = history.copy()
+
+        # Drill-down FIRST (shows right under input)
+        if drill_run_id:
+            conn = init_db(DB_PATH)
+            run_id_value = drill_run_id.strip()
+            selected_logs = get_run_logs(conn, run_id_value)
+
+            # Allow short 8-char prefix from table.
+            if not selected_logs and len(run_id_value) == 8:
+                row = conn.execute(
+                    "SELECT run_id FROM execution_log WHERE run_id LIKE ? ORDER BY timestamp_iso DESC LIMIT 1",
+                    (f"{run_id_value}%",)
+                ).fetchone()
+                if row:
+                    run_id_value = row[0]
+                    selected_logs = get_run_logs(conn, run_id_value)
+
+            if not selected_logs:
+                st.warning("No logs found for that run ID.")
+            else:
+                saw_id = selected_logs[0].get("saw_id", "")
+                spec = SAW_SPEC_BY_ID.get(saw_id)
+
+                st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+                st.markdown(f'<div class="sf-label">Run Drill-Down · {run_id_value[:8]} ({saw_id})</div>', unsafe_allow_html=True)
+
+                if not spec:
+                    st.warning(f"SAW spec not found for saw_id: {saw_id}")
+                else:
+                    st.markdown('<div class="sf-label">Policy Snapshot</div>', unsafe_allow_html=True)
+                    render_policy_snapshot(spec)
+
+                    st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+                    st.markdown('<div class="sf-label">Execution Graph</div>', unsafe_allow_html=True)
+                    render_execution_graph(spec, selected_logs)
+
+                st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+                st.markdown('<div class="sf-label">Execution Log (Drill-Down)</div>', unsafe_allow_html=True)
+
+                rows_html_drill = ""
+                for row in selected_logs:
+                    ts = str(row.get("timestamp_iso", ""))[:19].replace("T", " ")
+                    node = row.get("node_id", "")
+                    tool = row.get("tool_name", "") or "—"
+                    dec = row.get("decision", "")
+                    lat = f"{row.get('latency_ms', 0):.2f}"
+                    err = row.get("error", "") or "—"
+                    dec_color = "#26c0ff" if dec == "allow" else "#ff731e"
+                    rows_html_drill += f'<tr><td>{ts}</td><td>{node}</td><td>{tool}</td><td style="color:{dec_color}">{dec}</td><td>{lat}</td><td>{err}</td></tr>'
+
+                st.markdown(
+                    '<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">'
+                    '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
+                    '<thead><tr style="border-bottom:1px solid #1e3050;">'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Timestamp</th>'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Node</th>'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Tool</th>'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Decision</th>'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Latency (ms)</th>'
+                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Error</th>'
+                    f'</tr></thead><tbody style="color:#e2eaf5;">{rows_html_drill}</tbody></table></div>',
+                    unsafe_allow_html=True
+                )
+
+        # History table SECOND
         history["run_id"] = history["run_id"].str[:8]
-        rows_html = ""
+        rows_html_hist = ""
         for _, row in history.iterrows():
             status_color = "#26c0ff" if row["status"] == "completed" else "#ff731e"
-            rows_html += f'<tr><td>{row["run_id"]}</td><td>{row["saw_id"]}</td><td style="color:{status_color}">{row["status"]}</td><td>{row["system_ms"]}</td><td>{row["human_wait_ms"]}</td><td>{str(row["started_at"])[:19].replace("T"," ")}</td></tr>'
+            rows_html_hist += f'<tr><td>{row["run_id"]}</td><td>{row["saw_id"]}</td><td style="color:{status_color}">{row["status"]}</td><td>{row["system_ms"]}</td><td>{row["human_wait_ms"]}</td><td>{str(row["started_at"])[:19].replace("T"," ")}</td></tr>'
+
         st.markdown(f'''<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">
 <table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">
 <thead><tr style="border-bottom:1px solid #1e3050;">
@@ -531,7 +601,8 @@ with tab2:
 <th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Human Wait (ms)</th>
 <th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Started At</th>
 </tr></thead>
-<tbody style="color:#e2eaf5;">{rows_html}</tbody>
+<tbody style="color:#e2eaf5;">{rows_html_hist}</tbody>
 </table></div>''', unsafe_allow_html=True)
     else:
         st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
+
