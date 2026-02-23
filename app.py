@@ -1,9 +1,23 @@
 import sqlite3, uuid, os, shutil, copy, json, hashlib
 from pathlib import Path
 import streamlit as st
+import logger as logger_mod
 from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, get_run_record, init_db, DEFAULT_DB_PATH
+from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
 from models import RunContext
+
+def get_run_record(conn, run_id: str):
+    fn = getattr(logger_mod, "get_run_record", None)
+    if callable(fn):
+        return fn(conn, run_id)
+
+    # Fallback for older logger versions
+    cur = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,))
+    row = cur.fetchone()
+    if row is None:
+        return None
+    cols = [d[0] for d in cur.description]
+    return dict(zip(cols, row))
 
 # Streamlit Cloud source tree is read-only — use /tmp for writable DB.
 _CLOUD_DB = Path("/tmp/surfit_runs.db")
