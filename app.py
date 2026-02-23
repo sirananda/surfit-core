@@ -9,10 +9,32 @@ from models import RunContext
 def get_run_record(conn, run_id: str):
     fn = getattr(logger_mod, "get_run_record", None)
     if callable(fn):
-        return fn(conn, run_id)
+        try:
+            return fn(conn, run_id)
+        except sqlite3.OperationalError:
+            pass
 
-    # Fallback for older logger versions
-    cur = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,))
+    try:
+        cur = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,))
+    except sqlite3.OperationalError:
+        # Backward-compatible safety: ensure runs table exists, then return no record.
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS runs (
+                run_id           TEXT PRIMARY KEY,
+                saw_id           TEXT NOT NULL,
+                started_at       TEXT NOT NULL,
+                status           TEXT NOT NULL,
+                policy_hash      TEXT,
+                policy_version   TEXT,
+                policy_snapshot  TEXT,
+                approved_by      TEXT,
+                approved_at      TEXT,
+                approval_note    TEXT
+            )
+        """)
+        conn.commit()
+        return None
+
     row = cur.fetchone()
     if row is None:
         return None
