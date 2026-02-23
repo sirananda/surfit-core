@@ -173,7 +173,7 @@ BOARD_METRICS_SPEC = {
             {"id": "n_salesforce_pull",  "type": "tool_call",     "tool": "tool_salesforce_read_pipeline", "sensitivity": "medium"},
             {"id": "n_stripe_pull",      "type": "tool_call",     "tool": "tool_stripe_read_revenue",      "sensitivity": "medium"},
             {"id": "n_reconcile",        "type": "tool_call",     "tool": "tool_reconcile_metrics",        "sensitivity": "medium"},
-            {"id": "n_generate_summary", "type": "tool_call",     "tool": "tool_generate_board_summary",   "sensitivity": "medium"},
+            {"id": "n_generate_summary", "type": "tool_call",     "tool": "tool_generate_summary_llm",   "sensitivity": "medium"},
             {"id": "n_approval",         "type": "approval_gate", "tool": "human_approval",                "sensitivity": "high"},
             {"id": "n_update_slides",    "type": "tool_call",     "tool": "tool_slides_update_template",   "sensitivity": "medium", "write_action": True},
             {"id": "n_end",              "type": "end"},
@@ -190,7 +190,7 @@ BOARD_METRICS_SPEC = {
     },
     "policy_bundle": {
         "policy_id": "board_metrics_policy_v1", "sensitivity_level": "medium",
-        "tools": {"allowlist": ["tool_salesforce_read_pipeline","tool_stripe_read_revenue","tool_reconcile_metrics","tool_generate_board_summary","tool_slides_update_template","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
+        "tools": {"allowlist": ["tool_salesforce_read_pipeline","tool_stripe_read_revenue","tool_reconcile_metrics","tool_generate_summary_llm","tool_slides_update_template","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
         "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
         "write_restrictions": {"tool_slides_update_template": {"allowed_template_ids": ["TEMPLATE_DECK_V1"], "allow_create_new_decks": False}},
     },
@@ -405,6 +405,29 @@ def build_audit_card_text(run_record: dict | None, ctx: RunContext, result, brea
         lines.append(
             f"- {row.get('timestamp_iso','')} | node={row.get('node_id','')} | tool={row.get('tool_name','')} | decision={row.get('decision','')} | latency_ms={row.get('latency_ms',0)} | error={row.get('error','') or '-'}"
         )
+
+    llm_payload = None
+    if isinstance(getattr(result, "node_results", None), dict):
+        llm_payload = result.node_results.get("n_generate_summary")
+
+    if isinstance(llm_payload, dict):
+        llm_meta = llm_payload.get("llm_meta", {})
+        raw_tool_input = llm_payload.get("raw_tool_input", {})
+        sanitized_prompt_input = llm_payload.get("sanitized_prompt_input", {})
+        llm_output_text = llm_payload.get("llm_output_text", "")
+
+        lines.extend([
+            "",
+            "LLM INVOCATION:",
+            f"Provider: {llm_meta.get('provider', 'unknown')}",
+            f"Model Name: {llm_meta.get('model_name', 'unknown')}",
+            f"Model Version: {llm_meta.get('model_version', 'unknown')}",
+            f"Temperature: {llm_meta.get('temperature', 'unknown')}",
+            f"Max Tokens: {llm_meta.get('max_tokens', 'unknown')}",
+            f"Raw Tool Input: {json.dumps(raw_tool_input, sort_keys=True)}",
+            f"Sanitized Prompt Input: {json.dumps(sanitized_prompt_input, sort_keys=True)}",
+            f"LLM Output: {llm_output_text}",
+        ])
 
     return "\n".join(lines)
 
