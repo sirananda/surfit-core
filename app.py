@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 import logger as logger_mod
 from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, get_llm_invocations, verify_run_integrity, init_db, DEFAULT_DB_PATH
+from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
 from models import RunContext
 
 def get_run_record(conn, run_id: str):
@@ -40,6 +40,30 @@ def get_run_record(conn, run_id: str):
         return None
     cols = [d[0] for d in cur.description]
     return dict(zip(cols, row))
+
+def get_llm_invocations(conn, run_id: str):
+    fn = getattr(logger_mod, "get_llm_invocations", None)
+    if callable(fn):
+        try:
+            return fn(conn, run_id)
+        except Exception:
+            pass
+    return []
+
+
+def verify_run_integrity(conn, run_id: str):
+    fn = getattr(logger_mod, "verify_run_integrity", None)
+    if callable(fn):
+        try:
+            return fn(conn, run_id)
+        except Exception:
+            pass
+    return {
+        "valid": None,
+        "first_mismatch_index": None,
+        "expected_hash": None,
+        "found_hash": None,
+    }
 
 # Streamlit Cloud source tree is read-only — use /tmp for writable DB.
 _CLOUD_DB = Path("/tmp/surfit_runs.db")
