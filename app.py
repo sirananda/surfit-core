@@ -2,7 +2,7 @@ import sqlite3, uuid, os, shutil, copy, json, hashlib
 from pathlib import Path
 import streamlit as st
 from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
+from logger import get_run_logs, get_cycle_time_breakdown, get_run_record, init_db, DEFAULT_DB_PATH
 from models import RunContext
 
 # Streamlit Cloud source tree is read-only — use /tmp for writable DB.
@@ -327,20 +327,29 @@ def render_execution_graph(spec: dict, logs: list[dict]) -> None:
         unsafe_allow_html=True
     )
 
-def build_audit_card_text(spec: dict, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
-    pb = spec.get("policy_bundle", {})
-    fp = policy_fingerprint(spec)
+def build_audit_card_text(run_record: dict | None, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
+    snapshot = (run_record or {}).get("policy_snapshot") or "{}"
+    pb = json.loads(snapshot)
     tools = pb.get("tools", {})
     allowlist = ", ".join(tools.get("allowlist", []))
     denylist = ", ".join(tools.get("denylist", []))
+
+    db_policy_hash = (run_record or {}).get("policy_hash", "unknown")
+    db_policy_version = (run_record or {}).get("policy_version", "unknown")
+    db_approved_by = (run_record or {}).get("approved_by") or "unknown"
+    db_approved_at = (run_record or {}).get("approved_at") or "unknown"
+    db_approval_note = (run_record or {}).get("approval_note") or "none"
 
     lines = [
         "SURFIT AI - RUN AUDIT CARD",
         "=" * 40,
         f"Run ID: {ctx.run_id}",
         f"SAW ID: {ctx.saw_id}",
-        f"Policy ID: {pb.get('policy_id', 'unknown')}",
-        f"Policy Fingerprint: {fp}",
+        f"Policy Version: {db_policy_version}",
+        f"Policy Fingerprint: {db_policy_hash}",
+        f"Approved By: {db_approved_by}",
+        f"Approved At: {db_approved_at}",
+        f"Approval Note: {db_approval_note}",
         f"Status: {result.status}",
         f"Denial reason: {result.denial_reason or 'none'}",
         f"System Time (ms): {breakdown.get('system_time_ms', 0)}",
@@ -424,10 +433,15 @@ with tab1:
                         deny.append(first_tool)
 
             conn = init_db(DB_PATH)
-            ctx  = RunContext(
+            ctx = RunContext(
                 run_id=str(uuid.uuid4()),
                 saw_id=spec["saw_id"],
-                state={"_approval_granted": approval_granted, "_approval_wait_ms": wait_ms},
+                state={
+                    "_approval_granted": approval_granted,
+                    "_approval_wait_ms": wait_ms,
+                    "_approved_by": "demo.manager@surfit.ai",
+                    "_approval_note": "Approved in investor demo",
+                },
             )
             with st.spinner("Running SAW..."):
                 result = run_saw(spec, ctx, conn)
@@ -453,7 +467,8 @@ with tab1:
             b1.metric("System Time", f"{breakdown['system_time_ms']} ms")
             b2.metric("Human Wait",  f"{breakdown['human_wait_time_ms']} ms")
             b3.metric("Total Time",  f"{breakdown['total_ms']} ms")
-            audit_text = build_audit_card_text(spec, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
+            run_record = get_run_record(conn, ctx.run_id)
+            audit_text = build_audit_card_text(run_record, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
             st.download_button(
                 "⬇ Export Audit Card (.txt)",
                 data=audit_text,
