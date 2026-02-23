@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 import logger as logger_mod
 from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
+from logger import get_run_logs, get_cycle_time_breakdown, get_llm_invocations, verify_run_integrity, init_db, DEFAULT_DB_PATH
 from models import RunContext
 
 def get_run_record(conn, run_id: str):
@@ -363,7 +363,7 @@ def render_execution_graph(spec: dict, logs: list[dict]) -> None:
         unsafe_allow_html=True
     )
 
-def build_audit_card_text(run_record: dict | None, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
+def build_audit_card_text(conn, run_record: dict | None, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
     snapshot = (run_record or {}).get("policy_snapshot") or "{}"
     pb = json.loads(snapshot)
     tools = pb.get("tools", {})
@@ -428,6 +428,28 @@ def build_audit_card_text(run_record: dict | None, ctx: RunContext, result, brea
             f"Sanitized Prompt Input: {json.dumps(sanitized_prompt_input, sort_keys=True)}",
             f"LLM Output: {llm_output_text}",
         ])
+    integrity = verify_run_integrity(conn, ctx.run_id)
+    lines.extend([
+        "",
+        "INTEGRITY CHECK:",
+        f"Valid: {integrity.get('valid')}",
+        f"First Mismatch Index: {integrity.get('first_mismatch_index')}",
+        f"Expected Hash: {integrity.get('expected_hash')}",
+        f"Found Hash: {integrity.get('found_hash')}",
+    ])
+
+    llm_rows = get_llm_invocations(conn, ctx.run_id)
+    if llm_rows:
+        lines.append("")
+        lines.append("LLM INVOCATION HASHES:")
+        for i, r in enumerate(llm_rows, start=1):
+            lines.extend([
+                f"[{i}] node={r.get('node_id')} invoked_at={r.get('invoked_at')}",
+                f"provider={r.get('provider')} model={r.get('model_name')} version={r.get('model_version')}",
+                f"raw_tool_input_hash={r.get('raw_tool_input_hash')}",
+                f"sanitized_prompt_input_hash={r.get('sanitized_prompt_input_hash')}",
+                f"llm_output_text_hash={r.get('llm_output_text_hash')}",
+            ])
 
     return "\n".join(lines)
 
@@ -527,7 +549,7 @@ with tab1:
             b2.metric("Human Wait",  f"{breakdown['human_wait_time_ms']} ms")
             b3.metric("Total Time",  f"{breakdown['total_ms']} ms")
             run_record = get_run_record(conn, ctx.run_id)
-            audit_text = build_audit_card_text(run_record, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
+            audit_text = build_audit_card_text(conn, run_record, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
             st.download_button(
                 "⬇ Export Audit Card (.txt)",
                 data=audit_text,

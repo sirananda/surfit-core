@@ -29,6 +29,7 @@ from logger import (
     upsert_run_start,
     update_run_approval,
     update_run_status,
+    write_llm_invocation,
 )
 
 
@@ -284,6 +285,23 @@ def _execute_tool_node(
     # ── Execute tool ──────────────────────────────────────────────
     t0 = time.perf_counter()
     result = TOOL_REGISTRY[tool_name](tool_inputs, ctx)
+    if result.success and tool_name == "tool_generate_summary_llm":
+        data = result.data if isinstance(result.data, dict) else {}
+        llm_meta = data.get("llm_meta", {})
+        write_llm_invocation(
+            conn=conn,
+            run_id=ctx.run_id,
+            node_id=node_id,
+            invoked_at=datetime.now(timezone.utc).isoformat(),
+            provider=llm_meta.get("provider"),
+            model_name=llm_meta.get("model_name"),
+            model_version=llm_meta.get("model_version"),
+            temperature=llm_meta.get("temperature"),
+            max_tokens=llm_meta.get("max_tokens"),
+            raw_tool_input=data.get("raw_tool_input", {}),
+            sanitized_prompt_input=data.get("sanitized_prompt_input", {}),
+            llm_output_text=data.get("llm_output_text", ""),
+        )
     latency_ms = round((time.perf_counter() - t0) * 1000, 2)
 
     # ── Log ───────────────────────────────────────────────────────
