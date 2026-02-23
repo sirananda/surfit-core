@@ -406,6 +406,29 @@ def build_audit_card_text(run_record: dict | None, ctx: RunContext, result, brea
             f"- {row.get('timestamp_iso','')} | node={row.get('node_id','')} | tool={row.get('tool_name','')} | decision={row.get('decision','')} | latency_ms={row.get('latency_ms',0)} | error={row.get('error','') or '-'}"
         )
 
+    llm_payload = None
+    if isinstance(getattr(result, "node_results", None), dict):
+        llm_payload = result.node_results.get("n_generate_summary")
+
+    if isinstance(llm_payload, dict):
+        llm_meta = llm_payload.get("llm_meta", {})
+        raw_tool_input = llm_payload.get("raw_tool_input", {})
+        sanitized_prompt_input = llm_payload.get("sanitized_prompt_input", {})
+        llm_output_text = llm_payload.get("llm_output_text", "")
+
+        lines.extend([
+            "",
+            "LLM INVOCATION:",
+            f"Provider: {llm_meta.get('provider', 'unknown')}",
+            f"Model Name: {llm_meta.get('model_name', 'unknown')}",
+            f"Model Version: {llm_meta.get('model_version', 'unknown')}",
+            f"Temperature: {llm_meta.get('temperature', 'unknown')}",
+            f"Max Tokens: {llm_meta.get('max_tokens', 'unknown')}",
+            f"Raw Tool Input: {json.dumps(raw_tool_input, sort_keys=True)}",
+            f"Sanitized Prompt Input: {json.dumps(sanitized_prompt_input, sort_keys=True)}",
+            f"LLM Output: {llm_output_text}",
+        ])
+
     return "\n".join(lines)
 
 def load_run_history():
