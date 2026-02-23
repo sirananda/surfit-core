@@ -1,4 +1,4 @@
-import sqlite3, uuid, os, shutil
+import sqlite3, uuid, os, shutil, copy
 from pathlib import Path
 import streamlit as st
 from engine import run_saw
@@ -230,6 +230,130 @@ SUMMARY_NODE = {
     "Revenue Reconciliation":    "n_gen_report",
     "Budget Reforecast":         "n_gen_reforecast",
 }
+def render_policy_snapshot(spec: dict) -> None:
+    pb = spec.get("policy_bundle", {})
+    tools = pb.get("tools", {})
+    allowlist = tools.get("allowlist", [])
+    denylist = tools.get("denylist", [])
+
+    def _rows(items):
+        if not items:
+            return '<tr><td style="padding:10px 14px;color:#7a9ab8;">—</td></tr>'
+        return "".join(
+            f'<tr><td style="padding:10px 14px;color:#e2eaf5;border-bottom:1px solid #1a2a40;">{item}</td></tr>'
+            for item in items
+        )
+
+    allow_table = (
+        '<div style="border:1px solid #1e3050;border-radius:10px;overflow:hidden;">'
+        '<div style="padding:10px 14px;border-bottom:1px solid #1e3050;color:#26c0ff;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Allowlist</div>'
+        '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
+        f'<tbody>{_rows(allowlist)}</tbody>'
+        '</table>'
+        '</div>'
+    )
+
+    deny_table = (
+        '<div style="border:1px solid #1e3050;border-radius:10px;overflow:hidden;">'
+        '<div style="padding:10px 14px;border-bottom:1px solid #1e3050;color:#ff731e;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Denylist</div>'
+        '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
+        f'<tbody>{_rows(denylist)}</tbody>'
+        '</table>'
+        '</div>'
+    )
+
+    st.markdown(
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">{allow_table}{deny_table}</div>',
+        unsafe_allow_html=True
+    )
+
+
+def _node_status_map(spec: dict, logs: list[dict]) -> dict[str, str]:
+    statuses = {n["id"]: "pending" for n in spec["graph"]["nodes"]}
+    statuses["n_start"] = "executed"
+
+    for row in logs or []:
+        node_id = row.get("node_id", "")
+        decision = row.get("decision", "")
+        if not node_id:
+            continue
+        if decision == "deny":
+            statuses[node_id] = "blocked"
+        elif decision == "allow":
+            statuses[node_id] = "executed"
+
+    return statuses
+
+
+def render_execution_graph(spec: dict, logs: list[dict]) -> None:
+    statuses = _node_status_map(spec, logs)
+    color_for = {
+        "executed": ("#26c0ff", "rgba(38,192,255,0.10)"),
+        "blocked": ("#ff731e", "rgba(255,115,30,0.10)"),
+        "pending": ("#7a9ab8", "rgba(122,154,184,0.10)"),
+    }
+
+    chips = []
+    for node in spec["graph"]["nodes"]:
+        node_id = node["id"]
+        node_type = node.get("type", "")
+        state = statuses.get(node_id, "pending")
+        fg, bg = color_for[state]
+        label = node_id.replace("n_", "").replace("_", " ").title()
+        chips.append(
+            f'<div style="border:1px solid {fg};background:{bg};border-radius:10px;padding:10px 12px;min-height:72px;">'
+            f'<div style="font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:#7a9ab8;">{node_type}</div>'
+            f'<div style="font-size:13px;color:#e2eaf5;margin:4px 0 6px;">{label}</div>'
+            f'<div style="font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:{fg};">{state}</div>'
+            f'</div>'
+        )
+
+    legend = (
+        '<div style="display:flex;gap:14px;align-items:center;margin-bottom:10px;">'
+        '<span style="color:#26c0ff;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Executed</span>'
+        '<span style="color:#ff731e;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Blocked</span>'
+        '<span style="color:#7a9ab8;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Pending</span>'
+        '</div>'
+    )
+
+    st.markdown(
+        f'{legend}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">{"".join(chips)}</div>',
+        unsafe_allow_html=True
+    )
+
+def build_audit_card_text(spec: dict, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
+    pb = spec.get("policy_bundle", {})
+    tools = pb.get("tools", {})
+    allowlist = ", ".join(tools.get("allowlist", []))
+    denylist = ", ".join(tools.get("denylist", []))
+
+    lines = [
+        "SURFIT AI - RUN AUDIT CARD",
+        "=" * 40,
+        f"Run ID: {ctx.run_id}",
+        f"SAW ID: {ctx.saw_id}",
+        f"Policy ID: {pb.get('policy_id', 'unknown')}",
+        f"Status: {result.status}",
+        f"Denial reason: {result.denial_reason or 'none'}",
+        f"System Time (ms): {breakdown.get('system_time_ms', 0)}",
+        f"Human Wait (ms): {breakdown.get('human_wait_time_ms', 0)}",
+        f"Total Time (ms): {breakdown.get('total_ms', 0)}",
+        "",
+        "ALLOWLIST:",
+        allowlist or "none",
+        "",
+        "DENYLIST:",
+        denylist or "none",
+        "",
+        "EXECUTION LOG:",
+    ]
+
+    for row in logs or []:
+        lines.append(
+            f"- {row.get('timestamp_iso','')} | node={row.get('node_id','')} | tool={row.get('tool_name','')} | decision={row.get('decision','')} | latency_ms={row.get('latency_ms',0)} | error={row.get('error','') or '-'}"
+        )
+
+    return "\n".join(lines)
 
 def load_run_history():
     import pandas as pd
@@ -270,6 +394,8 @@ with tab1:
         st.markdown('<div class="sf-label">Controls</div>', unsafe_allow_html=True)
         saw_choice       = st.selectbox("Select SAW", list(SAW_REGISTRY.keys()))
         approval_granted = st.checkbox("Approve write step", value=True)
+        force_policy_deny = st.checkbox("Force policy deny demo", value=False)
+
         wait_ms          = st.slider("Human approval wait (ms)", 0, 3000, 500, step=100)
         st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
         run_button       = st.button("▶  Run SAW", use_container_width=True)
@@ -277,7 +403,18 @@ with tab1:
     with col2:
         if run_button:
             import pandas as pd
-            spec = SAW_REGISTRY[saw_choice]
+            spec = copy.deepcopy(SAW_REGISTRY[saw_choice])
+
+            if force_policy_deny:
+                first_tool = next(
+                    (n.get("tool") for n in spec["graph"]["nodes"] if n.get("type") == "tool_call" and n.get("tool")),
+                    None
+                )
+                if first_tool:
+                    deny = spec["policy_bundle"]["tools"]["denylist"]
+                    if first_tool not in deny:
+                        deny.append(first_tool)
+
             conn = init_db(DB_PATH)
             ctx  = RunContext(
                 run_id=str(uuid.uuid4()),
@@ -295,6 +432,9 @@ with tab1:
 
             if result.denial_reason:
                 st.warning(f"Denial reason: {result.denial_reason}")
+            st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+            st.markdown('<div class="sf-label">Policy Snapshot</div>', unsafe_allow_html=True)
+            render_policy_snapshot(spec)
 
             st.markdown('<div class="sf-label">Cycle-Time Breakdown</div>', unsafe_allow_html=True)
             breakdown = get_cycle_time_breakdown(conn, ctx.run_id)
@@ -302,10 +442,22 @@ with tab1:
             b1.metric("System Time", f"{breakdown['system_time_ms']} ms")
             b2.metric("Human Wait",  f"{breakdown['human_wait_time_ms']} ms")
             b3.metric("Total Time",  f"{breakdown['total_ms']} ms")
+            audit_text = build_audit_card_text(spec, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
+            st.download_button(
+                "⬇ Export Audit Card (.txt)",
+                data=audit_text,
+                file_name=f"audit_{ctx.run_id[:8]}.txt",
+                mime="text/plain",
+                use_container_width=True
+            )
 
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
             logs = get_run_logs(conn, ctx.run_id)
+            st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+            st.markdown('<div class="sf-label">Execution Graph</div>', unsafe_allow_html=True)
+            render_execution_graph(spec, logs)
+
             if logs:
                 rows_html = ""
                 for row in logs:
