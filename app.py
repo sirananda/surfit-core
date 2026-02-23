@@ -1,4 +1,4 @@
-import sqlite3, uuid, os, shutil, copy
+import sqlite3, uuid, os, shutil, copy, json, hashlib
 from pathlib import Path
 import streamlit as st
 from engine import run_saw
@@ -232,6 +232,10 @@ SUMMARY_NODE = {
     "Revenue Reconciliation":    "n_gen_report",
     "Budget Reforecast":         "n_gen_reforecast",
 }
+def policy_fingerprint(spec: dict) -> str:
+    pb = spec.get("policy_bundle", {})
+    canonical = json.dumps(pb, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
 def render_policy_snapshot(spec: dict) -> None:
     pb = spec.get("policy_bundle", {})
     tools = pb.get("tools", {})
@@ -325,6 +329,7 @@ def render_execution_graph(spec: dict, logs: list[dict]) -> None:
 
 def build_audit_card_text(spec: dict, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
     pb = spec.get("policy_bundle", {})
+    fp = policy_fingerprint(spec)
     tools = pb.get("tools", {})
     allowlist = ", ".join(tools.get("allowlist", []))
     denylist = ", ".join(tools.get("denylist", []))
@@ -335,6 +340,7 @@ def build_audit_card_text(spec: dict, ctx: RunContext, result, breakdown: dict, 
         f"Run ID: {ctx.run_id}",
         f"SAW ID: {ctx.saw_id}",
         f"Policy ID: {pb.get('policy_id', 'unknown')}",
+        f"Policy Fingerprint: {fp}",
         f"Status: {result.status}",
         f"Denial reason: {result.denial_reason or 'none'}",
         f"System Time (ms): {breakdown.get('system_time_ms', 0)}",
@@ -435,6 +441,9 @@ with tab1:
             if result.denial_reason:
                 st.warning(f"Denial reason: {result.denial_reason}")
             st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
+           
+            fp = policy_fingerprint(spec)
+            st.markdown(f'<div style="font-size:11px;color:#7a9ab8;margin-bottom:10px;">Policy Fingerprint: <span style="color:#26c0ff;">{fp}</span></div>', unsafe_allow_html=True)
             st.markdown('<div class="sf-label">Policy Snapshot</div>', unsafe_allow_html=True)
             render_policy_snapshot(spec)
 
