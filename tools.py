@@ -344,6 +344,7 @@ TOOL_REGISTRY: dict[str, callable] = {
     "tool_stripe_read_revenue": tool_stripe_read_revenue,
     "tool_reconcile_metrics": tool_reconcile_metrics,
     "tool_generate_summary_llm": tool_generate_summary_llm,
+    "tool_generate_board_summary": tool_generate_summary_llm,
     "tool_slides_update_template": tool_slides_update_template,
     "tool_logger_write": tool_logger_write,
     "tool_quickbooks_read_expenses": tool_quickbooks_read_expenses,
