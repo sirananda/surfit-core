@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Surfit.AI — Governed Workflows. Human Authority.</title>
-<meta name="description" content="Surfit is a governance runtime for enterprise AI execution. Agents don't execute freely. They execute inside a Wave.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 68'><path d='M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z' fill='%2326c0ff'/><path d='M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z' fill='%2326c0ff'/><path d='M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z' fill='%2326c0ff'/></svg>">
+<title>Surfit.AI — The Governance Runtime for Autonomous AI Agents.</title>
+<meta name="description" content="Surfit is the governance runtime for autonomous AI agents. Agents are persistent. Execution is bounded, policy-governed, and verifiable.">
 <link href="https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -559,14 +558,11 @@ footer {
       <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
     </div>
 
-    <p class="hero-tagline">Governed Workflows. Human Authority.</p>
+    <p class="hero-tagline">The Governance Runtime for Autonomous AI Agents.</p>
 
-    <p class="hero-substrate">The governance substrate for enterprise AI execution.</p>
+    <p class="hero-substrate">Agents are persistent. Execution is bounded.</p>
 
-    <p class="hero-desc">
-      Agents don't execute freely.<br>
-      They execute <strong>inside a Wave</strong>.
-    </p>
+
 
     <div class="hero-actions">
       <a href="https://surfit-demo.streamlit.app" target="_blank" class="btn-primary">
@@ -578,20 +574,7 @@ footer {
       <a href="#how-it-works" class="btn-ghost">How It Works</a>
     </div>
 
-    <div class="hero-metrics">
-      <div class="hero-metric">
-        <div class="hero-metric-val">0.09<span style="font-size:16px;color:var(--muted)"> ms</span></div>
-        <div class="hero-metric-label">System Time</div>
-      </div>
-      <div class="hero-metric">
-        <div class="hero-metric-val orange">4<span style="font-size:16px;color:var(--muted)"> hrs</span></div>
-        <div class="hero-metric-label">Human Wait</div>
-      </div>
-      <div class="hero-metric">
-        <div class="hero-metric-val white">SHA256</div>
-        <div class="hero-metric-label">Policy Hash</div>
-      </div>
-    </div>
+
 
   </div>
 </section>
@@ -608,9 +591,9 @@ footer {
           <span class="accent-orange"> Manual bottlenecks.</span>
         </div>
         <p class="section-body">
-          Without a governance layer, you get agent sprawl — uncontrolled execution paths, rogue actions, and write operations no human ever authorized.
+          Without a governance layer, you get agent sprawl — uncontrolled execution paths, rogue writes, and audit gaps that compound across every system the agent touches.
           <br><br>
-          Surfit prevents sprawl. Every agent action is policy-bound. Every write requires named human authority. Nothing escapes the Wave.
+          Surfit prevents sprawl. Agents remain persistent. Every action executes inside a bounded Wave, governed by policy, and verified by an immutable audit record.
         </p>
       </div>
 
@@ -630,13 +613,13 @@ footer {
         <div class="thesis-point">
           <div class="thesis-point-icon orange">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2C8 2 3 5 3 9C3 11.76 5.24 14 8 14C10.76 14 13 11.76 13 9C13 5 8 2 8 2Z" stroke="#ff731e" stroke-width="1.5" fill="none"/>
-              <circle cx="8" cy="9" r="2" fill="#ff731e" opacity="0.7"/>
+              <rect x="2" y="2" width="12" height="12" rx="2" stroke="#ff731e" stroke-width="1.5" fill="none"/>
+              <path d="M5 8H11M8 5V11" stroke="#ff731e" stroke-width="1.2" stroke-linecap="round"/>
             </svg>
           </div>
           <div class="thesis-point-text">
-            <strong>Named human approval</strong>
-            <p>No write action executes without a named human approving it. Approval authority is persisted — who approved, when, and with what note. Every time.</p>
+            <strong>Policy-enforced write boundaries</strong>
+            <p>Write actions are evaluated against policy at runtime — not manually reviewed. Missions complete autonomously under defined constraints, producing verifiable audit records every time.</p>
           </div>
         </div>
 
@@ -657,13 +640,92 @@ footer {
   </div>
 </section>
 
+<!-- RUNTIME MODEL -->
+<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div style="max-width:720px;margin:0 auto;text-align:center;">
+      <div class="section-label">How Surfit Works</div>
+      <div class="section-title" style="margin-bottom:20px;">Persistent agents.<br>Bounded execution.</div>
+      <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:48px;">
+        Surfit governs autonomous AI execution. Agents are persistent — they listen, plan, and reason continuously. When action is required, they initiate a Secure Agent Wave: a bounded mission container that defines what is permitted. Execution occurs within policy constraints and terminates deterministically, producing a verifiable audit record with every Wave.
+      </p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 20px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Persistent</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Agent Layer</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Agents reason and plan continuously. They are never interrupted — only bounded when they act.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:24px 20px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Bounded</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Secure Agent Wave</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">A discrete mission container. Policy-governed, tool-scoped, lifecycle-bound. Initiates, executes, and terminates.</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 20px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Verifiable</div>
+          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Audit Record</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Every Wave produces a tamper-proof, hash-chained execution record. Integrity is programmatically verified.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON TABLE -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div class="section-label">Landscape</div>
+      <div class="section-title">Where Surfit fits.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <!-- Automation Tools -->
+      <div style="background:var(--surface);padding:32px 28px;display:flex;flex-direction:column;gap:20px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Automation Tools</div>
+          <div style="font-size:16px;font-weight:500;color:var(--text);">Zapier, Make, n8n</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">Trigger → Transform → Action → Done</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">Predefined logic. No uncertainty.</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">No governance layer. No audit.</div>
+        </div>
+      </div>
+      <!-- Agent Frameworks -->
+      <div style="background:var(--surface);padding:32px 28px;display:flex;flex-direction:column;gap:20px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;">Agent Frameworks</div>
+          <div style="font-size:16px;font-weight:500;color:var(--text);">LangChain, AutoGen</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">Goal → LLM reasoning → Tool calls → More reasoning</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">Dynamic reasoning. Open-ended behavior.</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);padding:10px 14px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">No write controls. No audit lineage.</div>
+        </div>
+      </div>
+      <!-- Surfit Runtime -->
+      <div style="background:#0d1a2e;padding:32px 28px;display:flex;flex-direction:column;gap:20px;border-left:1px solid rgba(38,192,255,0.2);">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Surfit Runtime</div>
+          <div style="font-size:16px;font-weight:500;color:var(--text);">Governed Autonomy</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:12px;font-weight:300;color:var(--text);padding:10px 14px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Agent → Secure Agent Wave → Policy enforcement → Commit → Audit</div>
+          <div style="font-size:12px;font-weight:300;color:var(--text);padding:10px 14px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Bounded open-ended behavior with governance.</div>
+          <div style="font-size:12px;font-weight:300;color:var(--text);padding:10px 14px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Enforced mission boundaries. Verifiable audit.</div>
+        </div>
+        <div style="font-size:11px;letter-spacing:0.08em;color:var(--blue);font-weight:500;margin-top:4px;">Surfit does not replace automation or agent frameworks. It governs them.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- METRICS -->
 <section class="metrics-section" id="metrics">
   <div class="container">
     <div class="metrics-header">
       <div class="section-label">Operational Signal</div>
       <div class="section-title">Every Wave run is measurable.</div>
-      <p class="section-body">Surfit doesn't just govern agents. It quantifies governance friction — so you can see exactly where time is being spent.</p>
+      <p class="section-body">Every Wave produces structural governance metrics. Not post-hoc analytics — intrinsic measurements of bounded execution.</p>
     </div>
     <div class="metrics-grid">
       <div class="metric-card">
@@ -672,9 +734,9 @@ footer {
         <div class="metric-desc">Machine execution time across all tool nodes in the Wave graph.</div>
       </div>
       <div class="metric-card">
-        <div class="metric-val orange">4<span style="font-size:18px"> hrs</span></div>
-        <div class="metric-lbl">Human Wait Time</div>
-        <div class="metric-desc">Elapsed time from approval request to named human authorization. This is the number that matters.</div>
+        <div class="metric-val orange">∞</div>
+        <div class="metric-lbl">Agent Persistence</div>
+        <div class="metric-desc">Agents run continuously. Surfit bounds their execution into discrete, governed Waves — not their existence.</div>
       </div>
       <div class="metric-card">
         <div class="metric-val white">SHA256</div>
@@ -701,27 +763,27 @@ footer {
 
     <div class="flow-diagram">
       <div class="flow-node">
+        <div class="flow-node-icon icon-blue">🌊</div>
+        <div class="flow-node-label">Agent</div>
+        <div class="flow-node-sub">Persistent</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
         <div class="flow-node-icon icon-blue">🔵</div>
-        <div class="flow-node-label">Data Pull</div>
-        <div class="flow-node-sub">Policy Check</div>
+        <div class="flow-node-label">Secure Wave</div>
+        <div class="flow-node-sub">Initiated</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-node">
         <div class="flow-node-icon icon-blue">⚡</div>
-        <div class="flow-node-label">LLM Reason</div>
-        <div class="flow-node-sub">Tool Node</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-node approval">
-        <div class="flow-node-icon icon-orange">👤</div>
-        <div class="flow-node-label">Human Gate</div>
-        <div class="flow-node-sub">Approval</div>
+        <div class="flow-node-label">Policy Check</div>
+        <div class="flow-node-sub">Enforced</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-node">
         <div class="flow-node-icon icon-green">✓</div>
-        <div class="flow-node-label">Write Action</div>
-        <div class="flow-node-sub">Authorized</div>
+        <div class="flow-node-label">Commit</div>
+        <div class="flow-node-sub">Policy-bound</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-node">
@@ -743,20 +805,20 @@ footer {
       <div class="arch-card">
         <div class="arch-card-num">01</div>
         <div class="arch-card-tag tag-blue">Execution</div>
-        <div class="arch-card-title">Deterministic Graph Walker</div>
-        <div class="arch-card-body">Graph-based Wave execution with policy check before every tool invocation. Approval gate enforcement. Structured run lifecycle. The executor never changes — only the tool's output is non-deterministic.</div>
+        <div class="arch-card-title">Policy-Governed Graph Executor</div>
+        <div class="arch-card-body">Graph-based Wave execution with policy check before every tool invocation. Each node is evaluated at runtime. The execution structure is governed — the reasoning inside tool nodes is not constrained.</div>
       </div>
       <div class="arch-card">
         <div class="arch-card-num">02</div>
         <div class="arch-card-tag tag-orange">Governance</div>
         <div class="arch-card-title">Policy Lineage Anchoring</div>
-        <div class="arch-card-body">Canonical SHA256 policy hash computed at run start. Policy snapshot persisted. Approval authority recorded: approved_by, approved_at, approval_note. Run status written to DB. Immutable per run.</div>
+        <div class="arch-card-body">Canonical SHA256 policy hash computed at Wave initiation. Policy snapshot persisted and immutable per Wave. Run status and governance provenance written to DB. Every Wave is anchored to the policy that governed it.</div>
       </div>
       <div class="arch-card">
         <div class="arch-card-num">03</div>
         <div class="arch-card-tag tag-blue">Intelligence</div>
         <div class="arch-card-title">Governed LLM Integration</div>
-        <div class="arch-card-body">LLM treated as a tool node — not a privileged actor. Provider, model, prompt boundary, raw input, sanitized input, and output all logged. Approval still required before any write executes.</div>
+        <div class="arch-card-body">LLM treated as a tool node — not a privileged actor. Provider, model, prompt boundary, raw input, sanitized input, and output all logged. Write actions are policy-evaluated, not manually reviewed.</div>
       </div>
       <div class="arch-card">
         <div class="arch-card-num">04</div>
@@ -774,13 +836,13 @@ footer {
         <div class="arch-card-num">06</div>
         <div class="arch-card-tag tag-blue">Runtime</div>
         <div class="arch-card-title">OpenClaw Agent Interface</div>
-        <div class="arch-card-body">OpenClaw agents trigger Wave execution through a governed tool wrapper. The agent calls Surfit — Surfit governs what happens next. Agents cannot bypass policy, approval gates, or write restrictions.</div>
+        <div class="arch-card-body">OpenClaw agents initiate Waves through a governed tool wrapper. The agent calls Surfit — Surfit governs what happens next. Agents cannot bypass policy enforcement or write restrictions.</div>
       </div>
       <div class="arch-card" style="grid-column: 1 / -1; background: rgba(38,192,255,0.02);">
         <div class="arch-card-num">07</div>
         <div class="arch-card-tag tag-blue">Library</div>
-        <div class="arch-card-title">Wave Library</div>
-        <div class="arch-card-body" style="max-width:680px;">Pre-built Waves for high-trust enterprise workflows: Board Metrics Aggregation, Revenue Reconciliation, Budget Reforecast. Each Wave ships with its own policy bundle, tool allowlist, and approval routing. Drop in, configure, govern.</div>
+        <div class="arch-card-title">Wave Atlas</div>
+        <div class="arch-card-body" style="max-width:680px;">The Wave Atlas is Surfit's registry of versioned, governed execution patterns. Each entry defines policy version, tool allowlist, write constraints, and lifecycle scope. Agents request Waves from the Atlas before acting — the Atlas defines what execution is permitted, not how agents think.</div>
       </div>
     </div>
   </div>
@@ -791,8 +853,8 @@ footer {
   <div class="cta-glow"></div>
   <div style="position:relative;z-index:1;">
     <div class="section-label">Built for Enterprise AI</div>
-    <div class="section-title">Surfit does not reason.<br>Surfit governs reasoning.</div>
-    <p class="section-body">The governance substrate for enterprise AI execution. See it running live.</p>
+    <div class="section-title">Agents persist.<br>Execution is governed.</div>
+    <p class="section-body">Surfit converts open-ended AI reasoning into bounded, policy-governed execution. See it running live.</p>
     <div class="cta-actions">
       <a href="https://surfit-demo.streamlit.app" target="_blank" class="btn-primary">
         Open Live Demo
@@ -800,8 +862,9 @@ footer {
           <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </a>
-      <a href="mailto:hello@surfit.ai" class="btn-ghost">Get in Touch</a>
+      <a href="/cdn-cgi/l/email-protection#84ece1e8e8ebc4f7f1f6e2edf0aae5ed" class="btn-ghost">Get in Touch</a>
     </div>
+    <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--border);">Built for OpenClaw Agents &nbsp;·&nbsp; Governed by Surfit</p>
   </div>
 </section>
 
@@ -818,14 +881,9 @@ footer {
         <span style="color:#26c0ff;">SURFIT</span><span style="color:#7a9ab8;font-size:12px;margin:0 1px;">.</span><span style="color:#ff731e;">AI</span>
       </div>
     </div>
-    <div class="footer-copy">© 2026 Surfit.AI — Governed Workflows. Human Authority.</div>
+    <div class="footer-copy">© 2026 Surfit.AI — The Governance Runtime for Autonomous AI Agents.</div>
   </div>
   <ul class="footer-links">
     <li><a href="https://surfit-demo.streamlit.app" target="_blank">Live Demo</a></li>
     <li><a href="https://github.com/sirananda/surfit-core" target="_blank">GitHub</a></li>
-    <li><a href="mailto:hello@surfit.ai">Contact</a></li>
-  </ul>
-</footer>
-
-</body>
-</html>
+    <li><a href="/cdn-cgi/l/email-protection#99f1fcf5f5
