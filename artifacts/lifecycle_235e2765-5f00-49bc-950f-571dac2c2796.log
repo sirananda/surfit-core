@@ -1,0 +1,3 @@
+RUN_JSON={"wave_id":"235e2765-5f00-49bc-950f-571dac2c2796","status":"running"}
+APPROVE_JSON={"wave_id":"235e2765-5f00-49bc-950f-571dac2c2796","status":"complete","approval_request_id":"apr_235e2765","approved_by":"andreas@surfit.ai","note":"POC approval"}
+FINAL_STATUS={"wave_id":"235e2765-5f00-49bc-950f-571dac2c2796","status":"complete","approval_request_id":null,"summary":{"output_path":"./outputs/report.md"}}
