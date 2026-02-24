@@ -1,0 +1,7 @@
+date,region,rep,product,units,unit_price_usd
+2026-02-01,West,Alice,Platform,12,1200
+2026-02-02,West,Bob,Services,8,900
+2026-02-03,East,Carla,Platform,10,1200
+2026-02-04,East,Dan,Services,6,900
+2026-02-05,Central,Eva,Platform,9,1200
+2026-02-06,Central,Frank,Services,7,900
