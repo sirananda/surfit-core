@@ -4,6 +4,7 @@ from typing import Any
 import uuid
 import sqlite3
 from datetime import datetime, timezone
+from pathlib import Path
 
 DB_PATH = "/tmp/surfit_runs.db"
 
@@ -55,11 +56,32 @@ def ensure_wave_tables(conn: sqlite3.Connection) -> None:
     )
     conn.commit()
 
+def _is_under(base: str, target: str) -> bool:
+    base_path = Path(base).resolve()
+    target_path = Path(target).resolve()
+    try:
+        target_path.relative_to(base_path)
+        return True
+    except ValueError:
+        return False
+
 
 @app.post("/api/waves/run")
 def run_wave(req: WaveRunRequest):
     wave_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
+    input_path = str(req.context_refs.get("input_csv_path", ""))
+    output_path = str(req.context_refs.get("output_report_path", ""))
+
+    if not input_path or not output_path:
+        return {"wave_id": None, "status": "failed", "error": {"code": "BAD_CONTEXT", "message": "Missing required context paths", "node": "run_wave"}}
+
+    if not _is_under("./data", input_path):
+        return {"wave_id": None, "status": "failed", "error": {"code": "INPUT_PATH_VIOLATION", "message": "input_csv_path must be under ./data/", "node": "run_wave"}}
+
+    if not _is_under("./outputs", output_path):
+        return {"wave_id": None, "status": "failed", "error": {"code": "OUTPUT_PATH_VIOLATION", "message": "output_report_path must be under ./outputs/", "node": "run_wave"}}
+
 
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
@@ -105,6 +127,11 @@ def wave_status(wave_id: str):
             "status": "failed",
             "approval_request_id": None,
             "summary": {"output_path": None},
+            "error": {
+                "code": "WAVE_NOT_FOUND",
+                "message": "No wave found for provided wave_id",
+                "node": "wave_status",
+            },
         }
 
     approval = conn.execute(
@@ -142,14 +169,37 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
         (approval_request_id,),
     ).fetchone()
 
+    def resolve_wave_id(prefix_or_id: str):
+        if len(prefix_or_id) >= 36:
+            return prefix_or_id, None
+
+        matches = conn.execute(
+            "SELECT wave_id FROM waves WHERE wave_id LIKE ? ORDER BY created_at DESC",
+            (f"{prefix_or_id}%",),
+        ).fetchall()
+
+        if len(matches) == 1:
+            return matches[0][0], None
+        if len(matches) > 1:
+            return None, {
+                "wave_id": None,
+                "status": "failed",
+                "approval_request_id": approval_request_id,
+                "error": {
+                    "code": "AMBIGUOUS_WAVE_PREFIX",
+                    "message": "approval_request_id prefix maps to multiple waves",
+                    "node": "approve_wave",
+                },
+            }
+        return prefix_or_id, None
+
     if not approval:
-        # Create placeholder approval request for POC flow.
         wave_id_prefix = approval_request_id.replace("apr_", "")
-        match = conn.execute(
-            "SELECT wave_id FROM waves WHERE wave_id LIKE ? ORDER BY created_at DESC LIMIT 1",
-            (f"{wave_id_prefix}%",),
-        ).fetchone()
-        wave_id_guess = match[0] if match else wave_id_prefix
+        wave_id, err = resolve_wave_id(wave_id_prefix)
+        if err:
+            conn.close()
+            return err
+
         conn.execute(
             """
             INSERT INTO approval_requests
@@ -158,7 +208,7 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
             """,
             (
                 approval_request_id,
-                wave_id_guess,
+                wave_id,
                 "./outputs/report.md",
                 "demo_proposed_write_hash_placeholder",
                 req.approved_by,
@@ -169,23 +219,12 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
                 now,
             ),
         )
-        wave_id = wave_id_guess
-        if len(wave_id) < 36:
-            match = conn.execute(
-                "SELECT wave_id FROM waves WHERE wave_id LIKE ? ORDER BY created_at DESC LIMIT 1",
-                (f"{wave_id}%",),
-            ).fetchone()
-            if match:
-                wave_id = match[0]
     else:
-        wave_id = approval[0]
-        if len(wave_id) < 36:
-            match = conn.execute(
-                "SELECT wave_id FROM waves WHERE wave_id LIKE ? ORDER BY created_at DESC LIMIT 1",
-                (f"{wave_id}%",),
-            ).fetchone()
-            if match:
-                wave_id = match[0]
+        wave_id, err = resolve_wave_id(approval[0])
+        if err:
+            conn.close()
+            return err
+
         conn.execute(
             """
             UPDATE approval_requests
