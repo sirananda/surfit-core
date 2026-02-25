@@ -76,7 +76,7 @@ nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 120px 48px 80px;
+  padding: 104px 48px 68px;
   position: relative;
   overflow: hidden;
 }
@@ -648,7 +648,7 @@ footer {
       <div class="section-label">How Surfit Works</div>
       <div class="section-title" style="margin-bottom:20px;">Persistent agents.<br>Bounded execution.</div>
       <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:48px;">
-        Surfit governs autonomous AI execution. Agents are persistent — they listen, plan, and reason continuously. When action is required, they initiate a Secure Agent Wave: a bounded mission container that defines what is permitted. Execution occurs within policy constraints and terminates deterministically, producing a verifiable audit record with every Wave.
+        Surfit governs autonomous AI execution. Agents are persistent — they listen, plan, and reason continuously. When action is required, they initiate a Secure Agent Wave — a bounded execution container with a deterministic lifecycle. Execution occurs within policy constraints and terminates deterministically, producing a verifiable audit record with every Wave.
       </p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 20px;">
@@ -731,8 +731,8 @@ footer {
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-val">0.09<span style="font-size:18px"> ms</span></div>
-        <div class="metric-lbl">System Time</div>
-        <div class="metric-desc">Machine execution time across all tool nodes in the Wave graph.</div>
+        <div class="metric-lbl">Autonomous Execution Duration</div>
+        <div class="metric-desc">Total autonomous execution time across all governed nodes within a Wave.</div>
       </div>
       <div class="metric-card">
         <div class="metric-val orange">∞</div>
@@ -771,13 +771,13 @@ footer {
       <div class="flow-arrow">→</div>
       <div class="flow-node">
         <div class="flow-node-icon icon-blue">🔵</div>
-        <div class="flow-node-label">Secure Wave</div>
+        <div class="flow-node-label">Secure Agent Wave</div>
         <div class="flow-node-sub">Initiated</div>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-node">
         <div class="flow-node-icon icon-blue">⚡</div>
-        <div class="flow-node-label">Policy Check</div>
+        <div class="flow-node-label">Policy Enforcement</div>
         <div class="flow-node-sub">Enforced</div>
       </div>
       <div class="flow-arrow">→</div>
@@ -801,6 +801,7 @@ footer {
   <div class="container">
     <div class="section-label">Architecture</div>
     <div class="section-title">Built in layers.<br>Governed at every one.</div>
+    <p style="font-size:14px;font-weight:300;color:var(--muted);margin-top:12px;max-width:560px;">Surfit defines the execution boundary before execution begins — not after.</p>
 
     <div class="arch-grid">
       <div class="arch-card">
