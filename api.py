@@ -7,6 +7,8 @@ import sqlite3
 import json
 import csv
 import time
+import os
+import anthropic
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -148,11 +150,25 @@ def _execute_sales_report(input_csv_path: str, output_report_path: str, approved
     for region in sorted(by_region.keys()):
         lines.append(f"- {region}: ${by_region[region]:,.2f}")
 
+    _client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    _prompt = (
+        f"You are a finance analyst. Write a concise 3-sentence sales summary for an executive.\n"
+        f"Total rows: {len(rows)}, Total units: {total_units:,.0f}, Total revenue: ${total_revenue:,.2f}\n"
+        f"Revenue by region: {str(by_region)}\n"
+        f"Highlight the top region, note any underperforming region, end with one forward-looking sentence."
+    )
+    _msg = _client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": _prompt}]
+    )
+    _llm_summary = _msg.content[0].text.strip()
+
     lines.extend(
         [
             "",
             "## LLM Summary",
-            "Weekly sales remained stable across regions, with Platform revenue leading Services.",
+            _llm_summary,
             "",
             "## Approval Metadata",
             f"- approved_by: {approved_by}",
