@@ -1,0 +1,21 @@
+date,region,product,units,unit_price_usd,rep
+2025-02-03,North America,Pro Plan,142,299.00,Jamie Torres
+2025-02-03,EMEA,Pro Plan,87,299.00,Lena Fischer
+2025-02-03,North America,Starter Plan,310,99.00,Jamie Torres
+2025-02-03,APAC,Enterprise Plan,12,999.00,Wei Zhang
+2025-02-04,North America,Pro Plan,159,299.00,Jamie Torres
+2025-02-04,EMEA,Starter Plan,204,99.00,Lena Fischer
+2025-02-04,APAC,Pro Plan,63,299.00,Wei Zhang
+2025-02-04,North America,Enterprise Plan,8,999.00,Jamie Torres
+2025-02-05,EMEA,Enterprise Plan,21,999.00,Lena Fischer
+2025-02-05,North America,Starter Plan,287,99.00,Jamie Torres
+2025-02-05,APAC,Starter Plan,195,99.00,Wei Zhang
+2025-02-05,EMEA,Pro Plan,74,299.00,Lena Fischer
+2025-02-06,North America,Pro Plan,201,299.00,Jamie Torres
+2025-02-06,APAC,Enterprise Plan,5,999.00,Wei Zhang
+2025-02-06,EMEA,Starter Plan,178,99.00,Lena Fischer
+2025-02-06,North America,Enterprise Plan,14,999.00,Jamie Torres
+2025-02-07,North America,Starter Plan,402,99.00,Jamie Torres
+2025-02-07,EMEA,Pro Plan,91,299.00,Lena Fischer
+2025-02-07,APAC,Pro Plan,77,299.00,Wei Zhang
+2025-02-07,APAC,Starter Plan,223,99.00,Wei Zhang

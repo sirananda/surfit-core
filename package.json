@@ -1,0 +1,16 @@
+{
+  "name": "surfit-openclaw",
+  "version": "1.0.0",
+  "description": "OpenClaw agents for SurFit AI wave execution",
+  "main": "surfit-openclaw-tool.js",
+  "scripts": {
+    "finance": "node agents/finance-agent.js",
+    "marketing": "echo 'Marketing agent not available in M14 runtime (pending template + allowlist). See README.' && exit 1",
+    "marketing:watch": "echo 'Marketing agent not available in M14 runtime (pending template + allowlist). See README.' && exit 1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": ["surfit", "openclaw", "agents", "waves"],
+  "license": "MIT"
+}
