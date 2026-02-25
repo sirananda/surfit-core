@@ -5,8 +5,8 @@
   "main": "surfit-openclaw-tool.js",
   "scripts": {
     "finance": "node agents/finance-agent.js",
-    "marketing": "echo 'Marketing agent not available in M14 runtime (pending template + allowlist). See README.' && exit 1",
-    "marketing:watch": "echo 'Marketing agent not available in M14 runtime (pending template + allowlist). See README.' && exit 1"
+    "marketing": "node agents/marketing-agent.js",
+    "marketing:watch": "node agents/marketing-agent.js --watch"
   },
   "engines": {
     "node": ">=22.0.0"
