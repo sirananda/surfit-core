@@ -1,16 +1,4 @@
 /**
- * ⚠️  NOT SUPPORTED IN M14 RUNTIME
- *
- * This agent requires:
- *   - wave_template_id: marketing_digest_v1  (not yet registered in SurFit M14)
- *   - agent_id: openclaw_marketing_agent_v1  (not yet allowlisted in SurFit M14)
- *
- * File is preserved as a future placeholder.
- * Do not run directly until SurFit runtime adds the template + allowlist entry.
- * Use `npm run finance` for the M14-validated path.
- */
-
-/**
  * agents/marketing-agent.js
  * OpenClaw Marketing Agent — triggers the marketing_digest_v1 SurFit Wave.
  *
