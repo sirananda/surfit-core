@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:media="http://search.yahoo.com/mrss/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:nyt="http://www.nytimes.com/namespaces/rss/2.0" version="2.0">
+  <channel>
+    <title>NYT &gt; Technology</title>
+    <link>https://www.nytimes.com/section/technology</link>
+    <atom:link href="https://rss.nytimes.com/services/xml/rss/nyt/technology.xml" rel="self" type="application/rss+xml"></atom:link>
+    <description></description>
+    <language>en-us</language>
+    <copyright>Copyright 2026 The New York Times Company</copyright>
+    <lastBuildDate>Wed, 25 Feb 2026 18:24:25 +0000</lastBuildDate>
+    <pubDate>Wed, 25 Feb 2026 18:07:53 +0000</pubDate>
+    <image>
+      <title>NYT &gt; Technology</title>
+      <url>https://static01.nyt.com/images/misc/NYT_logo_rss_250x40.png</url>
+      <link>https://www.nytimes.com/section/technology</link>
+    </image>
+    <item>
+      <title>How Jeffrey Epstein Ingratiated Himself With Top Microsoft Executives</title>
+      <link>https://www.nytimes.com/2026/02/24/technology/jeffrey-epstein-microsoft-executives.html</link>
+      <guid isPermaLink="true">https://www.nytimes.com/2026/02/24/technology/jeffrey-epstein-microsoft-executives.html</guid>
+      <atom:link href="https://www.nytimes.com/2026/02/24/technology/jeffrey-epstein-microsoft-executives.html" rel="standout"></atom:link>
+      <description>For more than two decades, the convicted sex offender developed a network at the tech giant, making him privy to succession discussions and other business.</description>
+      <dc:creator>Erin Griffith and Karen Weise</dc:creator>
+      <pubDate>Tue, 24 Feb 2026 19:58:44 +0000</pubDate>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Software</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Computers and the Internet</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Workplace Environment</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Appointments and Executive Changes</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Ethics and Official Misconduct</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Private Aircraft</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_org">Gates, Bill and Melinda, Foundation</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_org">LinkedIn Corporation</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_org">Microsoft Corp</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Ballmer, Steven A</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Epstein, Jeffrey E (1953- )</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Gates, Bill</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Hoffman, Reid Garrett</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Myhrvold, Nathan</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Melanie Walker</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Sinofsky, Steven</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/nyt_per">Stone, Linda (1955- )</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Prostitution</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Child Abuse and Neglect</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Human Trafficking</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">internal-open-access-from-nl</category>
+    </item>
+    <item>
+      <title>The Looming Taiwan Chip Disaster That Silicon Valley Has Long Ignored</title>
+      <link>https://www.nytimes.com/2026/02/24/technology/taiwan-china-chips-silicon-valley-tsmc.html</link>
+      <guid isPermaLink="true">https://www.nytimes.com/2026/02/24/technology/taiwan-china-chips-silicon-valley-tsmc.html</guid>
+      <atom:link href="https://www.nytimes.com/2026/02/24/technology/taiwan-china-chips-silicon-valley-tsmc.html" rel="standout"></atom:link>
+      <description>If China invades Taiwan and cuts off its chip exports to American companies, the tech industry and the U.S. economy would be crippled.</description>
+      <dc:creator>Tripp Mickle</dc:creator>
+      <pubDate>Tue, 24 Feb 2026 17:02:19 +0000</pubDate>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Computer Chips</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/des">Computers and the Internet</category>
+      <category domain="http://www.nytimes.com/namespaces/keywords/

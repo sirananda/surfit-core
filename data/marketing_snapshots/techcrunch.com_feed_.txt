@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>TechCrunch</title>
+	<atom:link href="https://techcrunch.com/feed/" rel="self" type="application/rss+xml" />
+	<link>https://techcrunch.com/</link>
+	<description>Startup and Technology News</description>
+	<lastBuildDate>Wed, 25 Feb 2026 18:12:03 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=6.9.1</generator>
+
+<image>
+	<url>https://techcrunch.com/wp-content/uploads/2015/02/cropped-cropped-favicon-gradient.png?w=32</url>
+	<title>TechCrunch</title>
+	<link>https://techcrunch.com/</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+	<item>
+		<title>Gemini can now automate some multi-step tasks on Android</title>
+		<link>https://techcrunch.com/2026/02/25/gemini-can-now-automate-some-multi-step-tasks-on-android/</link>
+		
+		<dc:creator><![CDATA[Sarah Perez]]></dc:creator>
+		<pubDate>Wed, 25 Feb 2026 18:00:00 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Apps]]></category>
+		<category><![CDATA[Android]]></category>
+		<category><![CDATA[Automation]]></category>
+		<category><![CDATA[gemini]]></category>
+		<category><![CDATA[Google]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3096766</guid>
+
+					<description><![CDATA[Gemini on Android will be able to automate tasks involving rideshare requests, or grocery or food delivery, says Google. ]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>OpenAI COO says ads will be &#8216;an iterative process&#8217;</title>
+		<link>https://techcrunch.com/2026/02/25/openai-coo-says-ads-will-be-an-iterative-process/</link>
+		
+		<dc:creator><![CDATA[Ivan Mehta]]></dc:creator>
+		<pubDate>Wed, 25 Feb 2026 17:37:37 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Ads]]></category>
+		<category><![CDATA[Brad Lightcap]]></category>
+		<category><![CDATA[Exclusive]]></category>
+		<category><![CDATA[OpenAI]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3096807</guid>
+
+					<description><![CDATA[COO Brad Lightcap noted that ads can add to the product experience of users if they are done right. He urged to give OpenAI a few months to see how the company fares in rolling out the product.]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>OpenClaw creator&#8217;s advice to AI builders is to be more playful and allow yourself time to improve</title>
+		<link>https://techcrunch.com/2026/02/25/openclaw-creators-advice-to-ai-builders-is-to-be-more-playful-and-allow-yourself-time-to-improve/</link>
+		
+		<dc:creator><![CDATA[Sarah Perez]]></dc:creator>
+		<pubDate>Wed, 25 Feb 2026 16:54:46 +0000</pubDate>
+				<category><![CDATA[AI]]></category>
+		<category><![CDATA[Builders]]></category>
+		<category><![CDATA[coding]]></category>
+		<category><![CDATA[developers]]></category>
+		<category><![CDATA[openclaw]]></category>
+		<category><![CDATA[Peter Steinberger]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3096782</guid>
+
+					<description><![CDATA[Peter Steinberger talks about the creation of his viral AI agent OpenClaw and how being more "playful" makes for a better way to learn AI coding. ]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>Have hard-won scaling lessons to share? Take the stage at TechCrunch Founder Summit 2026 </title>
+		<link>https://techcrunch.com/2026/02/25/have-hard-won-scaling-lessons-to-share-take-the-stage-at-techcrunch-founder-summit/</link>
+		
+		<dc:creator><![CDATA[TechCrunch Events]]></dc:creator>
+		<pubDate>Wed, 25 Feb 2026 16:00:00 +0000</pubDate>
+				<category><![CDATA[TC]]></category>
+		<category><![CDATA[Startups]]></category>
+		<category><![CDATA[Venture]]></category>
+		<category><![CDATA[AI]]></category>
+		<category><![CDATA[Fundraising]]></category>
+		<category><![CDATA[TechCrunch Founder Summit 2026]]></category>
+		<guid isPermaLink="false">https://techcrunch.com/?p=3096249</guid>
+
+					<description><![CDATA[Apply to speak at TechCrunch Founder Summit 2026 by April 17 for a chance to lead a roundtable or breakout session for 1,000 founders and investors. If you’ve built, backed, or operated inside high-growth startups, your experience could shape how the next wave of founders scales. ]]></description>
+		
+		
+		
+			</item>
+		<item>
+		<title>About 12% of US teens turn to AI for emotional support or advice</title>
+		<link>https://techcrunch.com/2026/02/25/about-12-of-u-s-teens-turn-to-ai-for-emotional-support-or-advice/</link>
+		
+		<dc:creator><![CDATA[Amanda Silberling]]></dc:creator>
+		<pubDate>Wed, 25 Feb 2026 15:52:03 +0000</pub
