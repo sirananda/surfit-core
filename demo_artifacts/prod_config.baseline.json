@@ -1,0 +1,17 @@
+{
+  "env": "production",
+  "service": "checkout",
+  "feature_flags": {
+    "checkout_v2": false,
+    "new_pricing": false
+  },
+  "rate_limits": {
+    "requests_per_minute": 200
+  },
+  "logging": {
+    "level": "INFO"
+  },
+  "allowlist": {
+    "domains": ["app.example.com", "api.example.com"]
+  }
+}

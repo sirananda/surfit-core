@@ -1,737 +1,1040 @@
-import sqlite3, uuid, os, shutil, copy, json, hashlib
+import json
+import re
+import sqlite3
+import os
+import urllib.error
+import urllib.request
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
 import streamlit as st
-import logger as logger_mod
-from engine import run_saw
-from logger import get_run_logs, get_cycle_time_breakdown, init_db, DEFAULT_DB_PATH
-from models import RunContext
-
-def get_run_record(conn, run_id: str):
-    fn = getattr(logger_mod, "get_run_record", None)
-    if callable(fn):
-        try:
-            return fn(conn, run_id)
-        except sqlite3.OperationalError:
-            pass
-
-    try:
-        cur = conn.execute("SELECT * FROM runs WHERE run_id = ?", (run_id,))
-    except sqlite3.OperationalError:
-        # Backward-compatible safety: ensure runs table exists, then return no record.
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS runs (
-                run_id           TEXT PRIMARY KEY,
-                saw_id           TEXT NOT NULL,
-                started_at       TEXT NOT NULL,
-                status           TEXT NOT NULL,
-                policy_hash      TEXT,
-                policy_version   TEXT,
-                policy_snapshot  TEXT,
-                approved_by      TEXT,
-                approved_at      TEXT,
-                approval_note    TEXT
-            )
-        """)
-        conn.commit()
-        return None
-
-    row = cur.fetchone()
-    if row is None:
-        return None
-    cols = [d[0] for d in cur.description]
-    return dict(zip(cols, row))
-
-def get_llm_invocations(conn, run_id: str):
-    fn = getattr(logger_mod, "get_llm_invocations", None)
-    if callable(fn):
-        try:
-            return fn(conn, run_id)
-        except Exception:
-            pass
-    return []
+from agents.production_config_agent import run_scenario as run_production_config_scenario
 
 
-def verify_run_integrity(conn, run_id: str):
-    fn = getattr(logger_mod, "verify_run_integrity", None)
-    if callable(fn):
-        try:
-            return fn(conn, run_id)
-        except Exception:
-            pass
-    return {
-        "valid": None,
-        "first_mismatch_index": None,
-        "expected_hash": None,
-        "found_hash": None,
-    }
+PROJECT_ROOT = Path(__file__).resolve().parent
+OUTPUT_DIR = PROJECT_ROOT / 'outputs'
+API_BASE = 'http://127.0.0.1:8010'
+PROD_CONFIG_PATH = PROJECT_ROOT / 'demo_artifacts' / 'prod_config.json'
+PROD_CONFIG_BASELINE_PATH = PROJECT_ROOT / 'demo_artifacts' / 'prod_config.baseline.json'
+PROD_AGENT_SCENARIOS = [
+    'Unauthorized agent',
+    'Path violation',
+    'Policy mismatch',
+    'Allowed execution',
+]
 
-# Streamlit Cloud source tree is read-only — use /tmp for writable DB.
-_CLOUD_DB = Path("/tmp/surfit_runs.db")
-_src = Path(DEFAULT_DB_PATH)
-if not _CLOUD_DB.exists() and _src.exists():
-    shutil.copy2(str(_src), str(_CLOUD_DB))
-DB_PATH = str(_CLOUD_DB)
-# Always ensure schema exists at DB_PATH
-_init_conn = sqlite3.connect(DB_PATH)
-_init_conn.executescript("""
-    CREATE TABLE IF NOT EXISTS execution_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        timestamp_iso TEXT NOT NULL,
-        run_id TEXT NOT NULL,
-        saw_id TEXT NOT NULL,
-        node_id TEXT NOT NULL,
-        tool_name TEXT DEFAULT '',
-        decision TEXT NOT NULL,
-        latency_ms REAL DEFAULT 0,
-        error TEXT
-    );
-""")
-_init_conn.commit()
-_init_conn.close()
+
+def db_candidates() -> list[Path]:
+    env_path = os.environ.get('SURFIT_DB_PATH')
+    candidates: list[Path] = []
+    if env_path:
+        candidates.append(Path(env_path))
+    candidates.append(PROJECT_ROOT / 'surfit_runs.db')
+    candidates.append(Path('/tmp/surfit_runs.db'))
+    return candidates
+
+FINANCE_PAYLOAD = {
+    'agent_id': 'openclaw_poc_agent_v1',
+    'wave_template_id': 'sales_report_v1',
+    'policy_version': 'sales_report_policy_v1',
+    'intent': 'Scheduled demo trigger: generate weekly sales report with executive summary',
+    'context_refs': {
+        'input_csv_path': './data/sales.csv',
+        'output_report_path': './outputs/report.md',
+    },
+}
+
+MARKET_INTEL_PAYLOAD = {
+    'agent_id': 'openclaw_market_intelligence_agent_v1',
+    'wave_template_id': 'market_intelligence_digest_v1',
+    'policy_version': 'market_intelligence_digest_policy_v1',
+    'intent': 'Scheduled demo trigger: produce next-day market intelligence with top narratives, ranked content angles, and recommended focus for tomorrow',
+    'context_refs': {
+        'sources': [
+            'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml',
+            'https://feeds.hbr.org/harvardbusiness',
+            'https://techcrunch.com/feed/',
+        ],
+        'snapshot_dir': './data/marketing_snapshots',
+        'output_digest_path': './outputs/market_intelligence_digest.md',
+    },
+}
+
+PROD_AGENT_WAVE_PAYLOAD = {
+    'agent_id': 'production_config_agent',
+    'wave_template_id': 'production_config_change_v1',
+    'policy_version': 'prod_config_policy_v1',
+    'intent': 'Scheduled demo trigger: provision production config mutation wave token',
+    'context_refs': {
+        'target_path': 'demo_artifacts/prod_config.json',
+    },
+}
+
+UNAUTHORIZED_AGENT_PAYLOAD = {
+    'agent_id': 'rogue_agent_v0',
+    'wave_template_id': 'sales_report_v1',
+    'policy_version': 'sales_report_policy_v1',
+    'intent': 'Boundary break test: unauthorized agent',
+    'context_refs': {
+        'input_csv_path': './data/sales.csv',
+        'output_report_path': './outputs/report.md',
+    },
+}
+
+PATH_VIOLATION_PAYLOAD = {
+    'agent_id': 'openclaw_poc_agent_v1',
+    'wave_template_id': 'sales_report_v1',
+    'policy_version': 'sales_report_policy_v1',
+    'intent': 'Boundary break test: path violation',
+    'context_refs': {
+        'input_csv_path': '/tmp/outside.csv',
+        'output_report_path': './outputs/report.md',
+    },
+}
+
+POLICY_MISMATCH_PAYLOAD = {
+    'agent_id': 'openclaw_poc_agent_v1',
+    'wave_template_id': 'sales_report_v1',
+    'policy_version': 'sales_report_policy_INVALID',
+    'intent': 'Boundary break test: policy mismatch',
+    'context_refs': {
+        'input_csv_path': './data/sales.csv',
+        'output_report_path': './outputs/report.md',
+    },
+}
+
+
+ATLAS_ENTRIES = {
+    'production_config_change_v1': {
+        'title': 'Production config mutation wave',
+        'agent_script': PROJECT_ROOT / 'agents' / 'production_config_agent.py',
+        'wave_script': {
+            'agent_id': 'production_config_agent',
+            'wave_template_id': 'production_config_change_v1',
+            'policy_version': 'prod_config_policy_v1',
+            'intent': 'Demo trigger: production config mutation governance proof',
+            'context_refs': {'target_path': 'demo_artifacts/prod_config.json'},
+        },
+    },
+    'sales_report_v1': {
+        'title': 'Finance reporting wave',
+        'agent_script': PROJECT_ROOT / 'agents' / 'finance-agent.js',
+        'wave_script': FINANCE_PAYLOAD,
+    },
+    'market_intelligence_digest_v1': {
+        'title': 'Market intelligence wave',
+        'agent_script': PROJECT_ROOT / 'agents' / 'marketing-agent.js',
+        'wave_script': MARKET_INTEL_PAYLOAD,
+    },
+}
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-html, body { background-color: #0b1220 !important; }
-.stApp, [data-testid="stAppViewContainer"], [data-testid="stMainBlockContainer"],
-section.main, section.main > div { background-color: #0b1220 !important; }
-.main .block-container { background-color: #0b1220 !important; padding: 0 2rem 2rem !important; max-width: 100% !important; }
+:root {
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --dark: #0b1220;
+  --surface: #111d30;
+  --border: #1e3050;
+  --text: #e2eaf5;
+  --muted: #7a9ab8;
+}
+
+html, body { background: var(--dark) !important; color: var(--text) !important; }
+.stApp { background: radial-gradient(ellipse at top, rgba(38,192,255,0.07) 0%, transparent 45%), var(--dark) !important; }
 [data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"] { display: none !important; }
 #MainMenu, footer { visibility: hidden; }
+.main .block-container { max-width: 1180px !important; padding-top: 18px !important; padding-bottom: 36px !important; }
 
-/* Global text — but NOT inside dataframes */
-body, .stMarkdown, .stMarkdown p, .stSelectbox label p,
-.stSlider label p, .stCheckbox label p,
-[data-testid="stMetricLabel"] p { font-family: 'DM Sans', sans-serif !important; }
+.sf-wordmark { display:flex; align-items:center; gap:14px; margin-top:8px; }
+.sf-title { font-family:'Righteous', cursive; font-size:40px; line-height:1; letter-spacing:0.01em; }
+.sf-title .s { color:var(--blue); }
+.sf-title .d { color:var(--muted); font-size:26px; margin:0 3px; }
+.sf-title .a { color:var(--orange); }
+.sf-sub { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted); margin-top:4px; }
 
-/* TABS */
-.stTabs [data-baseweb="tab-list"] { background: transparent !important; border-bottom: 1px solid #1e3050 !important; gap: 0 !important; padding: 0 !important; }
-.stTabs [data-baseweb="tab"] { background: transparent !important; color: #7a9ab8 !important; font-size: 11px !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; padding: 12px 28px !important; border: none !important; border-bottom: 2px solid transparent !important; border-radius: 0 !important; }
-.stTabs [aria-selected="true"] { color: #26c0ff !important; border-bottom: 2px solid #26c0ff !important; background: transparent !important; }
-.stTabs [data-baseweb="tab-panel"] { padding: 24px 0 0 0 !important; background: transparent !important; }
-.stTabs [data-baseweb="tab-highlight"] { display: none !important; }
+.sf-glass {
+  background: linear-gradient(180deg, rgba(17,29,48,0.92), rgba(11,18,32,0.95));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
 
-/* SELECT */
-.stSelectbox label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
-.stSelectbox > div > div, [data-baseweb="select"] > div { background-color: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 8px !important; color: #e2eaf5 !important; }
-.stSelectbox > div > div *, [data-baseweb="select"] > div * { color: #e2eaf5 !important; }
-[data-baseweb="popover"] { background-color: #111d30 !important; border: 1px solid #1e3050 !important; }
-[role="option"] { background-color: #111d30 !important; color: #e2eaf5 !important; }
-[role="option"]:hover { background-color: #1e3050 !important; color: #e2eaf5 !important; }
-[role="option"] * { color: #e2eaf5 !important; }
+.sf-kicker { font-size:11px; color:var(--muted); letter-spacing:.16em; text-transform:uppercase; }
+.sf-chip { display:inline-block; padding:5px 10px; border-radius:999px; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; }
+.sf-chip-ok { color:var(--blue); background:rgba(38,192,255,0.12); border:1px solid rgba(38,192,255,0.28); }
+.sf-chip-warn { color:var(--orange); background:rgba(255,115,30,0.12); border:1px solid rgba(255,115,30,0.28); }
 
-/* CHECKBOX */
-.stCheckbox label { background: transparent !important; }
-.stCheckbox label:hover { background: transparent !important; }
-.stCheckbox label p { color: #e2eaf5 !important; font-size: 14px !important; }
-[data-baseweb="checkbox"] span[role="checkbox"] { border: 2px solid #ff731e !important; border-radius: 4px !important; background: transparent !important; }
-[data-baseweb="checkbox"] span[role="checkbox"][aria-checked="true"] { background-color: #ff731e !important; border-color: #ff731e !important; }
+.sf-metrics { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 12px 0 18px; }
+.sf-metric { background: var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.sf-metric .k { font-size:10px; color:var(--muted); letter-spacing:0.16em; text-transform:uppercase; }
+.sf-metric .v { font-size:26px; color:var(--blue); font-weight:300; margin-top:6px; }
+.sf-metric .d { font-size:12px; color:var(--muted); margin-top:4px; }
 
-/* SLIDER */
-.stSlider label p { font-size: 10px !important; letter-spacing: 0.15em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
-[data-testid="stSliderTrackFill"] { background: #ff731e !important; }
-[data-testid="stSliderThumb"] { background: #ff731e !important; border: none !important; }
+.stTabs [data-baseweb="tab-list"] { border-bottom:1px solid var(--border) !important; }
+.stTabs [data-baseweb="tab"] { color: var(--muted) !important; font-size: 11px !important; letter-spacing: 0.13em !important; text-transform: uppercase !important; }
+.stTabs [aria-selected="true"] { color: var(--blue) !important; }
 
-/* BUTTON */
-.stButton > button { background: #26c0ff !important; color: #0b1220 !important; font-weight: 600 !important; font-size: 11px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; border: none !important; border-radius: 8px !important; padding: 14px 24px !important; outline: none !important; box-shadow: none !important; }
-.stButton > button:hover { box-shadow: 0 4px 24px rgba(38,192,255,0.35) !important; outline: none !important; }
-.stButton > button:focus { outline: none !important; box-shadow: none !important; border: none !important; }
-.stButton > button:active { outline: none !important; box-shadow: none !important; border: none !important; }
-.stButton > button:focus-visible { outline: none !important; box-shadow: none !important; }
+[data-testid="stTextInput"] input {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+}
+[data-testid="stTextInput"] label p {
+  color: #c7ddf2 !important;
+  opacity: 1 !important;
+  font-size: 12px !important;
+}
+[data-testid="stTextInput"] input::placeholder {
+  color: #9fc0de !important;
+  opacity: 1 !important;
+}
 
-/* METRICS */
-[data-testid="metric-container"] { background: #111d30 !important; border: 1px solid #1e3050 !important; border-radius: 10px !important; padding: 20px 24px !important; }
-[data-testid="stMetricLabel"] p { font-size: 10px !important; letter-spacing: 0.14em !important; text-transform: uppercase !important; color: #7a9ab8 !important; }
-[data-testid="stMetricValue"], [data-testid="stMetricValue"] > div { font-weight: 300 !important; font-size: 26px !important; color: #26c0ff !important; }
+[data-testid="stDataFrame"] { border:1px solid var(--border) !important; border-radius:10px !important; overflow:hidden !important; }
+[data-testid="stDataFrame"] canvas { background: var(--surface) !important; }
+[data-testid="stDataFrame"] * { color: var(--text) !important; }
+.stMarkdown a, .stMarkdown a:visited { color: var(--blue) !important; text-decoration: underline !important; }
 
-/* DATAFRAME — explicit dark background + light text so data is visible */
-[data-testid="stDataFrame"] { border: 1px solid #1e3050 !important; border-radius: 10px !important; overflow: hidden !important; }
-[data-testid="stDataFrame"] * { color: #e2eaf5 !important; }
-[data-testid="stDataFrame"] canvas { background: #111d30 !important; }
-.dvn-scroller { background: #111d30 !important; }
-[data-testid="stDataFrameResizable"] { background: #111d30 !important; }
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, .stMarkdown h4, .stMarkdown p, .stMarkdown li { color: var(--text) !important; }
+.stMarkdown code { background: var(--surface) !important; color: var(--blue) !important; }
 
-/* MARKDOWN TABLES */
-.stMarkdown table { color: #e2eaf5 !important; width: 100%; }
-.stMarkdown table th { color: #e2eaf5 !important; font-weight: 600; border-bottom: 1px solid #1e3050; }
-.stMarkdown table td { color: #e2eaf5 !important; border-bottom: 1px solid #1e3050; padding: 8px 12px; }
-.stMarkdown table tr:last-child td { border-bottom: none; }
-
-/* INFO/WARNING */
-[data-testid="stInfoBox"] { background: rgba(38,192,255,0.07) !important; border: 1px solid rgba(38,192,255,0.2) !important; border-radius: 8px !important; }
-[data-testid="stWarningBox"] { background: rgba(255,115,30,0.08) !important; border: 1px solid rgba(255,115,30,0.25) !important; border-radius: 8px !important; }
-[data-testid="stSpinner"] > div { border-top-color: #ff731e !important; }
-
-.sf-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #7a9ab8; margin-bottom: 10px; font-family: 'DM Sans', sans-serif; }
-.sf-hr { border: none; border-top: 1px solid #1e3050; margin: 20px 0; }
-.sf-badge { display:inline-flex; align-items:center; gap:8px; padding:8px 18px; border-radius:6px; font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:20px; font-family:'DM Sans',sans-serif; }
-.sf-badge-ok  { background:rgba(38,192,255,0.1);  color:#26c0ff; border:1px solid rgba(38,192,255,0.3); }
-.sf-badge-err { background:rgba(255,115,30,0.1);  color:#ff731e; border:1px solid rgba(255,115,30,0.3); }
-.sf-empty { text-align:center; padding:80px 0; opacity:0.3; }
-.sf-empty-text { font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:#7a9ab8; margin-top:12px; font-family:'DM Sans',sans-serif; }
+@media (max-width: 960px) {
+  .sf-metrics { grid-template-columns: 1fr 1fr; }
+  .sf-title { font-size:32px; }
+}
+@media (max-width: 640px) {
+  .sf-metrics { grid-template-columns: 1fr; }
+}
 </style>
 """
 
-WAVE    = '<svg width="48" height="26" viewBox="0 0 120 68" fill="none"><path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/><path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/><path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/></svg>'
-WAVE_LG = '<svg width="56" height="30" viewBox="0 0 120 68" fill="none"><path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/><path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/><path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/></svg>'
-
-WORDMARK = (
-    '<div style="display:flex;align-items:center;gap:14px;padding:20px 0 12px;">'
-    + WAVE +
-    '<div>'
-    '<div style="font-family:Righteous,cursive;font-size:22px;line-height:1;display:flex;align-items:baseline;">'
-    '<span style="color:#26c0ff;font-family:Righteous,cursive;">SURFIT</span>'
-    '<span style="color:#7a9ab8;font-family:Righteous,cursive;font-size:15px;margin:0 2px;">.</span>'
-    '<span style="color:#ff731e;font-family:Righteous,cursive;">AI</span>'
-    '</div>'
-    '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#7a9ab8;margin-top:3px;font-family:DM Sans,sans-serif;">SAW Platform</div>'
-    '</div></div>'
-)
-
-BOARD_METRICS_SPEC = {
-    "saw_id": "board_metrics_v1",
-    "graph": {
-        "nodes": [
-            {"id": "n_start",           "type": "start"},
-            {"id": "n_salesforce_pull",  "type": "tool_call",     "tool": "tool_salesforce_read_pipeline", "sensitivity": "medium"},
-            {"id": "n_stripe_pull",      "type": "tool_call",     "tool": "tool_stripe_read_revenue",      "sensitivity": "medium"},
-            {"id": "n_reconcile",        "type": "tool_call",     "tool": "tool_reconcile_metrics",        "sensitivity": "medium"},
-            {"id": "n_generate_summary", "type": "tool_call",     "tool": "tool_generate_summary_llm",   "sensitivity": "medium"},
-            {"id": "n_approval",         "type": "approval_gate", "tool": "human_approval",                "sensitivity": "high"},
-            {"id": "n_update_slides",    "type": "tool_call",     "tool": "tool_slides_update_template",   "sensitivity": "medium", "write_action": True},
-            {"id": "n_end",              "type": "end"},
-        ],
-        "edges": [
-            {"from": "n_start",           "to": "n_salesforce_pull"},
-            {"from": "n_salesforce_pull",  "to": "n_stripe_pull"},
-            {"from": "n_stripe_pull",      "to": "n_reconcile"},
-            {"from": "n_reconcile",        "to": "n_generate_summary"},
-            {"from": "n_generate_summary", "to": "n_approval"},
-            {"from": "n_approval",         "to": "n_update_slides"},
-            {"from": "n_update_slides",    "to": "n_end"},
-        ],
-    },
-    "policy_bundle": {
-        "policy_id": "board_metrics_policy_v1", "sensitivity_level": "medium",
-        "tools": {"allowlist": ["tool_salesforce_read_pipeline","tool_stripe_read_revenue","tool_reconcile_metrics","tool_generate_summary_llm","tool_slides_update_template","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
-        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
-        "write_restrictions": {"tool_slides_update_template": {"allowed_template_ids": ["TEMPLATE_DECK_V1"], "allow_create_new_decks": False}},
-    },
-}
-REVENUE_RECON_SPEC = {
-    "saw_id": "revenue_reconciliation_v1",
-    "graph": {
-        "nodes": [
-            {"id": "n_start",          "type": "start"},
-            {"id": "n_qb_pull",        "type": "tool_call",     "tool": "tool_quickbooks_read_expenses", "sensitivity": "medium"},
-            {"id": "n_stripe_payouts", "type": "tool_call",     "tool": "tool_stripe_read_payouts",      "sensitivity": "medium"},
-            {"id": "n_reconcile",      "type": "tool_call",     "tool": "tool_reconcile_revenue",        "sensitivity": "medium"},
-            {"id": "n_gen_report",     "type": "tool_call",     "tool": "tool_generate_revenue_report",  "sensitivity": "medium"},
-            {"id": "n_approval",       "type": "approval_gate", "tool": "human_approval",                "sensitivity": "high"},
-            {"id": "n_write_report",   "type": "tool_call",     "tool": "tool_write_revenue_report",     "sensitivity": "medium", "write_action": True},
-            {"id": "n_end",            "type": "end"},
-        ],
-        "edges": [
-            {"from": "n_start",          "to": "n_qb_pull"},
-            {"from": "n_qb_pull",        "to": "n_stripe_payouts"},
-            {"from": "n_stripe_payouts", "to": "n_reconcile"},
-            {"from": "n_reconcile",      "to": "n_gen_report"},
-            {"from": "n_gen_report",     "to": "n_approval"},
-            {"from": "n_approval",       "to": "n_write_report"},
-            {"from": "n_write_report",   "to": "n_end"},
-        ],
-    },
-    "policy_bundle": {
-        "policy_id": "revenue_recon_policy_v1", "sensitivity_level": "medium",
-        "tools": {"allowlist": ["tool_quickbooks_read_expenses","tool_stripe_read_payouts","tool_reconcile_revenue","tool_generate_revenue_report","tool_write_revenue_report","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
-        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
-        "write_restrictions": {},
-    },
-}
-BUDGET_REFORECAST_SPEC = {
-    "saw_id": "budget_reforecast_v1",
-    "graph": {
-        "nodes": [
-            {"id": "n_start",          "type": "start"},
-            {"id": "n_pull_actuals",   "type": "tool_call",     "tool": "tool_pull_actuals",      "sensitivity": "medium"},
-            {"id": "n_pull_budget",    "type": "tool_call",     "tool": "tool_pull_budget",       "sensitivity": "medium"},
-            {"id": "n_variance",       "type": "tool_call",     "tool": "tool_variance_analysis", "sensitivity": "medium"},
-            {"id": "n_gen_reforecast", "type": "tool_call",     "tool": "tool_gen_reforecast",    "sensitivity": "medium"},
-            {"id": "n_approval",       "type": "approval_gate", "tool": "human_approval",         "sensitivity": "high"},
-            {"id": "n_update_plan",    "type": "tool_call",     "tool": "tool_update_plan",       "sensitivity": "medium", "write_action": True},
-            {"id": "n_end",            "type": "end"},
-        ],
-        "edges": [
-            {"from": "n_start",          "to": "n_pull_actuals"},
-            {"from": "n_pull_actuals",   "to": "n_pull_budget"},
-            {"from": "n_pull_budget",    "to": "n_variance"},
-            {"from": "n_variance",       "to": "n_gen_reforecast"},
-            {"from": "n_gen_reforecast", "to": "n_approval"},
-            {"from": "n_approval",       "to": "n_update_plan"},
-            {"from": "n_update_plan",    "to": "n_end"},
-        ],
-    },
-    "policy_bundle": {
-        "policy_id": "budget_reforecast_policy_v1", "sensitivity_level": "medium",
-        "tools": {"allowlist": ["tool_pull_actuals","tool_pull_budget","tool_variance_analysis","tool_gen_reforecast","tool_update_plan","tool_logger_write"], "denylist": ["tool_browser","tool_shell_exec","tool_external_http","tool_email_send","tool_slack_dm"]},
-        "egress": {"allow_external_http": False, "allowed_domains": [], "allow_email_send": False, "allow_slack_dm": False},
-        "write_restrictions": {},
-    },
-}
-
-SAW_REGISTRY = {
-    "Board Metrics Aggregation": BOARD_METRICS_SPEC,
-    "Revenue Reconciliation":    REVENUE_RECON_SPEC,
-    "Budget Reforecast":         BUDGET_REFORECAST_SPEC,
-}
-SAW_SPEC_BY_ID = {spec["saw_id"]: spec for spec in SAW_REGISTRY.values()}
-
-SUMMARY_NODE = {
-    "Board Metrics Aggregation": "n_generate_summary",
-    "Revenue Reconciliation":    "n_gen_report",
-    "Budget Reforecast":         "n_gen_reforecast",
-}
-def policy_fingerprint(spec: dict) -> str:
-    pb = spec.get("policy_bundle", {})
-    canonical = json.dumps(pb, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
-def render_policy_snapshot(spec: dict) -> None:
-    pb = spec.get("policy_bundle", {})
-    tools = pb.get("tools", {})
-    allowlist = tools.get("allowlist", [])
-    denylist = tools.get("denylist", [])
-
-    def _rows(items):
-        if not items:
-            return '<tr><td style="padding:10px 14px;color:#7a9ab8;">—</td></tr>'
-        return "".join(
-            f'<tr><td style="padding:10px 14px;color:#e2eaf5;border-bottom:1px solid #1a2a40;">{item}</td></tr>'
-            for item in items
-        )
-
-    allow_table = (
-        '<div style="border:1px solid #1e3050;border-radius:10px;overflow:hidden;">'
-        '<div style="padding:10px 14px;border-bottom:1px solid #1e3050;color:#26c0ff;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Allowlist</div>'
-        '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
-        f'<tbody>{_rows(allowlist)}</tbody>'
-        '</table>'
-        '</div>'
-    )
-
-    deny_table = (
-        '<div style="border:1px solid #1e3050;border-radius:10px;overflow:hidden;">'
-        '<div style="padding:10px 14px;border-bottom:1px solid #1e3050;color:#ff731e;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;">Denylist</div>'
-        '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
-        f'<tbody>{_rows(denylist)}</tbody>'
-        '</table>'
-        '</div>'
-    )
-
-    st.markdown(
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">{allow_table}{deny_table}</div>',
-        unsafe_allow_html=True
-    )
+WAVE_ICON = '<svg width="38" height="22" viewBox="0 0 120 68" fill="none"><path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/><path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/><path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/></svg>'
 
 
-def _node_status_map(spec: dict, logs: list[dict]) -> dict[str, str]:
-    statuses = {n["id"]: "pending" for n in spec["graph"]["nodes"]}
-    statuses["n_start"] = "executed"
-
-    for row in logs or []:
-        node_id = row.get("node_id", "")
-        decision = row.get("decision", "")
-        if not node_id:
+def find_db_path() -> Path | None:
+    # Prefer a DB that already has a `waves` table so the UI never binds to a thin/partial file.
+    for p in db_candidates():
+        if not p.exists():
             continue
-        if decision == "deny":
-            statuses[node_id] = "blocked"
-        elif decision == "allow":
-            statuses[node_id] = "executed"
+        try:
+            conn = sqlite3.connect(str(p))
+            try:
+                row = conn.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='waves'"
+                ).fetchone()
+                if row is not None:
+                    return p
+            finally:
+                conn.close()
+        except Exception:
+            continue
 
-    return statuses
+    # Fallback: first existing DB path if no `waves` table found.
+    for p in db_candidates():
+        if p.exists():
+            return p
+    return None
 
 
-def render_execution_graph(spec: dict, logs: list[dict]) -> None:
-    statuses = _node_status_map(spec, logs)
-    color_for = {
-        "executed": ("#26c0ff", "rgba(38,192,255,0.10)"),
-        "blocked": ("#ff731e", "rgba(255,115,30,0.10)"),
-        "pending": ("#7a9ab8", "rgba(122,154,184,0.10)"),
-    }
+def connect_db(db_path: Path) -> sqlite3.Connection:
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    return conn
 
-    chips = []
-    for node in spec["graph"]["nodes"]:
-        node_id = node["id"]
-        node_type = node.get("type", "")
-        state = statuses.get(node_id, "pending")
-        fg, bg = color_for[state]
-        label = node_id.replace("n_", "").replace("_", " ").title()
-        chips.append(
-            f'<div style="border:1px solid {fg};background:{bg};border-radius:10px;padding:10px 12px;min-height:72px;">'
-            f'<div style="font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:#7a9ab8;">{node_type}</div>'
-            f'<div style="font-size:13px;color:#e2eaf5;margin:4px 0 6px;">{label}</div>'
-            f'<div style="font-size:10px;letter-spacing:0.10em;text-transform:uppercase;color:{fg};">{state}</div>'
-            f'</div>'
-        )
 
-    legend = (
-        '<div style="display:flex;gap:14px;align-items:center;margin-bottom:10px;">'
-        '<span style="color:#26c0ff;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Executed</span>'
-        '<span style="color:#ff731e;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Blocked</span>'
-        '<span style="color:#7a9ab8;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;">Pending</span>'
-        '</div>'
-    )
+def list_tables(conn: sqlite3.Connection) -> list[str]:
+    rows = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").fetchall()
+    return [r[0] for r in rows]
 
-    st.markdown(
-        f'{legend}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">{"".join(chips)}</div>',
-        unsafe_allow_html=True
-    )
 
-def build_audit_card_text(conn, run_record: dict | None, ctx: RunContext, result, breakdown: dict, logs: list[dict]) -> str:
-    snapshot = (run_record or {}).get("policy_snapshot") or "{}"
-    pb = json.loads(snapshot)
-    tools = pb.get("tools", {})
-    allowlist = ", ".join(tools.get("allowlist", []))
-    denylist = ", ".join(tools.get("denylist", []))
+def has_table(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone()
+    return row is not None
 
-    db_policy_hash = (run_record or {}).get("policy_hash", "unknown")
-    db_policy_version = (run_record or {}).get("policy_version", "unknown")
-    db_approved_by = (run_record or {}).get("approved_by") or "unknown"
-    db_approved_at = (run_record or {}).get("approved_at") or "unknown"
-    db_approval_note = (run_record or {}).get("approval_note") or "none"
 
-    lines = [
-        "SURFIT AI - RUN AUDIT CARD",
-        "=" * 40,
-        f"Run ID: {ctx.run_id}",
-        f"SAW ID: {ctx.saw_id}",
-        f"Policy Version: {db_policy_version}",
-        f"Policy Fingerprint: {db_policy_hash}",
-        f"Approved By: {db_approved_by}",
-        f"Approved At: {db_approved_at}",
-        f"Approval Note: {db_approval_note}",
-        f"Status: {result.status}",
-        f"Denial reason: {result.denial_reason or 'none'}",
-        f"System Time (ms): {breakdown.get('system_time_ms', 0)}",
-        f"Human Wait (ms): {breakdown.get('human_wait_time_ms', 0)}",
-        f"Total Time (ms): {breakdown.get('total_ms', 0)}",
-        "",
-        "ALLOWLIST:",
-        allowlist or "none",
-        "",
-        "DENYLIST:",
-        denylist or "none",
-        "",
-        "EXECUTION LOG:",
-    ]
+def wave_columns(conn: sqlite3.Connection) -> set[str]:
+    rows = conn.execute('PRAGMA table_info(waves)').fetchall()
+    return {r[1] for r in rows}
 
-    for row in logs or []:
-        lines.append(
-            f"- {row.get('timestamp_iso','')} | node={row.get('node_id','')} | tool={row.get('tool_name','')} | decision={row.get('decision','')} | latency_ms={row.get('latency_ms',0)} | error={row.get('error','') or '-'}"
-        )
 
-    llm_payload = None
-    if isinstance(getattr(result, "node_results", None), dict):
-        llm_payload = result.node_results.get("n_generate_summary")
+def pick_order_column(cols: set[str]) -> str:
+    for col in ('completed_at', 'updated_at', 'started_at', 'created_at'):
+        if col in cols:
+            return col
+    return 'rowid'
 
-    if isinstance(llm_payload, dict):
-        llm_meta = llm_payload.get("llm_meta", {})
-        raw_tool_input = llm_payload.get("raw_tool_input", {})
-        sanitized_prompt_input = llm_payload.get("sanitized_prompt_input", {})
-        llm_output_text = llm_payload.get("llm_output_text", "")
 
-        lines.extend([
-            "",
-            "LLM INVOCATION:",
-            f"Provider: {llm_meta.get('provider', 'unknown')}",
-            f"Model Name: {llm_meta.get('model_name', 'unknown')}",
-            f"Model Version: {llm_meta.get('model_version', 'unknown')}",
-            f"Temperature: {llm_meta.get('temperature', 'unknown')}",
-            f"Max Tokens: {llm_meta.get('max_tokens', 'unknown')}",
-            f"Raw Tool Input: {json.dumps(raw_tool_input, sort_keys=True)}",
-            f"Sanitized Prompt Input: {json.dumps(sanitized_prompt_input, sort_keys=True)}",
-            f"LLM Output: {llm_output_text}",
-        ])
-    integrity = verify_run_integrity(conn, ctx.run_id)
-    lines.extend([
-        "",
-        "INTEGRITY CHECK:",
-        f"Valid: {integrity.get('valid')}",
-        f"First Mismatch Index: {integrity.get('first_mismatch_index')}",
-        f"Expected Hash: {integrity.get('expected_hash')}",
-        f"Found Hash: {integrity.get('found_hash')}",
-    ])
+def fetch_waves(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    order_col = pick_order_column(wave_columns(conn))
+    return conn.execute(f'SELECT * FROM waves ORDER BY {order_col} DESC').fetchall()
 
-    llm_rows = get_llm_invocations(conn, ctx.run_id)
-    if llm_rows:
-        lines.append("")
-        lines.append("LLM INVOCATION HASHES:")
-        for i, r in enumerate(llm_rows, start=1):
-            lines.extend([
-                f"[{i}] node={r.get('node_id')} invoked_at={r.get('invoked_at')}",
-                f"provider={r.get('provider')} model={r.get('model_name')} version={r.get('model_version')}",
-                f"raw_tool_input_hash={r.get('raw_tool_input_hash')}",
-                f"sanitized_prompt_input_hash={r.get('sanitized_prompt_input_hash')}",
-                f"llm_output_text_hash={r.get('llm_output_text_hash')}",
-            ])
 
-    return "\n".join(lines)
-
-def load_run_history():
-    import pandas as pd
+def safe_json_loads(value: str | None) -> dict:
+    if not value:
+        return {}
     try:
-        conn = sqlite3.connect(DB_PATH)
-        df = pd.read_sql_query("""
-            SELECT run_id, saw_id,
-                MAX(CASE WHEN node_id = 'n_end' THEN 'completed' ELSE NULL END) as status,
-                ROUND(SUM(CASE WHEN node_id != 'n_approval' THEN latency_ms ELSE 0 END), 2) as system_ms,
-                ROUND(MAX(CASE WHEN node_id = 'n_approval' THEN latency_ms ELSE 0 END), 2) as human_wait_ms,
-                MIN(timestamp_iso) as started_at
-            FROM execution_log
-            GROUP BY run_id, saw_id
-            ORDER BY started_at DESC
-        """, conn)
-        conn.close()
-        df["status"] = df["status"].fillna("denied")
-        return df
-    except Exception as e:
+        out = json.loads(value)
+        return out if isinstance(out, dict) else {}
+    except Exception:
+        return {}
+
+
+def parse_iso(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except Exception:
         return None
 
-# ── PAGE ───────────────────────────────────────────────────────
-st.set_page_config(page_title="SurFit — SAW Platform", layout="wide", page_icon="〰")
-st.markdown(CSS, unsafe_allow_html=True)
 
-hc1, hc2 = st.columns([3, 1])
-with hc1:
-    st.markdown(WORDMARK, unsafe_allow_html=True)
-with hc2:
-    st.markdown('<div style="text-align:right;padding:20px 0 12px;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a9ab8;opacity:0.5;">Powered by SurFit.AI</div>', unsafe_allow_html=True)
-st.markdown('<hr style="border:none;border-top:1px solid #1e3050;margin:0 0 4px;">', unsafe_allow_html=True)
+def resolve_output_path(row: sqlite3.Row) -> str | None:
+    d = dict(row)
+    if d.get('output_path'):
+        return str(d['output_path'])
+    refs = safe_json_loads(d.get('context_refs_json'))
+    for key in ('output_report_path', 'output_digest_path', 'output_brief_path', 'output_path'):
+        if refs.get(key):
+            return str(refs[key])
+    return None
 
-tab1, tab2 = st.tabs(["▶  Run SAW", "  Run History"])
 
-with tab1:
-    col1, col2 = st.columns([1, 2], gap="large")
-    with col1:
-        st.markdown('<div class="sf-label">Controls</div>', unsafe_allow_html=True)
-        saw_choice       = st.selectbox("Select SAW", list(SAW_REGISTRY.keys()))
-        approval_granted = st.checkbox("Approve write step", value=True)
-        force_policy_deny = st.checkbox("Force policy deny demo", value=False)
+def resolve_policy_hash(row: sqlite3.Row) -> str:
+    d = dict(row)
+    return str(d.get('policy_hash') or d.get('policy_version') or 'N/A')
 
-        wait_ms          = st.slider("Human approval wait (ms)", 0, 3000, 500, step=100)
-        st.markdown('<div style="height:6px"></div>', unsafe_allow_html=True)
-        run_button       = st.button("▶  Run SAW", use_container_width=True)
 
-    with col2:
-        if run_button:
-            import pandas as pd
-            spec = copy.deepcopy(SAW_REGISTRY[saw_choice])
+def resolve_integrity(row: sqlite3.Row) -> str:
+    d = dict(row)
+    if d.get('integrity_status'):
+        return str(d['integrity_status'])
+    status = str(d.get('status') or '').lower()
+    if status == 'complete':
+        return 'VALID'
+    if status == 'failed':
+        return 'FLAGGED'
+    return 'UNKNOWN'
 
-            if force_policy_deny:
-                first_tool = next(
-                    (n.get("tool") for n in spec["graph"]["nodes"] if n.get("type") == "tool_call" and n.get("tool")),
-                    None
-                )
-                if first_tool:
-                    deny = spec["policy_bundle"]["tools"]["denylist"]
-                    if first_tool not in deny:
-                        deny.append(first_tool)
 
-            conn = init_db(DB_PATH)
-            ctx = RunContext(
-                run_id=str(uuid.uuid4()),
-                saw_id=spec["saw_id"],
-                state={
-                    "_approval_granted": approval_granted,
-                    "_approval_wait_ms": wait_ms,
-                    "_approved_by": "demo.manager@surfit.ai",
-                    "_approval_note": "Approved in investor demo",
-                },
-            )
-            with st.spinner("Running SAW..."):
-                result = run_saw(spec, ctx, conn)
-
-            conn.commit()
-
-            badge_cls  = "sf-badge-ok" if result.status == "completed" else "sf-badge-err"
-            badge_icon = "✦" if result.status == "completed" else "✕"
-            st.markdown(f'<div class="sf-badge {badge_cls}">{badge_icon}&nbsp;&nbsp;{result.status.upper()}</div>', unsafe_allow_html=True)
-
-            if result.denial_reason:
-                st.warning(f"Denial reason: {result.denial_reason}")
-            st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-           
-            fp = policy_fingerprint(spec)
-            st.markdown(f'<div style="font-size:11px;color:#7a9ab8;margin-bottom:10px;">Policy Fingerprint: <span style="color:#26c0ff;">{fp}</span></div>', unsafe_allow_html=True)
-            st.markdown('<div class="sf-label">Policy Snapshot</div>', unsafe_allow_html=True)
-            render_policy_snapshot(spec)
-
-            st.markdown('<div class="sf-label">Cycle-Time Breakdown</div>', unsafe_allow_html=True)
-            breakdown = get_cycle_time_breakdown(conn, ctx.run_id)
-            b1, b2, b3 = st.columns(3)
-            b1.metric("System Time", f"{breakdown['system_time_ms']} ms")
-            b2.metric("Human Wait",  f"{breakdown['human_wait_time_ms']} ms")
-            b3.metric("Total Time",  f"{breakdown['total_ms']} ms")
-            run_record = get_run_record(conn, ctx.run_id)
-            audit_text = build_audit_card_text(conn, run_record, ctx, result, breakdown, get_run_logs(conn, ctx.run_id))
-            st.download_button(
-                "⬇ Export Audit Card (.txt)",
-                data=audit_text,
-                file_name=f"audit_{ctx.run_id[:8]}.txt",
-                mime="text/plain",
-                use_container_width=True
-            )
-
-            st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-            st.markdown('<div class="sf-label">Execution Log</div>', unsafe_allow_html=True)
-            logs = get_run_logs(conn, ctx.run_id)
-            st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-            st.markdown('<div class="sf-label">Execution Graph</div>', unsafe_allow_html=True)
-            render_execution_graph(spec, logs)
-
-            if logs:
-                rows_html = ""
-                for row in logs:
-                    ts = str(row.get("timestamp_iso",""))[:19].replace("T"," ")
-                    node = row.get("node_id","")
-                    tool = row.get("tool_name","") or "—"
-                    dec = row.get("decision","")
-                    lat = f"{row.get('latency_ms',0):.2f}"
-                    err = row.get("error","") or "—"
-                    dec_color = "#26c0ff" if dec == "allow" else "#ff731e"
-                    rows_html += f'<tr><td>{ts}</td><td>{node}</td><td>{tool}</td><td style="color:{dec_color}">{dec}</td><td>{lat}</td><td>{err}</td></tr>'
-                st.markdown(f'''<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">
-<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">
-<thead><tr style="border-bottom:1px solid #1e3050;">
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Timestamp</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Node</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Tool</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Decision</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Latency (ms)</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Error</th>
-</tr></thead>
-<tbody style="color:#e2eaf5;">{rows_html}</tbody>
-</table></div>''', unsafe_allow_html=True)
-            else:
-                st.markdown('<p style="color:#7a9ab8;font-size:13px;">No log entries found.</p>', unsafe_allow_html=True)
-
-            if result.status == "completed":
-                summary_node  = SUMMARY_NODE[saw_choice]
-                summary_data  = result.node_results.get(summary_node, {})
-                metrics_table = summary_data.get("metrics_table_markdown") if isinstance(summary_data, dict) else None
-                commentary    = summary_data.get("commentary")             if isinstance(summary_data, dict) else None
-                if metrics_table or commentary:
-                    st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-                    st.markdown('<div class="sf-label">Output Summary</div>', unsafe_allow_html=True)
-                    if metrics_table:
-                        # Convert markdown table to styled HTML
-                        lines = [l.strip() for l in metrics_table.strip().split("\n") if l.strip() and not l.strip().startswith("|---")]
-                        if len(lines) >= 2:
-                            headers = [c.strip() for c in lines[0].split("|") if c.strip()]
-                            th = "".join(f'<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;border-bottom:1px solid #1e3050;">{h}</th>' for h in headers)
-                            body = ""
-                            for line in lines[1:]:
-                                cells = [c.strip() for c in line.split("|") if c.strip()]
-                                body += "<tr>" + "".join(f'<td style="padding:10px 14px;color:#e2eaf5;border-bottom:1px solid #1a2a40;">{c}</td>' for c in cells) + "</tr>"
-                            st.markdown(f'<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;margin-bottom:16px;"><table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:13px;"><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table></div>', unsafe_allow_html=True)
-                        else:
-                            st.markdown(f'<div style="color:#e2eaf5;">{metrics_table}</div>', unsafe_allow_html=True)
-                    if commentary:
-                        st.info(commentary)
+def load_output_text(output_path: str | None) -> tuple[str | None, str | None]:
+    if not output_path:
+        return None, None
+    p = Path(output_path)
+    if not p.is_absolute():
+        p = (PROJECT_ROOT / p).resolve()
+    if not p.exists():
+        alt = (OUTPUT_DIR / p.name).resolve()
+        if alt.exists():
+            p = alt
         else:
-            st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Select a SAW and click Run SAW</div></div>', unsafe_allow_html=True)
+            return None, None
+    return str(p), p.read_text(encoding='utf-8', errors='replace')
 
-with tab2:
-    import pandas as pd
-    st.markdown('<div class="sf-label">All Past Runs</div>', unsafe_allow_html=True)
-    history = load_run_history()
-    drill_run_id = st.text_input("Run ID drill-down", placeholder="Paste full run_id from DB")
 
-    if history is not None and not history.empty:
-        history = history.copy()
+def display_path(output_path: str | None, resolved_output_path: str | None) -> str:
+    if output_path:
+        return output_path
+    if not resolved_output_path:
+        return 'N/A'
+    p = Path(resolved_output_path)
+    try:
+        rel = p.resolve().relative_to(PROJECT_ROOT.resolve())
+        return f'./{rel.as_posix()}'
+    except Exception:
+        return p.name
 
-        # Drill-down FIRST (shows right under input)
-        if drill_run_id:
-            conn = init_db(DB_PATH)
-            run_id_value = drill_run_id.strip()
-            selected_logs = get_run_logs(conn, run_id_value)
 
-            # Allow short 8-char prefix from table.
-            if not selected_logs and len(run_id_value) == 8:
-                row = conn.execute(
-                    "SELECT run_id FROM execution_log WHERE run_id LIKE ? ORDER BY timestamp_iso DESC LIMIT 1",
-                    (f"{run_id_value}%",)
-                ).fetchone()
-                if row:
-                    run_id_value = row[0]
-                    selected_logs = get_run_logs(conn, run_id_value)
+def extract_section(markdown_text: str, heading: str) -> str | None:
+    esc = re.escape(heading)
+    pattern = rf'^## {esc}\s*\n(.*?)(?=^##\s+|\Z)'
+    match = re.search(pattern, markdown_text, flags=re.MULTILINE | re.DOTALL)
+    if not match:
+        return None
+    return match.group(1).strip()
 
-            if not selected_logs:
-                st.warning("No logs found for that run ID.")
-            else:
-                saw_id = selected_logs[0].get("saw_id", "")
-                spec = SAW_SPEC_BY_ID.get(saw_id)
 
-                st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-                st.markdown(f'<div class="sf-label">Run Drill-Down · {run_id_value[:8]} ({saw_id})</div>', unsafe_allow_html=True)
+def remove_section(markdown_text: str, heading: str) -> str:
+    esc = re.escape(heading)
+    pattern = rf'^## {esc}\s*\n.*?(?=^##\s+|\Z)'
+    return re.sub(pattern, '', markdown_text, flags=re.MULTILINE | re.DOTALL)
 
-                if not spec:
-                    st.warning(f"SAW spec not found for saw_id: {saw_id}")
-                else:
-                    st.markdown('<div class="sf-label">Policy Snapshot</div>', unsafe_allow_html=True)
-                    render_policy_snapshot(spec)
 
-                    st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-                    st.markdown('<div class="sf-label">Execution Graph</div>', unsafe_allow_html=True)
-                    render_execution_graph(spec, selected_logs)
+def de_duplicate_rendered_output(markdown_text: str) -> str:
+    text = markdown_text
+    text = remove_section(text, 'LLM Summary')
+    text = remove_section(text, 'AI Digest')
+    text = remove_section(text, 'Deterministic Metrics Summary')
+    text = remove_section(text, 'Revenue by Region')
+    text = remove_section(text, 'Sources')
+    # Top title + generated/run metadata already shown in Wave Output Snapshot.
+    text = re.sub(r'(?m)^#\s+.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Generated at:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Run ID:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Sources fetched:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Topic:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Scope:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Top N:\s*.+\n?', '', text, count=1)
+    text = re.sub(r'(?m)^Generated at:\s*.+\s+Run ID:\s*.+\s+Sources fetched:\s*.+\n?', '', text, count=1)
+    # Normalize extra blank lines after section removal.
+    text = re.sub(r'\n{3,}', '\n\n', text).strip()
+    return text
 
-                st.markdown('<hr class="sf-hr">', unsafe_allow_html=True)
-                st.markdown('<div class="sf-label">Execution Log (Drill-Down)</div>', unsafe_allow_html=True)
 
-                rows_html_drill = ""
-                for row in selected_logs:
-                    ts = str(row.get("timestamp_iso", ""))[:19].replace("T", " ")
-                    node = row.get("node_id", "")
-                    tool = row.get("tool_name", "") or "—"
-                    dec = row.get("decision", "")
-                    lat = f"{row.get('latency_ms', 0):.2f}"
-                    err = row.get("error", "") or "—"
-                    dec_color = "#26c0ff" if dec == "allow" else "#ff731e"
-                    rows_html_drill += f'<tr><td>{ts}</td><td>{node}</td><td>{tool}</td><td style="color:{dec_color}">{dec}</td><td>{lat}</td><td>{err}</td></tr>'
+def parse_total_revenue(markdown_text: str) -> float | None:
+    m = re.search(r'Total revenue \(USD\): \$([0-9,]+(?:\.[0-9]{2})?)', markdown_text)
+    if not m:
+        return None
+    return float(m.group(1).replace(',', ''))
 
-                st.markdown(
-                    '<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">'
-                    '<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">'
-                    '<thead><tr style="border-bottom:1px solid #1e3050;">'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Timestamp</th>'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Node</th>'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Tool</th>'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Decision</th>'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Latency (ms)</th>'
-                    '<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Error</th>'
-                    f'</tr></thead><tbody style="color:#e2eaf5;">{rows_html_drill}</tbody></table></div>',
-                    unsafe_allow_html=True
-                )
 
-        # History table SECOND
-        history["run_id"] = history["run_id"].str[:8]
-        rows_html_hist = ""
-        for _, row in history.iterrows():
-            status_color = "#26c0ff" if row["status"] == "completed" else "#ff731e"
-            rows_html_hist += f'<tr><td>{row["run_id"]}</td><td>{row["saw_id"]}</td><td style="color:{status_color}">{row["status"]}</td><td>{row["system_ms"]}</td><td>{row["human_wait_ms"]}</td><td>{str(row["started_at"])[:19].replace("T"," ")}</td></tr>'
+def extract_report_header(markdown_text: str) -> tuple[str | None, str | None]:
+    title_match = re.search(r'(?m)^#\s+(.+)$', markdown_text)
+    generated_match = re.search(r'(?m)^Generated at:\s*(.+)$', markdown_text)
+    title = title_match.group(1).strip() if title_match else None
+    generated = generated_match.group(1).strip() if generated_match else None
+    return title, generated
 
-        st.markdown(f'''<div style="overflow-x:auto;border:1px solid #1e3050;border-radius:10px;">
-<table style="width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:12px;">
-<thead><tr style="border-bottom:1px solid #1e3050;">
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Run ID</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">SAW</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Status</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">System (ms)</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Human Wait (ms)</th>
-<th style="padding:10px 14px;text-align:left;color:#7a9ab8;font-weight:500;letter-spacing:0.08em;text-transform:uppercase;font-size:10px;">Started At</th>
-</tr></thead>
-<tbody style="color:#e2eaf5;">{rows_html_hist}</tbody>
-</table></div>''', unsafe_allow_html=True)
+
+def render_output_snapshot(output_text: str | None) -> None:
+    if not output_text:
+        return
+
+    title, generated = extract_report_header(output_text)
+    deterministic = extract_section(output_text, 'Deterministic Metrics Summary')
+    sources = extract_section(output_text, 'Sources')
+    revenue_by_region = extract_section(output_text, 'Revenue by Region')
+
+    st.markdown('### Wave Output Snapshot')
+    if title:
+        st.markdown(f'**{title}**')
+    if generated:
+        st.markdown(f'Generated at: `{generated}`')
+
+    if deterministic:
+        st.markdown('**Deterministic Metrics Summary**')
+        st.markdown(deterministic)
+
+    if revenue_by_region:
+        st.markdown('**Revenue by Region**')
+        st.markdown(revenue_by_region)
+
+    if sources:
+        st.markdown('**Sources**')
+        st.markdown(sources)
+
+
+def call_wave_run_result(payload: dict) -> dict:
+    req = urllib.request.Request(
+        f'{API_BASE}/api/waves/run',
+        data=json.dumps(payload).encode('utf-8'),
+        headers={'Content-Type': 'application/json'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+        return {
+            'ok': str(body.get('status', '')).lower() != 'failed',
+            'wave_id': body.get('wave_id'),
+            'status': body.get('status'),
+            'error': body.get('error'),
+            'body': body,
+            'http_code': 200,
+        }
+    except urllib.error.HTTPError as e:
+        try:
+            err_json = json.loads(e.read().decode('utf-8', errors='replace'))
+        except Exception:
+            err_json = {"error": {"code": "HTTP_ERROR", "message": f"HTTP {e.code}", "node": "call_wave_run_result"}}
+        return {
+            'ok': False,
+            'wave_id': err_json.get('wave_id'),
+            'status': err_json.get('status', 'failed'),
+            'error': err_json.get('error'),
+            'body': err_json,
+            'http_code': e.code,
+        }
+    except Exception:
+        return {
+            'ok': False,
+            'wave_id': None,
+            'status': 'failed',
+            'error': {'code': 'REQUEST_FAILED', 'message': 'API unavailable or request timed out.', 'node': 'call_wave_run_result'},
+            'body': {},
+            'http_code': None,
+        }
+
+
+def call_wave_run(payload: dict) -> tuple[bool, str]:
+    result = call_wave_run_result(payload)
+    wave_id = result.get('wave_id')
+    status = result.get('status')
+    if result.get('ok') and wave_id:
+        return True, f'Wave started: {wave_id} (status: {status})'
+    err = result.get('error') or {}
+    code = err.get('code', 'UNKNOWN')
+    msg = err.get('message', 'Wave trigger failed.')
+    if wave_id:
+        return False, f'Wave denied: {wave_id} ({code}) {msg}'
+    return False, f'Wave trigger failed ({code}): {msg}'
+
+
+def apply_run_result(
+    result: dict,
+    label: str,
+    show_success_message: bool = True,
+    track_proof: bool = True,
+    replace_proof: bool = False,
+) -> None:
+    wave_id = result.get('wave_id')
+    status = result.get('status')
+    ok = bool(result.get('ok'))
+    err = result.get('error') or {}
+
+    if ok and wave_id:
+        st.session_state['focus_wave_id'] = wave_id
+        st.session_state['show_latest_output'] = True
+        if show_success_message:
+            st.success(f"{label}: {wave_id} ({status})")
     else:
-        st.markdown(f'<div class="sf-empty">{WAVE_LG}<div class="sf-empty-text">Run a SAW first — history will appear here</div></div>', unsafe_allow_html=True)
+        code = err.get('code', 'UNKNOWN')
+        msg = err.get('message', 'Denied')
+        st.error(f"{label}: {wave_id or 'n/a'} ({code}) {msg}")
 
+    if track_proof:
+        st.session_state.setdefault('proof_runs', [])
+        entry = {
+            'label': label,
+            'wave_id': wave_id,
+            'status': status,
+            'ok': ok,
+            'error': err,
+            'http_code': result.get('http_code'),
+        }
+        if replace_proof:
+            st.session_state['proof_runs'] = [entry]
+        else:
+            st.session_state['proof_runs'].insert(0, entry)
+            st.session_state['proof_runs'] = st.session_state['proof_runs'][:12]
+
+
+def fetch_audit_export(wave_id: str) -> dict:
+    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/export', method='GET')
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
+def fetch_audit_verify(wave_id: str) -> dict:
+    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/verify', method='GET')
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return json.loads(resp.read().decode('utf-8'))
+
+
+def load_json_file(path: Path) -> dict:
+    return json.loads(path.read_text(encoding='utf-8'))
+
+
+def reset_prod_config() -> tuple[bool, str]:
+    try:
+        PROD_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+        PROD_CONFIG_PATH.write_text(PROD_CONFIG_BASELINE_PATH.read_text(encoding='utf-8'), encoding='utf-8')
+        return True, 'Reset config to baseline.'
+    except Exception as e:
+        return False, f'Reset failed: {e}'
+
+
+def render_prod_agent_panel() -> bool:
+    action_triggered = False
+    st.markdown('<div class="sf-glass" style="margin-top:10px;">'
+                '<div class="sf-kicker">Production Config Change Agent (Agent 3)</div>'
+                '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Run config mutation governance scenarios with allowlisted path and policy constraints.</div>'
+                '</div>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns([1.2, 1])
+    with c1:
+        st.markdown('#### Current Config')
+        try:
+            st.code(json.dumps(load_json_file(PROD_CONFIG_PATH), indent=2), language='json')
+        except Exception as e:
+            st.warning(f'Could not load config: {e}')
+    with c2:
+        scenario = st.selectbox('Scenario', PROD_AGENT_SCENARIOS, key='prod_agent_scenario')
+        if st.button('Run Agent', key='prod_agent_run', width='stretch'):
+            before_cfg = load_json_file(PROD_CONFIG_PATH) if PROD_CONFIG_PATH.exists() else {}
+            run_result = run_production_config_scenario(scenario, api_base=API_BASE)
+            after_cfg = load_json_file(PROD_CONFIG_PATH) if PROD_CONFIG_PATH.exists() else {}
+            mutate = (run_result or {}).get('mutate') or {}
+            body = mutate.get('body') or {}
+            st.session_state['prod_agent_result'] = {
+                'scenario': scenario,
+                'wave': (run_result or {}).get('wave'),
+                'status': body.get('status', 'REJECTED'),
+                'reason_code': body.get('reason_code', 'REQUEST_FAILED'),
+                'message': body.get('message', 'Mutation request failed'),
+                'audit': body.get('audit', {}),
+                'diff_preview': body.get('diff_preview', []),
+                'before': before_cfg,
+                'after': after_cfg,
+            }
+            action_triggered = True
+        if st.button('Reset config', key='prod_agent_reset', width='stretch'):
+            ok, msg = reset_prod_config()
+            if ok:
+                st.success(msg)
+            else:
+                st.error(msg)
+            action_triggered = True
+
+    result = st.session_state.get('prod_agent_result')
+    if result:
+        st.markdown('#### Agent 3 Result')
+        state = result.get('status', 'REJECTED')
+        if state == 'ALLOWED':
+            st.success(f"status={state} | reason_code={result.get('reason_code')}")
+        else:
+            st.error(f"status={state} | reason_code={result.get('reason_code')} | {result.get('message')}")
+        st.markdown(f"Message: `{result.get('message')}`")
+        st.markdown('**Diff Preview**')
+        st.code(json.dumps(result.get('diff_preview', []), indent=2), language='json')
+        st.markdown('**Audit**')
+        st.code(json.dumps(result.get('audit', {}), indent=2), language='json')
+        wave = result.get('wave') or {}
+        wave_id = wave.get('wave_id')
+        if wave_id:
+            try:
+                verify = fetch_audit_verify(wave_id)
+                st.caption(f"wave_id={wave_id} | audit_verify={verify.get('integrity_status')}")
+            except Exception as e:
+                st.caption(f"audit verify unavailable: {e}")
+    return action_triggered
+
+
+def clean_summary(summary: str | None) -> str:
+    if not summary:
+        return 'No LLM summary found yet for this wave.'
+    lower = summary.lower()
+    if 'llm summary unavailable' in lower or 'llm digest unavailable' in lower:
+        return 'Live LLM is unavailable for this run. Showing deterministic executive brief generated from verified wave outputs.'
+    return summary
+
+
+def summary_to_html(summary: str) -> str:
+    safe = summary.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    safe = re.sub(r'(?m)^###\s+(.+)$', r'<strong>\1</strong>', safe)
+    safe = re.sub(r'(?m)^##\s+(.+)$', r'<strong>\1</strong>', safe)
+    safe = re.sub(r'(?m)^#\s+(.+)$', r'<strong>\1</strong>', safe)
+    return safe.replace('\n', '<br>')
+
+
+def compute_ocean_metrics(current_wave: sqlite3.Row, all_waves: list[sqlite3.Row], output_text: str | None, output_file_exists: bool) -> dict[str, str]:
+    d = dict(current_wave)
+
+    created = parse_iso(d.get('created_at') or d.get('started_at'))
+    started = parse_iso(d.get('started_at') or d.get('created_at'))
+    completed = parse_iso(d.get('completed_at') or d.get('updated_at'))
+
+    wave_length = None
+    if started and completed and completed >= started:
+        wave_length = (completed - started).total_seconds()
+
+    now_utc = datetime.now(timezone.utc)
+    cutoff = now_utc - timedelta(hours=24)
+    starts_24h = 0
+    for w in all_waves:
+        wd = dict(w)
+        ts = parse_iso(wd.get('started_at') or wd.get('created_at'))
+        if ts and ts.astimezone(timezone.utc) >= cutoff:
+            starts_24h += 1
+
+    wave_frequency = starts_24h / 24.0
+
+    words = len((output_text or '').split())
+    sections = len(re.findall(r'^##\s+', output_text or '', flags=re.MULTILINE))
+    wave_depth_proxy = max(words // 40 + sections * 2, sections)
+
+    checks = 0
+    if resolve_policy_hash(current_wave) != 'N/A':
+        checks += 1
+    if resolve_integrity(current_wave) in {'VALID', 'FLAGGED'}:
+        checks += 1
+    if str(d.get('status', '')).lower() in {'complete', 'failed'}:
+        checks += 1
+    if d.get('error_code'):
+        checks += 1
+    wave_height = f'{checks}/5'
+
+    write_count = 1 if output_file_exists else 0
+
+    return {
+        'Wave Length': f'{wave_length:.2f}s' if wave_length is not None else 'N/A',
+        'Wave Frequency': f'{wave_frequency:.2f}/hr',
+        'Wave Depth': f'{wave_depth_proxy} (proxy)',
+        'Wave Height': f'{wave_height} (beta)',
+        'Write Count': str(write_count),
+        'Integrity Status': resolve_integrity(current_wave),
+    }
+
+
+def render_brand_header(db_path: Path) -> None:
+    st.markdown(CSS, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+<div class="sf-wordmark">
+  {WAVE_ICON}
+  <div>
+    <div class="sf-title"><span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span></div>
+    <div class="sf-sub">Local Wave Control Deck</div>
+  </div>
+</div>
+<div style="height:10px"></div>
+<div style="font-size:12px;color:#7a9ab8;letter-spacing:.08em;text-transform:uppercase;">Connected DB: {db_path}</div>
+<div style="height:8px"></div>
+""",
+        unsafe_allow_html=True,
+    )
+
+
+def render_trigger_panel() -> bool:
+    action_triggered = False
+    st.markdown('<div class="sf-glass">', unsafe_allow_html=True)
+    st.markdown('<div class="sf-kicker">Wave Atlas</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Customer Atlas (Wave Library) available to agent scheduling.</div>',
+        unsafe_allow_html=True,
+    )
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        st.markdown(
+            '<div style="background:#111d30;border:1px solid #1e3050;border-radius:10px;padding:10px 12px;">'
+            '<div style="font-size:11px;color:#7a9ab8;letter-spacing:.12em;text-transform:uppercase;">production_config_change_v1</div>'
+            '<div style="margin-top:6px;font-size:13px;color:#e2eaf5;">Production config mutation wave</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button('View Prod Config Wave + Agent Script', key='atlas_prod', width='stretch'):
+            current = st.session_state.get('atlas_selected')
+            st.session_state['atlas_selected'] = None if current == 'production_config_change_v1' else 'production_config_change_v1'
+    with a2:
+        st.markdown(
+            '<div style="background:#111d30;border:1px solid #1e3050;border-radius:10px;padding:10px 12px;">'
+            '<div style="font-size:11px;color:#7a9ab8;letter-spacing:.12em;text-transform:uppercase;">market_intelligence_digest_v1</div>'
+            '<div style="margin-top:6px;font-size:13px;color:#e2eaf5;">Market intelligence wave</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button('View Market Wave + Agent Script', key='atlas_market', width='stretch'):
+            current = st.session_state.get('atlas_selected')
+            st.session_state['atlas_selected'] = None if current == 'market_intelligence_digest_v1' else 'market_intelligence_digest_v1'
+    with a3:
+        st.markdown(
+            '<div style="background:#111d30;border:1px solid #1e3050;border-radius:10px;padding:10px 12px;">'
+            '<div style="font-size:11px;color:#7a9ab8;letter-spacing:.12em;text-transform:uppercase;">sales_report_v1</div>'
+            '<div style="margin-top:6px;font-size:13px;color:#e2eaf5;">Finance reporting wave</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button('View Sales Wave + Agent Script', key='atlas_sales', width='stretch'):
+            current = st.session_state.get('atlas_selected')
+            st.session_state['atlas_selected'] = None if current == 'sales_report_v1' else 'sales_report_v1'
+
+    selected = st.session_state.get('atlas_selected')
+    if selected in ATLAS_ENTRIES:
+        entry = ATLAS_ENTRIES[selected]
+        st.markdown(f'#### Atlas Entry: `{selected}`')
+        st.markdown('**Wave Script**')
+        st.code(json.dumps(entry['wave_script'], indent=2), language='json')
+        st.markdown('**Agent Script**')
+        try:
+            st.code(entry['agent_script'].read_text(encoding='utf-8'), language='javascript')
+        except Exception as e:
+            st.warning(f'Could not load agent script: {e}')
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="sf-glass" style="margin-top:10px;"><div class="sf-kicker">Demo Trigger</div><div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Run Scheduled Wave to simulate cron-triggered agent execution.</div></div>', unsafe_allow_html=True)
+    t0, t1, t2, t3, t4 = st.columns([0.45, 1, 1, 1, 0.45])
+    with t1:
+        if st.button('Run Scheduled Wave (Prod Config)', width='stretch'):
+            apply_run_result(call_wave_run_result(PROD_AGENT_WAVE_PAYLOAD), 'Run Scheduled Wave (Prod Config)', track_proof=False)
+            action_triggered = True
+    with t2:
+        if st.button('Run Scheduled Wave (Market Intelligence)', width='stretch'):
+            apply_run_result(call_wave_run_result(MARKET_INTEL_PAYLOAD), 'Run Scheduled Wave (Market Intelligence)', track_proof=False)
+            action_triggered = True
+    with t3:
+        if st.button('Run Scheduled Wave (Finance)', width='stretch'):
+            apply_run_result(call_wave_run_result(FINANCE_PAYLOAD), 'Run Scheduled Wave (Finance)', track_proof=False)
+            action_triggered = True
+
+    b1, b2, b3 = st.columns([1.45, 1, 1.45])
+    with b2:
+        if st.button('Clear Output', width='stretch'):
+            st.session_state['show_latest_output'] = False
+            st.session_state['focus_wave_id'] = None
+            st.session_state['proof_runs'] = []
+            action_triggered = True
+            st.rerun()
+
+    st.markdown('<div class="sf-glass" style="margin-top:10px;">'
+                '<div class="sf-kicker">Enforcement Proof</div>'
+                '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Run allowed and denied boundary cases with auditable evidence.</div>'
+                '</div>', unsafe_allow_html=True)
+
+    p0, p1, p2, p3, p4 = st.columns([0.45, 1, 1, 1, 0.45])
+    proof_actions = [
+        ('proof_deny_agent', 'Run Unauthorized Agent', UNAUTHORIZED_AGENT_PAYLOAD),
+        ('proof_deny_path', 'Run Path Violation', PATH_VIOLATION_PAYLOAD),
+        ('proof_deny_policy', 'Run Policy Mismatch', POLICY_MISMATCH_PAYLOAD),
+    ]
+    for col, (key, label, payload) in zip([p1, p2, p3], proof_actions):
+        with col:
+            if st.button(label, key=key, width='stretch'):
+                apply_run_result(
+                    call_wave_run_result(payload),
+                    label,
+                    show_success_message=False,
+                    replace_proof=True,
+                )
+                action_triggered = True
+
+    proof_runs = st.session_state.get('proof_runs', [])
+    if proof_runs:
+        st.markdown('#### Proof Results')
+        for rec in proof_runs:
+            wave_id = rec.get('wave_id')
+            err = rec.get('error') or {}
+            head = f"- `{rec.get('label')}` | wave `{wave_id}` | status `{rec.get('status')}`"
+            if rec.get('ok'):
+                st.markdown(head + " | result `ALLOW`")
+            else:
+                st.markdown(head + f" | result `DENY` ({err.get('code','UNKNOWN')})")
+            if wave_id:
+                try:
+                    audit = fetch_audit_export(wave_id)
+                    verify = fetch_audit_verify(wave_id)
+                    decision_events = audit.get('events', [])
+                    highlights = []
+                    for e in decision_events[-4:]:
+                        highlights.append(f"{e.get('decision')}:{e.get('rule')}")
+                    st.caption(
+                        f"verify={verify.get('integrity_status')} | decisions={', '.join(highlights) if highlights else 'none'}"
+                    )
+                except Exception as e:
+                    st.caption(f"audit unavailable: {e}")
+
+    if render_prod_agent_panel():
+        action_triggered = True
+    return action_triggered
+
+
+def render_metric_grid(metrics: dict[str, str]) -> None:
+    labels = [
+        ('Wave Length', 'Autonomous execution duration'),
+        ('Wave Frequency', 'Trigger cadence (24h)'),
+        ('Wave Depth', 'Governed execution depth'),
+        ('Wave Height', 'Governance intensity score'),
+        ('Write Count', 'Mutation attempts'),
+        ('Integrity Status', 'Tamper-evident result'),
+    ]
+    cards = []
+    for key, desc in labels:
+        cards.append(
+            f'<div class="sf-metric"><div class="k">{key}</div><div class="v">{metrics.get(key, "N/A")}</div><div class="d">{desc}</div></div>'
+        )
+    st.markdown(f'<div class="sf-metrics">{"".join(cards)}</div>', unsafe_allow_html=True)
+
+
+def render_latest_output(latest_wave: sqlite3.Row, all_waves: list[sqlite3.Row]) -> None:
+    d = dict(latest_wave)
+    output_path = resolve_output_path(latest_wave)
+    resolved_output_path, output_text = load_output_text(output_path)
+
+    raw_summary = None
+    if output_text:
+        raw_summary = (
+            extract_section(output_text, 'LLM Summary')
+            or extract_section(output_text, 'AI Digest')
+            or extract_section(output_text, 'Executive Summary')
+        )
+    summary = clean_summary(raw_summary)
+
+    chip = '<span class="sf-chip sf-chip-ok">LLM Live</span>'
+    if raw_summary:
+        lowered = raw_summary.lower()
+        if 'fallback' in lowered or 'deterministic' in lowered or 'unavailable' in lowered:
+            chip = '<span class="sf-chip sf-chip-warn">LLM Fallback</span>'
+
+    st.markdown('### Full Rendered Output')
+    if output_text and resolved_output_path:
+        st.caption(f'Output file: {display_path(output_path, resolved_output_path)}')
+        st.markdown(de_duplicate_rendered_output(output_text))
+    else:
+        st.warning('Output file not found for this wave.')
+
+    metrics = compute_ocean_metrics(latest_wave, all_waves, output_text, resolved_output_path is not None)
+    render_metric_grid(metrics)
+
+    summary_html = summary_to_html(summary)
+    st.markdown(
+        f"""
+<div class="sf-glass">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="sf-kicker">Latest Completed Wave</div>
+    {chip}
+  </div>
+  <div style="margin-top:8px;font-size:20px;font-weight:600;color:#e2eaf5;">LLM Executive Summary</div>
+  <div style="margin-top:10px;font-size:15px;line-height:1.7;color:#d8e8f5;">{summary_html}</div>
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+
+    render_output_snapshot(output_text)
+
+
+def find_by_wave_id(rows: list[sqlite3.Row], value: str) -> sqlite3.Row | None:
+    target = value.strip()
+    if not target:
+        return None
+    exact = [r for r in rows if str(dict(r).get('wave_id', '')) == target]
+    if exact:
+        return exact[0]
+    pref = [r for r in rows if str(dict(r).get('wave_id', '')).startswith(target)]
+    if len(pref) == 1:
+        return pref[0]
+    return None
+
+
+def render_wave_history(waves: list[sqlite3.Row]) -> None:
+    rows = []
+    for r in waves:
+        d = dict(r)
+        status = str(d.get('status') or '')
+        status_flag = 'green' if status.lower() == 'complete' else 'red'
+        rows.append(
+            {
+                'wave_id': str(d.get('wave_id') or '')[:8],
+                'wave_template_id': d.get('wave_template_id'),
+                'agent_id': d.get('agent_id'),
+                'status': f'{status} ({status_flag})',
+                'integrity_status': resolve_integrity(r),
+                'policy_hash': resolve_policy_hash(r),
+                'started_at': d.get('started_at') or d.get('created_at'),
+            }
+        )
+
+    st.dataframe(rows, width='stretch', hide_index=True)
+
+    wave_lookup = st.text_input('Enter full wave_id or unique prefix for drill-down')
+    picked = find_by_wave_id(waves, wave_lookup)
+    if wave_lookup and picked is None:
+        st.warning('No unique match for that wave_id.')
+
+    if picked is not None:
+        d = dict(picked)
+        output_path = resolve_output_path(picked)
+        resolved_output_path, output_text = load_output_text(output_path)
+
+        st.markdown('### Wave Drill-Down')
+        st.code(
+            json.dumps(
+                {
+                    'wave_id': d.get('wave_id'),
+                    'agent_id': d.get('agent_id'),
+                    'wave_template_id': d.get('wave_template_id'),
+                    'status': d.get('status'),
+                    'integrity': resolve_integrity(picked),
+                    'policy_hash': resolve_policy_hash(picked),
+                    'started_at': d.get('started_at') or d.get('created_at'),
+                    'completed_at': d.get('completed_at') or d.get('updated_at'),
+                    'output_path': output_path,
+                },
+                indent=2,
+            ),
+            language='json',
+        )
+        if output_text and resolved_output_path:
+            st.caption(f'Output file: {display_path(output_path, resolved_output_path)}')
+            st.markdown(de_duplicate_rendered_output(output_text))
+
+
+def main() -> None:
+    st.set_page_config(page_title='Surfit AI Local Demo', layout='wide')
+    if 'show_latest_output' not in st.session_state:
+        st.session_state['show_latest_output'] = False
+    if 'focus_wave_id' not in st.session_state:
+        st.session_state['focus_wave_id'] = None
+
+    db_path = find_db_path()
+    if not db_path:
+        st.error('No SQLite DB found. Checked SURFIT_DB_PATH, project surfit_runs.db, and /tmp/surfit_runs.db.')
+        return
+
+    render_brand_header(db_path)
+
+    conn = connect_db(db_path)
+    try:
+        if not has_table(conn, 'waves'):
+            st.error('Table `waves` does not exist in this DB.')
+            st.code('\n'.join(list_tables(conn)))
+            return
+
+        waves = fetch_waves(conn)
+        if not waves:
+            st.warning('No waves found in `waves` table yet. Run a scheduled wave to populate the demo.')
+
+        latest_complete = None
+        if waves:
+            latest_complete = next(
+                (r for r in waves if str(dict(r).get('status', '')).lower() == 'complete'),
+                waves[0],
+            )
+        focus_wave_id = st.session_state.get('focus_wave_id')
+        focus_wave = next((r for r in waves if str(dict(r).get('wave_id', '')) == focus_wave_id), None)
+
+        tab_latest, tab_history = st.tabs(['Latest Output', 'Wave History'])
+        with tab_latest:
+            action_triggered = render_trigger_panel()
+            if action_triggered:
+                # Refresh waves after button actions so this render uses current run state.
+                waves = fetch_waves(conn)
+                latest_complete = None
+                if waves:
+                    latest_complete = next(
+                        (r for r in waves if str(dict(r).get('status', '')).lower() == 'complete'),
+                        waves[0],
+                    )
+                focus_wave_id = st.session_state.get('focus_wave_id')
+                focus_wave = next((r for r in waves if str(dict(r).get('wave_id', '')) == focus_wave_id), None)
+            if st.session_state.get('show_latest_output'):
+                if focus_wave_id:
+                    if not focus_wave:
+                        st.info(
+                            f"Selected wave `{focus_wave_id}` is registering. "
+                            "Refresh in a few seconds to view this wave output."
+                        )
+                    else:
+                        focus_status = str(dict(focus_wave).get('status', '')).lower()
+                        if focus_status != 'complete':
+                            st.info(
+                                f"Selected wave `{dict(focus_wave).get('wave_id')}` is `{focus_status}`. "
+                                "Refresh in a few seconds to view its completed output."
+                            )
+                        else:
+                            render_latest_output(focus_wave, waves)
+                else:
+                    if latest_complete is None:
+                        st.info('No completed waves yet. Run a scheduled wave, then view results here.')
+                    else:
+                        render_latest_output(latest_complete, waves)
+            else:
+                st.info('No wave output loaded yet. Run a scheduled wave, then review results here.')
+        with tab_history:
+            render_wave_history(waves)
+    finally:
+        conn.close()
+
+
+if __name__ == '__main__':
+    main()
