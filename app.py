@@ -2,6 +2,7 @@ import json
 import re
 import sqlite3
 import os
+import subprocess
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -14,6 +15,7 @@ from agents.production_config_agent import run_scenario as run_production_config
 PROJECT_ROOT = Path(__file__).resolve().parent
 OUTPUT_DIR = PROJECT_ROOT / 'outputs'
 API_BASE = 'http://127.0.0.1:8010'
+API_KEY = os.environ.get('SURFIT_API_KEY', 'surfit-demo-key')
 PROD_CONFIG_PATH = PROJECT_ROOT / 'demo_artifacts' / 'prod_config.json'
 PROD_CONFIG_BASELINE_PATH = PROJECT_ROOT / 'demo_artifacts' / 'prod_config.baseline.json'
 PROD_AGENT_SCENARIOS = [
@@ -67,6 +69,7 @@ PROD_AGENT_WAVE_PAYLOAD = {
     'intent': 'Scheduled demo trigger: provision production config mutation wave token',
     'context_refs': {
         'target_path': 'demo_artifacts/prod_config.json',
+        'output_report_path': './outputs/prod_config_change_report.md',
     },
 }
 
@@ -103,6 +106,58 @@ POLICY_MISMATCH_PAYLOAD = {
     },
 }
 
+ENTERPRISE_ALLOWED_PAYLOAD = {
+    'agent_id': 'enterprise_change_control_agent',
+    'wave_template_id': 'ENTERPRISE_CHANGE_CONTROL_V1',
+    'policy_version': 'enterprise_change_control_policy_v1',
+    'intent': 'Enterprise change control happy path: create production pull request',
+    'context_refs': {
+        'repo_base_url': 'http://127.0.0.1:8040',
+        'attempted_action': 'pull_request',
+        'allowed_action': 'pull_request',
+        'output_report_path': './outputs/enterprise_change_control_report.md',
+    },
+}
+
+ENTERPRISE_UNAUTHORIZED_PAYLOAD = {
+    'agent_id': 'rogue_enterprise_agent_v0',
+    'wave_template_id': 'ENTERPRISE_CHANGE_CONTROL_V1',
+    'policy_version': 'enterprise_change_control_policy_v1',
+    'intent': 'Enterprise boundary test: unauthorized actor attempts production change',
+    'context_refs': {
+        'repo_base_url': 'http://127.0.0.1:8040',
+        'attempted_action': 'pull_request',
+        'allowed_action': 'pull_request',
+        'output_report_path': './outputs/enterprise_case_unauthorized.md',
+    },
+}
+
+ENTERPRISE_SCOPE_VIOLATION_PAYLOAD = {
+    'agent_id': 'enterprise_change_control_agent',
+    'wave_template_id': 'ENTERPRISE_CHANGE_CONTROL_V1',
+    'policy_version': 'enterprise_change_control_policy_v1',
+    'intent': 'Enterprise boundary test: disallowed merge endpoint',
+    'context_refs': {
+        'repo_base_url': 'http://127.0.0.1:8040',
+        'attempted_action': 'merge',
+        'allowed_action': 'pull_request',
+        'output_report_path': './outputs/enterprise_case_scope_violation.md',
+    },
+}
+
+ENTERPRISE_POLICY_MISMATCH_PAYLOAD = {
+    'agent_id': 'enterprise_change_control_agent',
+    'wave_template_id': 'ENTERPRISE_CHANGE_CONTROL_V1',
+    'policy_version': 'enterprise_change_control_policy_INVALID',
+    'intent': 'Enterprise boundary test: policy version mismatch',
+    'context_refs': {
+        'repo_base_url': 'http://127.0.0.1:8040',
+        'attempted_action': 'pull_request',
+        'allowed_action': 'pull_request',
+        'output_report_path': './outputs/enterprise_case_policy_mismatch.md',
+    },
+}
+
 
 ATLAS_ENTRIES = {
     'production_config_change_v1': {
@@ -113,7 +168,10 @@ ATLAS_ENTRIES = {
             'wave_template_id': 'production_config_change_v1',
             'policy_version': 'prod_config_policy_v1',
             'intent': 'Demo trigger: production config mutation governance proof',
-            'context_refs': {'target_path': 'demo_artifacts/prod_config.json'},
+            'context_refs': {
+                'target_path': 'demo_artifacts/prod_config.json',
+                'output_report_path': './outputs/prod_config_change_report.md',
+            },
         },
     },
     'sales_report_v1': {
@@ -125,6 +183,11 @@ ATLAS_ENTRIES = {
         'title': 'Market intelligence wave',
         'agent_script': PROJECT_ROOT / 'agents' / 'marketing-agent.js',
         'wave_script': MARKET_INTEL_PAYLOAD,
+    },
+    'ENTERPRISE_CHANGE_CONTROL_V1': {
+        'title': 'Enterprise change control wave',
+        'agent_script': PROJECT_ROOT / 'agents' / 'enterprise_change_control_agent.py',
+        'wave_script': ENTERPRISE_ALLOWED_PAYLOAD,
     },
 }
 
@@ -425,11 +488,18 @@ def render_output_snapshot(output_text: str | None) -> None:
         st.markdown(sources)
 
 
+def api_headers(extra: dict[str, str] | None = None) -> dict[str, str]:
+    headers = {'X-SURFIT-API-KEY': API_KEY}
+    if extra:
+        headers.update(extra)
+    return headers
+
+
 def call_wave_run_result(payload: dict) -> dict:
     req = urllib.request.Request(
         f'{API_BASE}/api/waves/run',
         data=json.dumps(payload).encode('utf-8'),
-        headers={'Content-Type': 'application/json'},
+        headers=api_headers({'Content-Type': 'application/json'}),
         method='POST',
     )
     try:
@@ -520,16 +590,87 @@ def apply_run_result(
             st.session_state['proof_runs'] = st.session_state['proof_runs'][:12]
 
 
+def apply_enterprise_result(result: dict, label: str, payload: dict) -> None:
+    wave_id = result.get('wave_id')
+    status = str(result.get('status', 'failed'))
+    ok = bool(result.get('ok'))
+    err = result.get('error') or {}
+    body = result.get('body') or {}
+
+    if not err and isinstance(body.get('error'), dict):
+        err = body.get('error') or {}
+
+    verify = {}
+    if wave_id:
+        try:
+            verify = fetch_audit_verify(wave_id)
+        except Exception:
+            verify = {}
+
+    entry = {
+        'label': label,
+        'wave_id': wave_id,
+        'status': status,
+        'ok': ok,
+        'error': err,
+        'agent_id': payload.get('agent_id'),
+        'wave_template_id': payload.get('wave_template_id'),
+        'policy_version': payload.get('policy_version'),
+        'timestamp': datetime.now(timezone.utc).isoformat(),
+        'policy_manifest_hash_prefix': result.get('body', {}).get('policy_manifest_hash_prefix') or verify.get('policy_manifest_hash_prefix'),
+        'verify_status': verify.get('integrity_status'),
+        'bundle_path': None,
+        'offline_verify_output': None,
+    }
+    st.session_state.setdefault('enterprise_runs', [])
+    st.session_state['enterprise_runs'].insert(0, entry)
+    st.session_state['enterprise_runs'] = st.session_state['enterprise_runs'][:12]
+
+
 def fetch_audit_export(wave_id: str) -> dict:
-    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/export', method='GET')
+    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/export', headers=api_headers(), method='GET')
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode('utf-8'))
 
 
 def fetch_audit_verify(wave_id: str) -> dict:
-    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/verify', method='GET')
+    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/audit/verify', headers=api_headers(), method='GET')
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode('utf-8'))
+
+
+def export_wave_bundle_local(wave_id: str) -> tuple[bool, str]:
+    out = OUTPUT_DIR / f'wave_bundle_{wave_id}.json'
+    req = urllib.request.Request(f'{API_BASE}/api/waves/{wave_id}/export', headers=api_headers(), method='GET')
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            payload = json.loads(resp.read().decode('utf-8'))
+        out.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+        return True, f'outputs/{out.name}'
+    except Exception as e:
+        return False, str(e)
+
+
+def verify_wave_bundle_local(bundle_path: str) -> tuple[bool, str]:
+    try:
+        proc = subprocess.run(
+            ['python3', 'scripts/verify_wave_bundle.py', bundle_path],
+            cwd=str(PROJECT_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        output = (proc.stdout + '\n' + proc.stderr).strip()
+        return proc.returncode == 0, output or f'Exit code {proc.returncode}'
+    except Exception as e:
+        return False, str(e)
+
+
+def bundle_exists(bundle_path: str) -> bool:
+    p = Path(bundle_path)
+    if not p.is_absolute():
+        p = PROJECT_ROOT / p
+    return p.exists()
 
 
 def load_json_file(path: Path) -> dict:
@@ -548,39 +689,77 @@ def reset_prod_config() -> tuple[bool, str]:
 def render_prod_agent_panel() -> bool:
     action_triggered = False
     st.markdown('<div class="sf-glass" style="margin-top:10px;">'
-                '<div class="sf-kicker">Production Config Change Agent (Agent 3)</div>'
+                '<div class="sf-kicker">Production Config Change Agent</div>'
                 '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Run config mutation governance scenarios with allowlisted path and policy constraints.</div>'
                 '</div>', unsafe_allow_html=True)
 
     c1, c2 = st.columns([1.2, 1])
     with c1:
         st.markdown('#### Current Config')
+        st.caption('This panel is always visible as the production config live state (not only when scheduled wave runs).')
         try:
             st.code(json.dumps(load_json_file(PROD_CONFIG_PATH), indent=2), language='json')
         except Exception as e:
             st.warning(f'Could not load config: {e}')
     with c2:
-        scenario = st.selectbox('Scenario', PROD_AGENT_SCENARIOS, key='prod_agent_scenario')
+        scenario = st.selectbox('Scenario (governance test case)', PROD_AGENT_SCENARIOS, key='prod_agent_scenario')
+        st.caption('These are governance test scenarios for the production config agent, not different agents.')
         if st.button('Run Agent', key='prod_agent_run', width='stretch'):
             before_cfg = load_json_file(PROD_CONFIG_PATH) if PROD_CONFIG_PATH.exists() else {}
             run_result = run_production_config_scenario(scenario, api_base=API_BASE)
             after_cfg = load_json_file(PROD_CONFIG_PATH) if PROD_CONFIG_PATH.exists() else {}
             mutate = (run_result or {}).get('mutate') or {}
             body = mutate.get('body') or {}
+            wave = (run_result or {}).get('wave') or {}
+            mutate_http = mutate.get('http_code')
+
+            status = body.get('status')
+            reason_code = body.get('reason_code')
+            message = body.get('message')
+            audit = body.get('audit')
+            diff_preview = body.get('diff_preview')
+
+            nested_err = body.get('error') if isinstance(body, dict) else None
+            if nested_err and isinstance(nested_err, dict):
+                reason_code = reason_code or nested_err.get('code')
+                message = message or nested_err.get('message')
+
+            if not status and mutate_http and mutate_http >= 400:
+                status = 'REJECTED'
+            if not reason_code and mutate_http and mutate_http >= 400:
+                reason_code = f'HTTP_{mutate_http}'
+            if not message and mutate_http and mutate_http >= 400:
+                message = body.get('detail') if isinstance(body, dict) else None
+
+            if not body and wave and not mutate:
+                status = 'REJECTED'
+                reason_code = ((wave.get('error') or {}).get('code')) or 'WAVE_START_FAILED'
+                message = ((wave.get('error') or {}).get('message')) or 'Wave bootstrap failed.'
+                audit = {}
+                diff_preview = []
+
+            if not status:
+                status = 'REJECTED'
+            if not reason_code:
+                reason_code = 'REQUEST_FAILED'
+            if not message:
+                message = 'Mutation request failed'
+
             st.session_state['prod_agent_result'] = {
                 'scenario': scenario,
-                'wave': (run_result or {}).get('wave'),
-                'status': body.get('status', 'REJECTED'),
-                'reason_code': body.get('reason_code', 'REQUEST_FAILED'),
-                'message': body.get('message', 'Mutation request failed'),
-                'audit': body.get('audit', {}),
-                'diff_preview': body.get('diff_preview', []),
+                'wave': wave,
+                'status': status,
+                'reason_code': reason_code,
+                'message': message,
+                'audit': audit or {},
+                'diff_preview': diff_preview or [],
                 'before': before_cfg,
                 'after': after_cfg,
             }
             action_triggered = True
         if st.button('Reset config', key='prod_agent_reset', width='stretch'):
             ok, msg = reset_prod_config()
+            st.session_state.pop('prod_agent_result', None)
             if ok:
                 st.success(msg)
             else:
@@ -589,7 +768,7 @@ def render_prod_agent_panel() -> bool:
 
     result = st.session_state.get('prod_agent_result')
     if result:
-        st.markdown('#### Agent 3 Result')
+        st.markdown('#### Production Config Result')
         state = result.get('status', 'REJECTED')
         if state == 'ALLOWED':
             st.success(f"status={state} | reason_code={result.get('reason_code')}")
@@ -704,7 +883,7 @@ def render_trigger_panel() -> bool:
         '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;">Customer Atlas (Wave Library) available to agent scheduling.</div>',
         unsafe_allow_html=True,
     )
-    a1, a2, a3 = st.columns(3)
+    a1, a2, a3, a4 = st.columns(4)
     with a1:
         st.markdown(
             '<div style="background:#111d30;border:1px solid #1e3050;border-radius:10px;padding:10px 12px;">'
@@ -738,6 +917,17 @@ def render_trigger_panel() -> bool:
         if st.button('View Sales Wave + Agent Script', key='atlas_sales', width='stretch'):
             current = st.session_state.get('atlas_selected')
             st.session_state['atlas_selected'] = None if current == 'sales_report_v1' else 'sales_report_v1'
+    with a4:
+        st.markdown(
+            '<div style="background:#111d30;border:1px solid #1e3050;border-radius:10px;padding:10px 12px;">'
+            '<div style="font-size:11px;color:#7a9ab8;letter-spacing:.12em;text-transform:uppercase;">ENTERPRISE_CHANGE_CONTROL_V1</div>'
+            '<div style="margin-top:6px;font-size:13px;color:#e2eaf5;">Enterprise governance wave</div>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if st.button('View Enterprise Wave + Agent Script', key='atlas_enterprise', width='stretch'):
+            current = st.session_state.get('atlas_selected')
+            st.session_state['atlas_selected'] = None if current == 'ENTERPRISE_CHANGE_CONTROL_V1' else 'ENTERPRISE_CHANGE_CONTROL_V1'
 
     selected = st.session_state.get('atlas_selected')
     if selected in ATLAS_ENTRIES:
@@ -773,6 +963,7 @@ def render_trigger_panel() -> bool:
             st.session_state['show_latest_output'] = False
             st.session_state['focus_wave_id'] = None
             st.session_state['proof_runs'] = []
+            st.session_state.pop('prod_agent_result', None)
             action_triggered = True
             st.rerun()
 
@@ -822,6 +1013,139 @@ def render_trigger_panel() -> bool:
                     )
                 except Exception as e:
                     st.caption(f"audit unavailable: {e}")
+
+    st.markdown('<div class="sf-glass" style="margin-top:10px;">'
+                '<div class="sf-kicker">Demo #2</div>'
+                '<div style="margin-top:6px;font-size:22px;font-weight:700;color:#e2eaf5;">Enterprise Governance Demo</div>'
+                '<div style="margin-top:6px;font-size:13px;color:#9cc0dd;">Example Tenant: Surfit Sandbox</div>'
+                '<div style="margin-top:2px;font-size:13px;color:#9cc0dd;">Environment: Test</div>'
+                '<div style="margin-top:8px;font-size:14px;color:#d6e8f5;">This control deck represents a Surfit tenant governing AI agents interacting with enterprise systems.</div>'
+                '</div>', unsafe_allow_html=True)
+
+    e0, e1, e2, e3, e4 = st.columns([0.2, 1, 1, 1, 1])
+    with e1:
+        if st.button('Run Unauthorized Case', key='enterprise_case_unauth', width='stretch'):
+            apply_enterprise_result(
+                call_wave_run_result(ENTERPRISE_UNAUTHORIZED_PAYLOAD),
+                'Run Unauthorized Case',
+                ENTERPRISE_UNAUTHORIZED_PAYLOAD,
+            )
+            action_triggered = True
+    with e2:
+        if st.button('Run Scope Violation', key='enterprise_case_scope', width='stretch'):
+            apply_enterprise_result(
+                call_wave_run_result(ENTERPRISE_SCOPE_VIOLATION_PAYLOAD),
+                'Run Scope Violation',
+                ENTERPRISE_SCOPE_VIOLATION_PAYLOAD,
+            )
+            action_triggered = True
+    with e3:
+        if st.button('Run Policy Mismatch', key='enterprise_case_policy', width='stretch'):
+            apply_enterprise_result(
+                call_wave_run_result(ENTERPRISE_POLICY_MISMATCH_PAYLOAD),
+                'Run Policy Mismatch',
+                ENTERPRISE_POLICY_MISMATCH_PAYLOAD,
+            )
+            action_triggered = True
+    with e4:
+        if st.button('Run Allowed Flow', key='enterprise_case_allow', width='stretch'):
+            apply_enterprise_result(
+                call_wave_run_result(ENTERPRISE_ALLOWED_PAYLOAD),
+                'Run Allowed Flow',
+                ENTERPRISE_ALLOWED_PAYLOAD,
+            )
+            action_triggered = True
+
+    clear_col_left, clear_col_mid, clear_col_right = st.columns([1, 1.4, 1])
+    with clear_col_mid:
+        if st.button('Clear Demo #2 Results', key='enterprise_clear_results', width='stretch'):
+            st.session_state['enterprise_runs'] = []
+            action_triggered = True
+            st.rerun()
+
+    enterprise_runs = st.session_state.get('enterprise_runs', [])
+    if enterprise_runs:
+        rec = enterprise_runs[0]
+        wave_id = str(rec.get('wave_id') or '')
+        err = rec.get('error') or {}
+        reason_code = str(err.get('code') or 'UNKNOWN')
+        is_allow = bool(rec.get('ok'))
+        badge_bg = 'rgba(38,192,255,0.16)' if is_allow else 'rgba(255,115,30,0.16)'
+        badge_border = 'rgba(38,192,255,0.42)' if is_allow else 'rgba(255,115,30,0.42)'
+        badge_color = '#26c0ff' if is_allow else '#ff731e'
+        badge_text = 'ALLOW' if is_allow else f'DENY — {reason_code}'
+
+        st.markdown('<div class="sf-glass" style="margin-top:10px;">', unsafe_allow_html=True)
+        st.markdown('#### Wave Summary')
+        st.markdown(
+            f'<div style="display:inline-block;padding:10px 16px;border-radius:12px;border:1px solid {badge_border};'
+            f'background:{badge_bg};font-size:22px;font-weight:800;color:{badge_color};letter-spacing:.03em;">{badge_text}</div>',
+            unsafe_allow_html=True,
+        )
+        st.caption('Enforced: token scope ∩ pinned policy manifest ∩ runtime rules')
+
+        s1, s2 = st.columns(2)
+        with s1:
+            st.markdown(f"**Wave ID**: `{wave_id or 'n/a'}`")
+            st.markdown(f"**Agent ID**: `{rec.get('agent_id') or 'n/a'}`")
+            st.markdown(f"**Wave Template**: `{rec.get('wave_template_id') or 'n/a'}`")
+        with s2:
+            st.markdown(f"**Policy Manifest Hash Prefix**: `{str(rec.get('policy_manifest_hash_prefix') or 'n/a')}`")
+            st.markdown(f"**Policy Version**: `{rec.get('policy_version') or 'n/a'}`")
+            st.markdown(f"**Timestamp**: `{rec.get('timestamp') or 'n/a'}`")
+
+        if wave_id:
+            a1, a2, a3 = st.columns(3)
+            with a1:
+                if st.button('Export Governance Proof Bundle (JSON)', key=f'enterprise_export_{wave_id}', width='stretch'):
+                    ok, msg = export_wave_bundle_local(wave_id)
+                    if ok:
+                        rec['bundle_path'] = msg
+                        st.success(f'Bundle exported: {msg}')
+                    else:
+                        st.error(f'Export failed: {msg}')
+            with a2:
+                if st.button('Verify Bundle (offline)', key=f'enterprise_verify_bundle_{wave_id}', width='stretch'):
+                    bundle_path = str(rec.get('bundle_path') or f'outputs/wave_bundle_{wave_id}.json')
+                    if not bundle_exists(bundle_path):
+                        ok_export, export_msg = export_wave_bundle_local(wave_id)
+                        if ok_export:
+                            rec['bundle_path'] = export_msg
+                            bundle_path = export_msg
+                        else:
+                            rec['offline_verify_output'] = export_msg
+                            st.error(f'Export failed: {export_msg}')
+                            bundle_path = str(rec.get('bundle_path') or f'outputs/wave_bundle_{wave_id}.json')
+                    ok, output = verify_wave_bundle_local(bundle_path)
+                    rec['offline_verify_output'] = output
+                    if ok:
+                        st.success('Offline verify: PASS')
+                    else:
+                        st.error('Offline verify: FAIL')
+            with a3:
+                if st.button('Audit Verify (server)', key=f'enterprise_verify_server_{wave_id}', width='stretch'):
+                    try:
+                        verify = fetch_audit_verify(wave_id)
+                        rec['verify_status'] = verify.get('integrity_status')
+                        st.info(f"audit_verify={verify.get('integrity_status')}")
+                    except Exception as e:
+                        st.error(f'audit verify failed: {e}')
+
+            bundle_path_display = rec.get('bundle_path') or f'outputs/wave_bundle_{wave_id}.json'
+            st.markdown(f"**Bundle Path**: `{bundle_path_display}`")
+            st.code(f"python3 scripts/verify_wave_bundle.py {bundle_path_display}", language='bash')
+            if rec.get('offline_verify_output'):
+                st.code(str(rec.get('offline_verify_output')), language='text')
+
+        st.markdown('<div style="margin-top:12px;padding:10px 12px;background:#111d30;border:1px solid #1e3050;border-radius:10px;">'
+                    '<div style="font-size:11px;color:#7a9ab8;letter-spacing:.14em;text-transform:uppercase;">Demo Steps</div>'
+                    '<div style="margin-top:6px;font-size:14px;color:#d6e8f5;line-height:1.6;">'
+                    '1. Run a denied scenario<br>'
+                    '2. Run allowed flow<br>'
+                    '3. Export governance bundle<br>'
+                    '4. Verify bundle offline'
+                    '</div></div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     if render_prod_agent_panel():
         action_triggered = True
