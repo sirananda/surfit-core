@@ -511,11 +511,42 @@ footer {
   gap: 14px;
 }
 
+.teams-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.teams-grid .full-span {
+  grid-column: 1 / -1;
+}
+
 .runtime-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 20px 18px;
+}
+
+.demo-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-card p {
+  flex: 1;
+}
+
+.demo-card-action {
+  margin-top: 14px;
+}
+
+.btn-demo-orange {
+  background: var(--orange);
+}
+
+.btn-demo-orange:hover {
+  box-shadow: 0 8px 32px rgba(255,115,30,0.35) !important;
 }
 
 .runtime-card-header {
@@ -601,6 +632,7 @@ footer {
   .arch-grid { grid-template-columns: 1fr; }
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   .runtime-grid { grid-template-columns: 1fr 1fr; }
+  .teams-grid { grid-template-columns: 1fr; }
   .progress-grid { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 24px; text-align: center; }
   .hero { padding: 100px 24px 60px; }
@@ -614,6 +646,7 @@ footer {
   .cta-actions { flex-direction: column; align-items: center; }
   .flow-diagram { gap: 8px; }
   .runtime-grid { grid-template-columns: 1fr; }
+  .teams-grid { grid-template-columns: 1fr; }
 }
 </style>
 <style id="surfit-display-font-override">
@@ -670,18 +703,7 @@ footer {
 
 
     <div class="hero-actions">
-      <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">
-        Demo #1 Runtime
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-      <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" style="background:#ff731e;" target="_blank" rel="noopener noreferrer">
-        Demo #2 Enterprise
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
+      <a href="#demos" class="btn-primary">View Demos</a>
       <a href="mailto:support@surfit.ai" class="btn-ghost">Request Access</a>
     </div>
 
@@ -969,7 +991,7 @@ footer {
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Organizations deploying high-authority AI agents into real operational environments.</div>
     <p class="section-body">Surfit is designed for teams that want to move agents beyond advisory roles without losing deterministic control over execution.</p>
 
-    <div class="runtime-grid" style="margin-top:26px;">
+    <div class="teams-grid" style="margin-top:26px;max-width:980px;">
       <div class="runtime-card">
         <div class="runtime-card-header">
           <span class="runtime-icon">
@@ -1014,7 +1036,7 @@ footer {
         <div class="runtime-outcome">Outcome: Unified execution governance across agent ecosystems. Neutral integration layer for multiple frameworks.</div>
       </div>
 
-      <div class="runtime-card" style="grid-column: 1 / -1;">
+      <div class="runtime-card full-span">
         <div class="runtime-card-header">
           <span class="runtime-icon">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.3" stroke="currentColor"/><path d="M7 1.4V3M7 11V12.6M1.4 7H3M11 7H12.6M2.9 2.9L4 4M10 10L11.1 11.1M11.1 2.9L10 4M4 10L2.9 11.1" stroke="currentColor"/></svg>
@@ -1095,36 +1117,36 @@ footer {
     <p class="section-body">Short demonstrations showing how Surfit governs AI agent execution inside enterprise systems.</p>
 
     <div class="runtime-grid" style="margin-top:24px;">
-      <div class="runtime-card">
+      <div class="runtime-card demo-card">
         <div class="runtime-card-header">
           <span class="runtime-icon">▶</span>
           <h4>Demo #1 — Runtime Enforcement</h4>
         </div>
         <p>Shows Surfit intercepting and validating AI agent execution boundaries before actions reach enterprise systems.</p>
-        <div style="margin-top:14px;">
+        <div class="demo-card-action">
           <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
         </div>
       </div>
 
-      <div class="runtime-card">
+      <div class="runtime-card demo-card">
         <div class="runtime-card-header">
           <span class="runtime-icon">▶</span>
           <h4>Demo #2 — Enterprise Governance</h4>
         </div>
         <p>Demonstrates deterministic policy enforcement, runtime denial of unauthorized actions, and tamper-evident governance artifacts.</p>
-        <div style="margin-top:14px;">
+        <div class="demo-card-action">
           <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
         </div>
       </div>
 
-      <div class="runtime-card">
+      <div class="runtime-card demo-card">
         <div class="runtime-card-header">
           <span class="runtime-icon">▶</span>
           <h4>Demo #3 — Enterprise Integrations</h4>
         </div>
         <p>Shows Surfit governing AI agent interactions with enterprise systems such as GitHub, AWS, and Slack.</p>
-        <div style="margin-top:14px;">
-          <a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        <div class="demo-card-action">
+          <a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
         </div>
       </div>
     </div>
@@ -1139,18 +1161,7 @@ footer {
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Govern autonomous execution<br>with runtime certainty.</div>
     <p class="section-body">Surfit enables capability expansion with deterministic boundaries, policy-governed mutations, and verifiable outcomes.</p>
     <div class="cta-actions">
-      <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">
-        Demo #1 Runtime
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
-      <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" style="background:#ff731e;" target="_blank" rel="noopener noreferrer">
-        Demo #2 Enterprise
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M2 10L10 2M10 2H4M10 2V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </a>
+      <a href="#demos" class="btn-primary">View Demos</a>
       <a href="mailto:support@surfit.ai" class="btn-ghost">Request Access</a>
     </div>
     <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Works with OpenClaw and proprietary internal agents &nbsp;·&nbsp; Governed by Surfit</p>
