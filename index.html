@@ -641,10 +641,9 @@ footer {
   </a>
   <ul class="nav-links">
     <li><a href="#how-it-works">How It Works</a></li>
-    <li><a href="#metrics">Metrics</a></li>
     <li><a href="#architecture">Architecture</a></li>
-    <li><a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="nav-cta" target="_blank" rel="noopener noreferrer">Demo #1 Runtime</a></li>
-    <li><a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="nav-cta" style="background:#ff731e;" target="_blank" rel="noopener noreferrer">Demo #2 Enterprise</a></li>
+    <li><a href="#for-teams">For Teams</a></li>
+    <li><a href="#demos">Demos</a></li>
     <li><a href="mailto:support@surfit.ai">Request Access</a></li>
   </ul>
 </nav>
@@ -964,7 +963,7 @@ footer {
 </section>
 
 <!-- WHO NEEDS SURFIT -->
-<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
+<section id="for-teams" style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
   <div class="container">
     <div class="section-label">Who Needs Surfit</div>
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Organizations deploying high-authority AI agents into real operational environments.</div>
@@ -1088,23 +1087,46 @@ footer {
   </div>
 </section>
 
-<!-- DEMO -->
-<section id="demo" style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
-  <div class="container" style="max-width:900px;">
-    <div class="section-label">Demo</div>
-    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime behavior under policy.</div>
-    <p class="section-body">Watch approved missions execute and explicit deny cases resolve with auditable evidence.</p>
-    <div style="display:grid;gap:14px;margin-top:24px;">
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;color:var(--text);font-size:14px;">
-        Scheduled run (cron-simulated): agent executes without human intervention under policy.
+<!-- DEMOS -->
+<section id="demos" style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
+  <div class="container" style="max-width:980px;">
+    <div class="section-label">Demos</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime Demonstrations</div>
+    <p class="section-body">Short demonstrations showing how Surfit governs AI agent execution inside enterprise systems.</p>
+
+    <div class="runtime-grid" style="margin-top:24px;">
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">▶</span>
+          <h4>Demo #1 — Runtime Enforcement</h4>
+        </div>
+        <p>Shows Surfit intercepting and validating AI agent execution boundaries before actions reach enterprise systems.</p>
+        <div style="margin-top:14px;">
+          <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        </div>
       </div>
-      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;color:var(--text);font-size:14px;">
-        Enforcement proof: explicit deny cases (unauthorized agent, path violation, policy mismatch).
+
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">▶</span>
+          <h4>Demo #2 — Enterprise Governance</h4>
+        </div>
+        <p>Demonstrates deterministic policy enforcement, runtime denial of unauthorized actions, and tamper-evident governance artifacts.</p>
+        <div style="margin-top:14px;">
+          <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        </div>
       </div>
-    </div>
-    <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap;">
-      <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">Demo #1 Runtime</a>
-      <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" style="background:#ff731e;" target="_blank" rel="noopener noreferrer">Demo #2 Enterprise</a>
+
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">▶</span>
+          <h4>Demo #3 — Enterprise Integrations</h4>
+        </div>
+        <p>Shows Surfit governing AI agent interactions with enterprise systems such as GitHub, AWS, and Slack.</p>
+        <div style="margin-top:14px;">
+          <a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        </div>
+      </div>
     </div>
   </div>
 </section>
