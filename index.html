@@ -505,6 +505,93 @@ footer {
 .footer-links a { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); text-decoration: none; opacity: 0.5; transition: opacity 0.2s; }
 .footer-links a:hover { opacity: 1; }
 
+.runtime-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.runtime-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px 18px;
+}
+
+.runtime-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.runtime-icon {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid rgba(38,192,255,0.35);
+  background: rgba(38,192,255,0.08);
+  color: var(--blue);
+}
+
+.runtime-card h4 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.runtime-card p {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.runtime-outcome {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.faq-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.faq-item h4 {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.faq-item p {
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 26px;
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 900px) {
   nav { padding: 0 24px; }
@@ -513,6 +600,8 @@ footer {
   .thesis-grid { grid-template-columns: 1fr; gap: 40px; }
   .arch-grid { grid-template-columns: 1fr; }
   .metrics-grid { grid-template-columns: 1fr 1fr; }
+  .runtime-grid { grid-template-columns: 1fr 1fr; }
+  .progress-grid { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 24px; text-align: center; }
   .hero { padding: 100px 24px 60px; }
 }
@@ -524,6 +613,7 @@ footer {
   .hero-metric:last-child { border-bottom: none; }
   .cta-actions { flex-direction: column; align-items: center; }
   .flow-diagram { gap: 8px; }
+  .runtime-grid { grid-template-columns: 1fr; }
 }
 </style>
 <style id="surfit-display-font-override">
@@ -873,6 +963,131 @@ footer {
   </div>
 </section>
 
+<!-- WHO NEEDS SURFIT -->
+<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div class="section-label">Who Needs Surfit</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Organizations deploying high-authority AI agents into real operational environments.</div>
+    <p class="section-body">Surfit is designed for teams that want to move agents beyond advisory roles without losing deterministic control over execution.</p>
+
+    <div class="runtime-grid" style="margin-top:26px;">
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="1.5" width="11" height="3" rx="1" stroke="currentColor"/><rect x="1.5" y="5.5" width="11" height="3" rx="1" stroke="currentColor"/><rect x="1.5" y="9.5" width="11" height="3" rx="1" stroke="currentColor"/></svg>
+          </span>
+          <h4>AI Platform Engineering Teams</h4>
+        </div>
+        <p>Teams deploying internal AI agents that interact with infrastructure, repositories, APIs, or production services. Surfit provides a runtime execution boundary between agent frameworks and enterprise systems, enforcing policy manifests, tool allowlists, and deterministic checks before any mutation occurs.</p>
+        <div class="runtime-outcome">Outcome: Agents can operate with real authority. Execution remains governed and auditable.</div>
+      </div>
+
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.2L11.5 3.1V6.4C11.5 9.2 9.9 11.7 7 12.8C4.1 11.7 2.5 9.2 2.5 6.4V3.1L7 1.2Z" stroke="currentColor"/><path d="M5 6.8L6.3 8.1L9.1 5.3" stroke="currentColor" stroke-linecap="round"/></svg>
+          </span>
+          <h4>Regulated Industries</h4>
+        </div>
+        <p>Financial institutions, healthcare organizations, and critical infrastructure providers cannot allow uncontrolled agent execution. Surfit produces tamper-evident governance artifacts for every execution wave, enabling provable compliance, audit verification, and post-run integrity checks.</p>
+        <div class="runtime-outcome">Outcome: Agents can operate safely in regulated environments. Governance evidence exists for every action.</div>
+      </div>
+
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4.2" y="5.8" width="5.6" height="5.2" rx="1.2" stroke="currentColor"/><path d="M5.2 5.8V4.6C5.2 3.6 6 2.8 7 2.8C8 2.8 8.8 3.6 8.8 4.6V5.8" stroke="currentColor"/><circle cx="2" cy="7" r="1" fill="currentColor"/><circle cx="12" cy="7" r="1" fill="currentColor"/></svg>
+          </span>
+          <h4>CISOs and Security Leaders</h4>
+        </div>
+        <p>Security teams expanding AI capabilities face a tradeoff between innovation and operational risk. Surfit enforces deterministic boundaries using scoped mutation tokens, policy manifests, and runtime validation before actions are executed.</p>
+        <div class="runtime-outcome">Outcome: Agents gain controlled authority. Security teams retain enforcement guarantees.</div>
+      </div>
+
+      <div class="runtime-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="3" cy="3" r="1.5" stroke="currentColor"/><circle cx="11" cy="3" r="1.5" stroke="currentColor"/><circle cx="7" cy="11" r="1.5" stroke="currentColor"/><path d="M4.3 3.8L6.1 9.5M9.7 3.8L7.9 9.5M4.5 3H9.5" stroke="currentColor"/></svg>
+          </span>
+          <h4>Enterprise Architecture Teams</h4>
+        </div>
+        <p>Large organizations often run heterogeneous AI stacks across multiple frameworks and vendors. Surfit provides a neutral governance runtime that sits in the execution path without requiring framework lock-in.</p>
+        <div class="runtime-outcome">Outcome: Unified execution governance across agent ecosystems. Neutral integration layer for multiple frameworks.</div>
+      </div>
+
+      <div class="runtime-card" style="grid-column: 1 / -1;">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.3" stroke="currentColor"/><path d="M7 1.4V3M7 11V12.6M1.4 7H3M11 7H12.6M2.9 2.9L4 4M10 10L11.1 11.1M11.1 2.9L10 4M4 10L2.9 11.1" stroke="currentColor"/></svg>
+          </span>
+          <h4>Teams Moving Agents Into Operations</h4>
+        </div>
+        <p>Many organizations begin with read-only advisory agents. Operational automation requires stronger controls. Surfit enables this transition by introducing deterministic execution containers called Waves with runtime enforcement and policy validation.</p>
+        <div class="runtime-outcome">Outcome: Agents can safely perform operational tasks. Governance boundaries remain enforced.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM CAPABILITIES -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div class="section-label">Platform Capabilities</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Core runtime enforcement capabilities currently implemented in Surfit.</div>
+
+    <div class="runtime-grid" style="margin-top:26px;">
+      <div class="runtime-card"><h4>Runtime Execution Enforcement</h4><p>AI agent actions pass through deterministic runtime boundaries before interacting with enterprise systems.</p></div>
+      <div class="runtime-card"><h4>Policy Manifest Integrity</h4><p>Each Wave execution pins a policy manifest whose SHA256 hash is recorded and verified.</p></div>
+      <div class="runtime-card"><h4>Scoped Mutation Tokens</h4><p>Short-lived tokens restrict agent authority to specific actions within defined policy scope.</p></div>
+      <div class="runtime-card"><h4>Tool Allowlist Enforcement</h4><p>Agents may only invoke tools explicitly allowed by the policy manifest.</p></div>
+      <div class="runtime-card"><h4>Tenant Isolation</h4><p>Surfit enforces tenant-scoped governance boundaries across execution runs and audit records.</p></div>
+      <div class="runtime-card"><h4>Tamper-Evident Audit Logs</h4><p>Every decision produces verifiable governance artifacts with integrity checks.</p></div>
+      <div class="runtime-card"><h4>Offline Governance Proof Verification</h4><p>Exported Wave bundles can be verified independently without the Surfit runtime.</p></div>
+      <div class="runtime-card"><h4>Adapter SDK</h4><p>Neutral integration layer enabling governance enforcement across multiple agent frameworks.</p></div>
+      <div class="runtime-card"><h4>Ocean Proxy Deployment Mode</h4><p>Optional proxy enforcement layer that intercepts and validates agent execution requests.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM PROGRESS -->
+<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div class="section-label">Platform Progress</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Current development status and platform evolution.</div>
+
+    <div class="progress-grid">
+      <div class="runtime-card">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Live Capabilities</div>
+        <p>• Wave runtime enforcement<br>• Token-scoped execution control<br>• Policy manifest verification<br>• Tamper-evident governance artifacts<br>• Tenant isolation<br>• Ocean proxy deployment mode<br>• Adapter SDK for external agent frameworks</p>
+      </div>
+      <div class="runtime-card">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:10px;">In Progress (Near Term)</div>
+        <p>• Additional agent framework adapters<br>• Expanded enterprise observability metrics<br>• Policy management UX improvements<br>• Production deployment tooling<br>• Enterprise authentication integrations</p>
+      </div>
+      <div class="runtime-card">
+        <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Longer Term</div>
+        <p>• Multi-region governance infrastructure<br>• Advanced policy simulation tooling<br>• Governance analytics layer<br>• Deeper enterprise system integrations</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TECHNICAL FAQ -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
+  <div class="container" style="max-width:980px;">
+    <div class="section-label">Technical FAQ</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Technical FAQ</div>
+    <div class="faq-grid" style="margin-top:24px;">
+      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a governance runtime for AI agents. It enforces deterministic policy boundaries between agent frameworks and enterprise systems.</p></div>
+      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Surfit sits in the execution path. Agents can still run in any framework; Surfit governs what those agents are allowed to execute.</p></div>
+      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container that carries a pinned policy manifest, execution constraints, and audit lineage for a specific agent action.</p></div>
+      <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
+      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes normally within its framework. Surfit governs the execution boundary when the agent attempts to interact with enterprise systems.</p></div>
+      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the reason for the rejection.</p></div>
+    </div>
+  </div>
+</section>
+
 <!-- DEMO -->
 <section id="demo" style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
   <div class="container" style="max-width:900px;">
@@ -917,6 +1132,24 @@ footer {
       <a href="mailto:support@surfit.ai" class="btn-ghost">Request Access</a>
     </div>
     <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Works with OpenClaw and proprietary internal agents &nbsp;·&nbsp; Governed by Surfit</p>
+  </div>
+</section>
+
+<!-- TECHNICAL DISCUSSION CTA -->
+<section style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
+  <div class="container" style="max-width:920px;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 26px;">
+      <div class="section-label">Evaluating Surfit for Your Organization?</div>
+      <div class="section-title brand-heading" style="font-size:36px;font-family:'Righteous',cursive !important;">Evaluating Surfit for Your Organization?</div>
+      <p class="section-body" style="max-width:none;margin-top:10px;">
+        Surfit is designed for teams deploying AI agents with operational authority.
+        <br><br>
+        If your organization is exploring agent automation and needs deterministic governance over execution, we’re happy to discuss architecture and deployment options.
+      </p>
+      <div style="margin-top:18px;">
+        <a href="mailto:support@surfit.ai?subject=Schedule%20a%20Technical%20Discussion" class="btn-primary">Schedule a Technical Discussion</a>
+      </div>
+    </div>
   </div>
 </section>
 
