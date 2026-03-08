@@ -511,6 +511,13 @@ footer {
   gap: 14px;
 }
 
+.runtime-grid.demos-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .teams-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1116,7 +1123,7 @@ footer {
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime Demonstrations</div>
     <p class="section-body">Short demonstrations showing how Surfit governs AI agent execution inside enterprise systems. Surfit governs execution, not prompts.</p>
 
-    <div class="runtime-grid" style="margin-top:24px;">
+    <div class="runtime-grid demos-grid" style="margin-top:24px;">
       <div class="runtime-card demo-card">
         <div class="runtime-card-header">
           <span class="runtime-icon">▶</span>
