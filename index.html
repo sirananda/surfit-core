@@ -706,6 +706,7 @@ footer {
 
     <p class="hero-substrate">Capability expansion with execution certainty.</p>
     <p class="hero-saw-def">Surfit is a neutral enforcement layer between agent frameworks and enterprise infrastructure — independent of any single model provider.</p>
+    <p class="hero-saw-def">Surfit sits between AI agents and enterprise systems and decides whether actions are allowed to execute.</p>
 
 
 
@@ -787,25 +788,30 @@ footer {
   <div class="container">
     <div style="max-width:720px;margin:0 auto;text-align:center;">
       <div class="section-label">How Surfit Works</div>
-      <div class="section-title brand-heading" style="margin-bottom:20px;font-family:'Righteous',cursive !important;">Persistent agents.<br>Bounded execution.</div>
-      <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:48px;">
-        Surfit governs autonomous execution at runtime. Agents remain persistent; action execution is bounded into deterministic missions (Waves). Policy checks run before mutation-capable steps, then commit and verification are recorded with policy lineage.
+      <div class="section-title brand-heading" style="margin-bottom:20px;font-family:'Righteous',cursive !important;">Execution-path governance in three layers.</div>
+      <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:24px;">
+        Surfit governs execution requests before mutation-capable actions reach enterprise systems.
       </p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 20px;">
-          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Persistent</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Agent Layer</div>
-          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Agents reason and plan continuously. They are never interrupted — only bounded when they act.</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;align-items:start;">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Agents</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;">OpenClaw, LangGraph, internal agents</div>
+          <div style="font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;">Execution request</div>
         </div>
-        <div style="background:var(--surface);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:24px 20px;">
-          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Bounded</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Deterministic Mission (Wave)</div>
-          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">A discrete mission container. Policy-governed, tool-scoped, lifecycle-bound. Initiates, executes, and terminates.</div>
+        <div style="background:var(--surface);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:18px 16px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Surfit Governance Runtime</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.7;">
+            • policy enforcement<br>
+            • approval artifacts<br>
+            • mutation tokens<br>
+            • evidence bundles
+          </div>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;">Governed execution</div>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px 20px;">
-          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Verifiable</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:8px;">Audit Record</div>
-          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Every Wave produces a hash-chained, integrity-checked execution record that can be programmatically verified.</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;">
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Enterprise Systems</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;">GitHub, AWS, internal APIs</div>
+          <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Allowed actions execute within policy boundaries; denied actions are blocked before execution.</div>
         </div>
       </div>
     </div>
@@ -1090,7 +1096,7 @@ footer {
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:10px;">In Progress (Near Term)</div>
-        <p>• Additional agent framework adapters<br>• Expanded enterprise observability metrics<br>• Policy management UX improvements<br>• Production deployment tooling<br>• Enterprise authentication integrations</p>
+        <p>• Approval-gated merge workflow<br>• Additional agent framework adapters<br>• Expanded enterprise observability metrics<br>• Policy management UX improvements<br>• Production deployment tooling</p>
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Longer Term</div>
@@ -1121,6 +1127,7 @@ footer {
   <div class="container" style="max-width:980px;">
     <div class="section-label">Demos</div>
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime Demonstrations</div>
+    <p style="font-size:14px;font-weight:400;color:var(--text);margin:0 0 8px;">From runtime enforcement to governed system mutation.</p>
     <p class="section-body">Short demonstrations showing how Surfit governs AI agent execution inside enterprise systems. Surfit governs execution, not prompts.</p>
 
     <div class="runtime-grid demos-grid" style="margin-top:24px;">
@@ -1171,6 +1178,22 @@ footer {
   </div>
 </section>
 
+<!-- SMALL CAPABILITIES -->
+<section style="background:var(--darker);border-top:1px solid var(--border);padding:52px 48px;">
+  <div class="container" style="max-width:980px;">
+    <div class="section-label">Surfit Capabilities</div>
+    <div class="runtime-card" style="padding:18px 20px;">
+      <p style="margin:0;font-size:13px;line-height:1.9;color:var(--muted);">
+        • Runtime execution enforcement<br>
+        • Deterministic policy evaluation<br>
+        • Connector governance<br>
+        • Multi-stage execution approvals<br>
+        • Cross-agent governance
+      </p>
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="cta-section">
   <div class="cta-glow"></div>
@@ -1190,7 +1213,7 @@ footer {
 <section style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
   <div class="container" style="max-width:920px;">
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px 26px;">
-      <div class="section-label">Evaluating Surfit for Your Organization?</div>
+      <div class="section-label">Technical Discussion</div>
       <div class="section-title brand-heading" style="font-size:36px;font-family:'Righteous',cursive !important;">Evaluating Surfit for Your Organization?</div>
       <p class="section-body" style="max-width:none;margin-top:10px;">
         Surfit is designed for teams deploying AI agents with operational authority.
