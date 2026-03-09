@@ -518,6 +518,17 @@ footer {
   margin-right: auto;
 }
 
+.demo5-center-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.demo5-center-wrap .demo-card {
+  width: 100%;
+  max-width: 423px;
+}
+
 .teams-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1096,7 +1107,7 @@ footer {
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:10px;">In Progress (Near Term)</div>
-        <p>• Approval-gated merge workflow<br>• Additional agent framework adapters<br>• Expanded enterprise observability metrics<br>• Policy management UX improvements<br>• Production deployment tooling</p>
+        <p>• Approval-policy variants<br>• Role-based approver constraints<br>• Expiry-aware approval artifacts<br>• Dual-approval support<br>• Cross-agent governance demo</p>
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Longer Term</div>
@@ -1110,7 +1121,6 @@ footer {
 <section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
   <div class="container" style="max-width:980px;">
     <div class="section-label">Technical FAQ</div>
-    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Technical FAQ</div>
     <div class="faq-grid" style="margin-top:24px;">
       <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a governance runtime for AI agents. It enforces deterministic policy boundaries between agent frameworks and enterprise systems.</p></div>
       <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Surfit sits in the execution path. Agents can still run in any framework; Surfit governs what those agents are allowed to execute.</p></div>
@@ -1128,7 +1138,7 @@ footer {
     <div class="section-label">Demos</div>
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime Demonstrations</div>
     <p style="font-size:14px;font-weight:400;color:var(--text);margin:0 0 8px;">From runtime enforcement to governed system mutation.</p>
-    <p class="section-body">Short demonstrations showing how Surfit governs AI agent execution inside enterprise systems. Surfit governs execution, not prompts.</p>
+    <p class="section-body">These demos show how Surfit governs agent execution — from runtime enforcement to approval-gated execution authority.</p>
 
     <div class="runtime-grid demos-grid" style="margin-top:24px;">
       <div class="runtime-card demo-card">
@@ -1172,6 +1182,19 @@ footer {
         <p>Surfit governs AI-originated GitHub mutations at runtime, blocking unsafe actions, allowing bounded workflows, and producing verifiable governance evidence.</p>
         <div class="demo-card-action">
           <a href="https://www.loom.com/share/b88891ee6ab14d27a554ce6c554bb648" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="demo5-center-wrap">
+      <div class="runtime-card demo-card">
+        <div class="runtime-card-header">
+          <span class="runtime-icon">▶</span>
+          <h4>Demo #5 — Approval-Gated Merge Governance</h4>
+        </div>
+        <p>Surfit governs multi-stage execution authority, requiring approval artifacts before sensitive agent-driven actions are allowed to execute.</p>
+        <div class="demo-card-action">
+          <a href="https://www.loom.com/share/1a694b5e19084137aa14925039e99dee" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
         </div>
       </div>
     </div>
@@ -1247,6 +1270,7 @@ footer {
     <li><a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" target="_blank" rel="noopener noreferrer">Demo #2 Enterprise</a></li>
     <li><a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" target="_blank" rel="noopener noreferrer">Demo #3 Integrations</a></li>
     <li><a href="https://www.loom.com/share/b88891ee6ab14d27a554ce6c554bb648" target="_blank" rel="noopener noreferrer">Demo #4 GitHub</a></li>
+    <li><a href="https://www.loom.com/share/1a694b5e19084137aa14925039e99dee" target="_blank" rel="noopener noreferrer">Demo #5 Approval</a></li>
     <li><a href="https://github.com/sirananda/surfit-core" target="_blank">GitHub</a></li>
     <li><a href="mailto:support@surfit.ai">Request Access</a></li>
   </ul>
