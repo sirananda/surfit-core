@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Surfit Visualization Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <a class="home-link" href="/" aria-label="Back to Surfit homepage">
+    <svg width="28" height="16" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <span class="wordmark"><span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span></span>
+  </a>
+  <main class="wrap">
+    <header class="panel">
+      <div>
+        <h1>Surfit Visualization Preview</h1>
+        <p>Standalone pre-deployment review asset (54s runtime).</p>
+      </div>
+      <div class="controls">
+        <button id="playPauseBtn">Pause</button>
+        <button id="restartBtn">Restart</button>
+        <button id="exportBtn">Export WebM</button>
+      </div>
+    </header>
+
+    <section class="stage panel">
+      <div class="canvas-shell">
+        <canvas id="explainerCanvas" width="1280" height="720"></canvas>
+      </div>
+      <div class="meta">
+        <div id="sceneLabel">Scene 1/7</div>
+        <div class="progress"><div id="progressFill"></div></div>
+      </div>
+    </section>
+
+    <section class="panel export-panel">
+      <h2>Export Output</h2>
+      <p>After export, preview and file download appear here.</p>
+      <video id="exportPreview" controls loop muted playsinline></video>
+      <div id="exportPathHint"></div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
