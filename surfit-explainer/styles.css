@@ -13,9 +13,27 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font-family: "DM Sans", "Inter", sans-serif; }
 
+.home-link {
+  position: fixed;
+  top: 14px;
+  left: 18px;
+  z-index: 10;
+  text-decoration: none;
+  color: var(--blue);
+  font-family: "Righteous", "DM Sans", sans-serif;
+  letter-spacing: 0.04em;
+  font-size: 18px;
+  border: 1px solid rgba(39, 194, 255, 0.25);
+  background: rgba(9, 26, 47, 0.85);
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.home-link:hover { border-color: var(--blue); color: #8cdcff; }
+
 .wrap {
   max-width: 1320px;
-  margin: 20px auto 40px;
+  margin: 56px auto 40px;
   padding: 0 16px;
   display: grid;
   gap: 14px;
