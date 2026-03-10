@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Surfit Explainer Preview</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="panel">
+      <div>
+        <h1>Surfit Explainer Preview</h1>
+        <p>Standalone pre-deployment review asset (54s runtime).</p>
+      </div>
+      <div class="controls">
+        <button id="playPauseBtn">Pause</button>
+        <button id="restartBtn">Restart</button>
+        <button id="exportBtn">Export WebM</button>
+      </div>
+    </header>
+
+    <section class="stage panel">
+      <div class="canvas-shell">
+        <canvas id="explainerCanvas" width="1280" height="720"></canvas>
+      </div>
+      <div class="meta">
+        <div id="sceneLabel">Scene 1/7</div>
+        <div class="progress"><div id="progressFill"></div></div>
+      </div>
+    </section>
+
+    <section class="panel export-panel">
+      <h2>Export Output</h2>
+      <p>After export, preview and file download appear here.</p>
+      <video id="exportPreview" controls loop muted playsinline></video>
+      <div id="exportPathHint"></div>
+    </section>
+  </main>
+
+  <script src="./script.js"></script>
+</body>
+</html>
