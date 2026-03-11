@@ -70,6 +70,31 @@ nav {
 .nav-cta { padding: 8px 20px; background: var(--blue); color: var(--dark) !important; font-weight: 600 !important; border-radius: 6px; }
 .nav-cta:hover { box-shadow: 0 0 20px rgba(38,192,255,0.4) !important; }
 
+.nav-links a.nav-link-btn {
+  padding: 8px 14px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+.nav-links a.nav-link-btn.visualization {
+  color: var(--blue);
+  background: rgba(38,192,255,0.14);
+  border-color: rgba(38,192,255,0.42);
+}
+.nav-links a.nav-link-btn.visualization:hover {
+  color: #bfeaff;
+  box-shadow: 0 0 16px rgba(38,192,255,0.25);
+}
+.nav-links a.nav-link-btn.demos {
+  color: var(--orange);
+  background: rgba(255,115,30,0.14);
+  border-color: rgba(255,115,30,0.42);
+}
+.nav-links a.nav-link-btn.demos:hover {
+  color: #ffd1b0;
+  box-shadow: 0 0 16px rgba(255,115,30,0.25);
+}
+
 /* ── HERO ── */
 .hero {
   min-height: 100vh;
@@ -696,8 +721,8 @@ footer {
     <li><a href="#how-it-works">How It Works</a></li>
     <li><a href="#architecture">Architecture</a></li>
     <li><a href="#for-teams">For Teams</a></li>
-    <li><a href="#visualization">Visualization</a></li>
-    <li><a href="#demos">Demos</a></li>
+    <li><a href="#visualization" class="nav-link-btn visualization">Visualization</a></li>
+    <li><a href="#demos" class="nav-link-btn demos">Demos</a></li>
   </ul>
 </nav>
 
