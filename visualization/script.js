@@ -13,13 +13,13 @@
   const H = canvas.height;
 
   const scenes = [
-    { dur: 6, title: 'Scene 1 — The New Reality', text: 'AI agents can now modify critical systems.' },
-    { dur: 7, title: 'Scene 2 — The Problem', text: 'Orchestrators route tasks, but they do not enforce execution boundaries.' },
-    { dur: 7, title: 'Scene 3 — Surfit Boundary', text: 'Surfit is a neutral execution boundary.' },
-    { dur: 10, title: 'Scene 4 — Policy Evaluation', text: 'Every action is evaluated against policy before execution.' },
-    { dur: 10, title: 'Scene 5 — Approval Governance', text: 'Sensitive actions require explicit approval.' },
-    { dur: 8, title: 'Scene 6 — Cross-Agent Governance', text: 'Different agents. Same governance boundary.' },
-    { dur: 6, title: 'Scene 7 — Closing Frame', text: 'Surfit governs execution — not prompts.' },
+    { dur: 22, title: 'Segment 1 — The Shift' },
+    { dur: 22, title: 'Segment 2 — The Missing Layer' },
+    { dur: 26, title: 'Segment 3 — Runtime Action Evaluation' },
+    { dur: 24, title: 'Segment 4 — Governance Evidence' },
+    { dur: 24, title: 'Segment 5 — Multi-Stage Governance' },
+    { dur: 24, title: 'Segment 6 — Cross-Agent Governance' },
+    { dur: 20, title: 'Segment 7 — Category Definition' },
   ];
 
   const totalSeconds = scenes.reduce((a, s) => a + s.dur, 0);
@@ -32,7 +32,7 @@
   const agents = [
     { name: 'OpenClaw', x: 165, y: 180, c: '#27c2ff' },
     { name: 'LangGraph', x: 165, y: 360, c: '#27c2ff' },
-    { name: 'Internal Automation', x: 165, y: 540, c: '#ff7c2c' },
+    { name: 'Internal Automation', x: 165, y: 540, c: '#27c2ff' },
   ];
 
   const systems = [
@@ -186,9 +186,7 @@
     ctx.textAlign = 'center';
     ctx.font = '700 24px DM Sans, sans-serif';
     ctx.fillText('SURFIT', surfit.x, y + 44);
-    ctx.font = '600 12px DM Sans, sans-serif';
-    ctx.fillStyle = '#95c8eb';
-    ctx.fillText('Execution Governance Boundary', surfit.x, y + 65);
+    drawSurfitWaveFlow(t, x, y);
 
     if (showLayers) {
       const layers = [
@@ -204,14 +202,31 @@
         ctx.strokeStyle = 'rgba(74,166,226,0.8)';
         ctx.lineWidth = 1;
         ctx.stroke();
-        ctx.fillStyle = '#bde2ff';
-        ctx.font = '600 13px DM Sans, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(layer.label, x + 50, layer.y + 4);
+
       });
     }
 
     ctx.restore();
+  }
+
+  function drawSurfitWaveFlow(t, x, y) {
+    const left = x + 24;
+    const right = x + surfit.w - 24;
+    const width = right - left;
+    const baseYs = [y + 96, y + 124, y + 152, y + 180, y + 208];
+    baseYs.forEach((baseY, idx) => {
+      ctx.beginPath();
+      for (let i = 0; i <= 72; i++) {
+        const px = left + (i / 72) * width;
+        const phase = ((t * 1.8) + idx * 0.55 + i * 0.08);
+        const py = baseY + Math.sin(phase) * (3 + idx * 0.3);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = `rgba(39,194,255,${0.2 + idx * 0.06})`;
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    });
   }
 
   function sceneAt(seconds) {
@@ -276,7 +291,7 @@
   }
 
   function drawApprovalFlow(progress) {
-    const y = 640;
+    const y = 642;
     const nodes = [
       'propose_change',
       'pull_request_created',
@@ -287,15 +302,33 @@
     const startX = 160;
     const gap = 235;
 
+    const positions = [];
     for (let i = 0; i < nodes.length; i++) {
       const x = startX + i * gap;
+      positions.push(x);
       const active = progress > i / nodes.length;
       const isBlocked = i === 2 && progress < 0.62;
       drawActionTag(x, y, nodes[i], isBlocked ? 'deny' : (active ? 'allow' : 'idle'));
       if (i < nodes.length - 1) {
-        drawLink(x + 72, y, x + gap - 72, y, isBlocked ? 'deny' : (active ? 'active' : 'normal'), (progress * 1.7) % 1);
+        drawLink(x + 72, y, x + gap - 72, y, isBlocked ? 'deny' : (active ? 'normal' : 'normal'), 0);
       }
     }
+
+    // Single progression dot across the chain.
+    const segments = nodes.length - 1;
+    const phase = Math.min(0.999, progress) * segments;
+    const segIdx = Math.floor(phase);
+    const segP = phase - segIdx;
+    const from = positions[segIdx] + 72;
+    const to = positions[Math.min(segIdx + 1, segments)] - 72;
+    const dotX = from + (to - from) * segP;
+    ctx.beginPath();
+    ctx.arc(dotX, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = progress < 0.62 && segIdx >= 2 ? '#ff6e6e' : '#27c2ff';
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur = 10;
+    ctx.fill();
+    ctx.shadowBlur = 0;
   }
 
   function drawDecisionMatrix() {
@@ -361,6 +394,199 @@
     });
   }
 
+  function drawDecisionReasonsBottom() {
+    const x = 280;
+    const y = 594;
+    const w = 760;
+    const h = 96;
+    roundedRect(x, y, w, h, 10);
+    ctx.fillStyle = 'rgba(9,30,52,0.86)';
+    ctx.fill();
+    ctx.strokeStyle = '#2b618f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.font = '700 12px DM Sans, sans-serif';
+    ctx.fillStyle = '#cfe6fb';
+    ctx.fillText('Decision reasons', x + 14, y + 20);
+    ctx.font = '600 12px DM Sans, sans-serif';
+    ctx.fillStyle = '#ff9f9f';
+    ctx.fillText('OpenClaw DENY: token_scope violation', x + 14, y + 44);
+    ctx.fillText('Internal Automation DENY: runtime_rules + approval requirement', x + 14, y + 66);
+    ctx.fillStyle = '#66e7b0';
+    ctx.fillText('LangGraph ALLOW: policy_manifest + token_scope satisfied', x + 14, y + 86);
+  }
+
+  function drawClosingRecapPanel() {
+    const x = 250;
+    const y = 602;
+    const w = 780;
+    const h = 98;
+    roundedRect(x, y, w, h, 10);
+    ctx.fillStyle = 'rgba(9,30,52,0.86)';
+    ctx.fill();
+    ctx.strokeStyle = '#2b618f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#cfe6fb';
+    ctx.font = '700 13px DM Sans, sans-serif';
+    ctx.fillText('Surfit: execution governance for enterprise AI', x + 14, y + 24);
+    ctx.font = '600 13px DM Sans, sans-serif';
+    ctx.fillStyle = '#9ec3e2';
+    ctx.fillText('Govern every agent action at runtime across repositories, infrastructure, and internal APIs.', x + 14, y + 50);
+    ctx.fillText('Deterministic ALLOW/DENY + verifiable governance evidence before system mutation.', x + 14, y + 74);
+  }
+
+  function overlayLineForScene(sceneIndex, p) {
+    const lines = [
+      [
+        'AI agents are beginning to interact directly with real systems.',
+        'Repositories • Infrastructure • Internal APIs',
+        'What governs what these agents are allowed to execute?',
+      ],
+      [
+        'Surfit is an execution governance layer.',
+        'The missing layer between agent intent and system mutation.',
+        'Surfit governs execution, not prompts.',
+      ],
+      [
+        'Every attempted action is evaluated at runtime.',
+        'ALLOW or DENY.',
+      ],
+      [
+        'Execution produces governance evidence.',
+        'Export • Verify • Audit',
+      ],
+      [
+        'Sensitive actions require approval.',
+        'Proposal -> Approval -> Execution',
+      ],
+      [
+        'Surfit governs execution across agent frameworks.',
+        'Agent-neutral governance.',
+      ],
+      [
+        'Orchestrators coordinate agents.',
+        'Surfit governs execution.',
+        'The execution governance layer for AI agents.',
+      ],
+    ];
+    const sceneLines = lines[sceneIndex] || [''];
+    const idx = Math.min(sceneLines.length - 1, Math.floor(p * sceneLines.length));
+    return sceneLines[idx];
+  }
+
+  function drawVerticalArchitectureStack() {
+    drawNode(640, 170, 'Agents / Orchestrators', '#2b7fbc', 'rgba(12,34,59,0.95)');
+    drawSurfitBoundary(0.2, 1, false);
+    drawNode(640, 560, 'Enterprise Systems', '#2b7fbc', 'rgba(12,34,59,0.95)');
+    drawLink(640, 208, 640, 230, 'active', 0.5);
+    drawLink(640, 486, 640, 522, 'active', 0.2);
+  }
+
+  function drawHorizontalMissingLayer(pulse) {
+    drawNode(170, 250, 'Agents', '#2b7fbc', 'rgba(12,34,59,0.95)');
+    drawNode(170, 470, 'Orchestrators', '#2b7fbc', 'rgba(12,34,59,0.95)');
+    systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+    drawSurfitBoundary(pulse, 1, false);
+    drawLink(275, 250, surfit.x - surfit.w / 2, 300, 'active', (pulse * 0.8) % 1);
+    drawLink(275, 470, surfit.x - surfit.w / 2, 430, 'active', (pulse * 0.9 + 0.3) % 1);
+    drawLink(surfit.x + surfit.w / 2, 300, 1015, systems[0].y, 'active', (pulse + 0.1) % 1);
+    drawLink(surfit.x + surfit.w / 2, 430, 1015, systems[2].y, 'active', (pulse + 0.45) % 1);
+    drawActionTag(640, 620, 'Missing governance layer resolved', 'allow');
+  }
+
+
+  function drawBoundaryLaneHints() {
+    drawActionTag(536, 214, 'token_scope check', 'info');
+    drawActionTag(548, 360, 'policy_manifest check', 'allow');
+    drawActionTag(548, 506, 'runtime_rules check', 'info');
+  }
+
+  function drawSegment2Narrative() {
+    const x = 330;
+    const y = 566;
+    const w = 620;
+    const h = 90;
+    roundedRect(x, y, w, h, 10);
+    ctx.fillStyle = 'rgba(9,30,52,0.88)';
+    ctx.fill();
+    ctx.strokeStyle = '#2b618f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#cfe6fb';
+    ctx.font = '700 12px DM Sans, sans-serif';
+    ctx.fillText('Missing Governance Layer Resolved', x + 14, y + 22);
+    ctx.fillStyle = '#9ec3e2';
+    ctx.font = '600 12px DM Sans, sans-serif';
+    ctx.fillText('Orchestrators coordinate agents; Surfit governs execution to enterprise systems.', x + 14, y + 46);
+    ctx.fillText('Actions cross the Surfit boundary only after runtime policy evaluation.', x + 14, y + 66);
+  }
+
+  function drawSystemProblemBadges(p) {
+    const alerts = [
+      { x: 1060, y: 112, text: 'unreviewed commit' },
+      { x: 1060, y: 252, text: 'unsafe deploy risk' },
+      { x: 1060, y: 392, text: 'schema mutation risk' },
+      { x: 1060, y: 532, text: 'unauthorized API change' },
+    ];
+    alerts.forEach((a, idx) => {
+      if (p > idx * 0.2) drawActionTag(a.x, a.y, a.text, 'deny');
+    });
+  }
+
+  function drawLayerTapLabels() {
+    drawActionTag(745, 525, 'OpenClaw blocked at token_scope', 'deny');
+    drawActionTag(770, 560, 'Internal blocked by runtime_rules', 'deny');
+    drawActionTag(825, 595, 'LangGraph allowed via policy_manifest + scope', 'allow');
+  }
+
+  function drawEvidenceBoard(p) {
+    const x = 820;
+    const y = 292;
+    const w = 390;
+    const h = 190;
+    roundedRect(x, y, w, h, 10);
+    ctx.fillStyle = 'rgba(9,30,52,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = '#2b618f';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = '#cfe6fb';
+    ctx.font = '700 13px DM Sans, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Governance Evidence', x + 14, y + 22);
+
+    const rows = [
+      { text: 'bundle_export: wave_bundle_*.json', tone: 'allow', gate: 0.15 },
+      { text: 'offline_verify: PASS', tone: 'allow', gate: 0.45 },
+      { text: 'server_audit: VALID', tone: 'allow', gate: 0.75 },
+    ];
+    rows.forEach((r, idx) => {
+      if (p < r.gate) return;
+      const yy = y + 52 + idx * 42;
+      drawActionTag(x + 170, yy, r.text, r.tone);
+    });
+  }
+
+  function drawEvidencePipeline(p) {
+    const nodes = ['Execution Event', 'Export Bundle', 'Offline Verify', 'Server Audit'];
+    const y = 652;
+    const startX = 200;
+    const gap = 285;
+    for (let i = 0; i < nodes.length; i++) {
+      const x = startX + i * gap;
+      const active = p > (i / nodes.length);
+      drawActionTag(x, y, nodes[i], active ? 'allow' : 'idle');
+      if (i < nodes.length - 1) {
+        drawLink(x + 82, y, x + gap - 82, y, active ? 'active' : 'normal', (p * 1.4) % 1);
+      }
+    }
+    if (p > 0.7) drawSmallPill(1025, 688, 'audit_verify = VALID', 'allow');
+  }
+
   function render(now) {
     const elapsed = running
       ? (now - startMs - pauseMs) / 1000
@@ -375,92 +601,155 @@
     }
 
     const meta = sceneAt(t);
-    sceneLabel.textContent = `Scene ${meta.i + 1}/${scenes.length} • ${meta.scene.title}`;
+    sceneLabel.textContent = `Segment ${meta.i + 1}/${scenes.length} • ${meta.scene.title}`;
     progressFill.style.width = `${(t / totalSeconds) * 100}%`;
 
     drawBg(t);
-
-    // Static nodes
-    agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-    systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-
-    const pulse = ((t * 0.85) % 1);
+    const pulse = ((t * 0.65) % 1);
 
     if (meta.i === 0) {
-      // direct but neutral connectivity
-      agents.forEach((a, idx) => {
-        drawLink(a.x + 105, a.y, systems[idx % systems.length].x - 105, systems[idx % systems.length].y, 'normal', pulse);
-      });
+      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
+      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+      drawLink(agents[0].x + 105, agents[0].y, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.1) % 1);
+      drawLink(agents[1].x + 105, agents[1].y, systems[1].x - 105, systems[1].y, 'active', (pulse + 0.3) % 1);
+      drawLink(agents[1].x + 105, agents[1].y + 8, systems[2].x - 105, systems[2].y - 8, 'active', (pulse + 0.42) % 1);
+      drawLink(agents[2].x + 105, agents[2].y, systems[3].x - 105, systems[3].y, 'active', (pulse + 0.55) % 1);
+      drawActionTag(305, 148, 'commit_file', 'allow');
+      drawActionTag(328, 284, 'merge_pull_request', 'allow');
+      drawActionTag(350, 462, 'infrastructure_change', 'allow');
+      drawSystemProblemBadges(meta.p);
     }
 
     if (meta.i === 1) {
-      const acts = ['commit_file', 'merge_pull_request', 'delete_resource', 'deploy_change'];
-      agents.forEach((a, idx) => {
-        const s = systems[idx];
-        drawLink(a.x + 105, a.y, s.x - 105, s.y, idx % 2 === 0 ? 'deny' : 'active', (pulse + idx * 0.17) % 1);
-      });
-      acts.forEach((act, idx) => drawActionTag(640, 180 + idx * 86, act, idx < 2 ? 'deny' : 'allow'));
+      drawNode(86, 270, 'Agent 1', '#2b7fbc', 'rgba(12,34,59,0.95)');
+      drawNode(86, 360, 'Agent 2', '#2b7fbc', 'rgba(12,34,59,0.95)');
+      drawNode(86, 450, 'Agent 3', '#2b7fbc', 'rgba(12,34,59,0.95)');
+      drawNode(300, 360, 'Orchestrator', '#2b7fbc', 'rgba(12,34,59,0.95)');
+      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+      drawSurfitBoundary(t, 1, false);
+
+      drawLink(191, 270, 196, 332, 'active', (pulse + 0.1) % 1);
+      drawLink(191, 360, 196, 360, 'active', (pulse + 0.3) % 1);
+      drawLink(191, 450, 196, 388, 'active', (pulse + 0.55) % 1);
+      drawLink(405, 360, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.2) % 1);
+
+      drawLink(surfit.x + surfit.w / 2, 250, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.05) % 1);
+      drawLink(surfit.x + surfit.w / 2, 328, systems[1].x - 105, systems[1].y, 'active', (pulse + 0.2) % 1);
+      drawLink(surfit.x + surfit.w / 2, 406, systems[2].x - 105, systems[2].y, 'active', (pulse + 0.35) % 1);
+      drawLink(surfit.x + surfit.w / 2, 486, systems[3].x - 105, systems[3].y, 'active', (pulse + 0.55) % 1);
+
+      drawActionTag(640, 524, 'Agents / Orchestrators', 'allow');
+      drawSegment2Narrative();
     }
 
-    if (meta.i >= 2) {
-      const intro = meta.i === 2 ? Math.min(1, meta.p * 1.8) : 1;
-      drawSurfitBoundary(t, intro, meta.i >= 3);
+    if (meta.i === 2) {
+      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
+      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+      drawSurfitBoundary(t, 1, false);
 
-      if (meta.i !== 3 && meta.i !== 5) {
-        agents.forEach((a, idx) => {
-          drawLink(a.x + 105, a.y, surfit.x - surfit.w / 2, 230 + idx * 130, 'active', (pulse + idx * 0.12) % 1);
-        });
+      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', pulse);
+      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.2) % 1);
+      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (pulse + 0.4) % 1);
 
-        systems.forEach((s, idx) => {
-          const mode = (meta.i === 4 && idx === 0 && meta.p < 0.58) ? 'deny' : 'active';
-          drawLink(surfit.x + surfit.w / 2, 235 + idx * 95, s.x - 105, s.y, mode, (pulse + idx * 0.09) % 1);
-        });
-      }
+      drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
+      drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
+      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.2) % 1);
+      drawActionTag(312, 144, 'commit', 'deny');
+      drawActionTag(334, 322, 'merge', 'allow');
+      drawActionTag(350, 502, 'infra_change', 'deny');
+      drawSmallPill(534, 214, 'DENY', 'deny');
+      drawSmallPill(534, 506, 'DENY', 'deny');
+      drawSmallPill(1020, 212, 'ALLOW -> GitHub', 'allow');
+      drawDecisionReasonsBottom();
     }
 
     if (meta.i === 3) {
-      const flow = (meta.p * 1.3) % 1;
-      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', flow);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (flow + 0.25) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (flow + 0.5) % 1);
-
-      drawStopMarker(surfit.x - surfit.w / 2 + 4, 232);
-      drawStopMarker(surfit.x - surfit.w / 2 + 4, 488);
-      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (flow + 0.25) % 1);
-
-      drawActionTag(316, agents[0].y - 34, 'commit_file', 'deny');
-      drawActionTag(386, agents[1].y - 34, 'create_branch -> commit -> pr', 'allow');
-      drawActionTag(350, agents[2].y - 34, 'merge_pull_request', 'deny');
-      drawDecisionMatrix();
+      drawNode(agents[1].x, agents[1].y, agents[1].name, agents[1].c, 'rgba(12,34,59,0.95)');
+      drawNode(systems[0].x, systems[0].y, systems[0].name, '#3c6e9b', 'rgba(12,34,59,0.95)');
+      drawSurfitBoundary(t, 1, false);
+      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', pulse);
+      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', pulse);
+      drawEvidencePipeline(meta.p);
+      drawEvidenceBoard(meta.p);
     }
 
     if (meta.i === 4) {
+      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
+      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+      drawSurfitBoundary(t, 1, false);
       drawApprovalFlow(meta.p);
+      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', pulse);
+      if (meta.p > 0.62) {
+        drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', pulse);
+        drawActionTag(980, 240, 'human approval artifact attached', 'allow');
+      } else {
+        drawLink(surfit.x + surfit.w / 2, 360, surfit.x + surfit.w / 2 + 44, 360, 'deny', pulse);
+        drawStopMarker(surfit.x + surfit.w / 2 + 44, 360);
+        drawActionTag(980, 240, 'awaiting human approval artifact', 'deny');
+      }
     }
 
     if (meta.i === 5) {
-      const flow = (meta.p * 1.15) % 1;
-      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', flow);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (flow + 0.2) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (flow + 0.4) % 1);
-      drawStopMarker(surfit.x - surfit.w / 2 + 4, 232);
-      drawStopMarker(surfit.x - surfit.w / 2 + 4, 488);
+      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
+      drawNode(systems[0].x, systems[0].y, systems[0].name, '#3c6e9b', 'rgba(12,34,59,0.95)');
+      drawSurfitBoundary(t, 1, false);
 
-      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (flow + 0.2) % 1);
-      drawLink(surfit.x + surfit.w / 2, 232, surfit.x + surfit.w / 2 + 72, 232, 'deny', flow);
-      drawLink(surfit.x + surfit.w / 2, 488, surfit.x + surfit.w / 2 + 72, 488, 'deny', (flow + 0.4) % 1);
-      drawStopMarker(surfit.x + surfit.w / 2 + 72, 232);
-      drawStopMarker(surfit.x + surfit.w / 2 + 72, 488);
-
+      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', pulse);
+      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.25) % 1);
+      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (pulse + 0.45) % 1);
+      drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
+      drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
+      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.25) % 1);
+      drawBoundaryLaneHints();
       drawCrossAgentSummary();
     }
 
     if (meta.i === 6) {
-      drawSmallPill(640, 610, 'Surfit governs execution — not prompts.', 'allow');
-      drawActionTag(640, 648, 'The execution boundary for AI agents', 'allow');
+      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
+      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
+      drawSurfitBoundary(t, 1, false);
+      const cyc = meta.p;
+      const burst = Math.floor(meta.p * 10) % 10;
+
+      const topMode = burst % 2 ? 'active' : 'deny';
+      const midMode = 'active';
+      const lowMode = burst % 3 ? 'deny' : 'active';
+
+      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, topMode, (pulse + cyc) % 1);
+      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, midMode, (pulse + 0.27 + cyc) % 1);
+      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, lowMode, (pulse + 0.61 + cyc) % 1);
+      if (topMode === 'deny') drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
+      if (lowMode === 'deny') drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
+
+      const topAllowed = topMode === 'active';
+      const midAllowed = true;
+      const lowAllowed = lowMode === 'active';
+
+      const topOutY = 300; // OpenClaw lane -> GitHub
+      const midOutY = burst % 2 ? 360 : 420; // LangGraph alternates AWS/Databases
+      const lowOutY = 430; // Internal lane -> Internal APIs
+
+      if (topAllowed) {
+        drawLink(surfit.x + surfit.w / 2, topOutY, systems[0].x - 105, systems[0].y, 'active', (pulse + cyc + 0.08) % 1);
+      } else {
+        drawLink(surfit.x + surfit.w / 2, topOutY, surfit.x + surfit.w / 2 + 42, topOutY, 'deny', (pulse + cyc + 0.08) % 1);
+        drawStopMarker(surfit.x + surfit.w / 2 + 42, topOutY);
+      }
+
+      drawLink(surfit.x + surfit.w / 2, midOutY, (burst % 2 ? systems[1] : systems[2]).x - 105, (burst % 2 ? systems[1] : systems[2]).y, midAllowed ? 'active' : 'deny', (pulse + cyc + 0.24) % 1);
+
+      if (lowAllowed) {
+        drawLink(surfit.x + surfit.w / 2, lowOutY, systems[3].x - 105, systems[3].y, 'active', (pulse + cyc + 0.42) % 1);
+      } else {
+        drawLink(surfit.x + surfit.w / 2, lowOutY, surfit.x + surfit.w / 2 + 42, lowOutY, 'deny', (pulse + cyc + 0.42) % 1);
+        drawStopMarker(surfit.x + surfit.w / 2 + 42, lowOutY);
+      }
+
+      drawBoundaryLaneHints();
+      drawClosingRecapPanel();
     }
 
-    drawOverlay(meta.scene.title, meta.scene.text);
+    drawOverlay(meta.scene.title, overlayLineForScene(meta.i, meta.p));
 
     rafId = requestAnimationFrame(render);
   }
@@ -533,14 +822,14 @@
   async function exportWebM() {
     exportBtn.disabled = true;
     exportBtn.textContent = 'Rendering...';
-    exportPathHint.textContent = 'Rendering 54s WebM locally...';
+    exportPathHint.textContent = `Rendering ${Math.round(totalSeconds)}s WebM locally...`;
     try {
       const blob = await renderWebMBlob();
       const url = URL.createObjectURL(blob);
       exportPreview.src = url;
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'surfit-explainer-54s.webm';
+      a.download = `surfit-visualization-${Math.round(totalSeconds)}s.webm`;
       a.click();
       exportPathHint.textContent = `Generated ${Math.round(blob.size / (1024 * 1024) * 10) / 10} MB WebM.`;
       return blob;
