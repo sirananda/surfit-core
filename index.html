@@ -557,6 +557,50 @@ footer {
   margin-right: auto;
 }
 
+.demos-framing { margin-top: 8px; }
+
+.demo-subsection { margin-top: 28px; }
+
+.demo-subsection-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.demo-subsection-intro {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.core-row-1 {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.core-row-2 {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.core-row-2 .demo-card {
+  width: 100%;
+  max-width: 318px;
+}
+
+.foundation-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .demo5-center-wrap {
   display: flex;
   justify-content: center;
@@ -689,6 +733,8 @@ footer {
   .arch-grid { grid-template-columns: 1fr; }
   .metrics-grid { grid-template-columns: 1fr 1fr; }
   .runtime-grid { grid-template-columns: 1fr 1fr; }
+  .core-row-1 { grid-template-columns: 1fr 1fr; }
+  .foundation-grid { grid-template-columns: 1fr; }
   .teams-grid { grid-template-columns: 1fr; }
   .progress-grid { grid-template-columns: 1fr; }
   footer { flex-direction: column; gap: 24px; text-align: center; }
@@ -703,6 +749,10 @@ footer {
   .cta-actions { flex-direction: column; align-items: center; }
   .flow-diagram { gap: 8px; }
   .runtime-grid { grid-template-columns: 1fr; }
+  .core-row-1 { grid-template-columns: 1fr; }
+  .core-row-2 { flex-direction: column; align-items: stretch; }
+  .core-row-2 .demo-card { max-width: none; }
+  .foundation-grid { grid-template-columns: 1fr; }
   .teams-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -1136,16 +1186,16 @@ footer {
 <section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
   <div class="container">
     <div class="section-label">Platform Progress</div>
-    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Current development status and platform evolution.</div>
+    <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Current capabilities and roadmap focus.</div>
 
     <div class="progress-grid">
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:10px;">Live Capabilities</div>
-        <p>• Wave runtime enforcement<br>• Token-scoped execution control<br>• Policy manifest verification<br>• Tamper-evident governance artifacts<br>• Tenant isolation<br>• Ocean proxy deployment mode<br>• Adapter SDK for external agent frameworks<br>• Cross-agent execution governance (Demo #6)</p>
+        <p>• Wave runtime enforcement<br>• Token-scoped execution control<br>• Policy manifest verification<br>• Tamper-evident governance artifacts<br>• Tenant isolation<br>• Ocean proxy deployment mode<br>• Adapter SDK for external agent frameworks<br>• Cross-agent execution governance<br>• Policy escalation for sensitive operations<br>• Execution path governance</p>
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:10px;">In Progress (Near Term)</div>
-        <p>• Approval-policy variants<br>• Role-based approver constraints<br>• Expiry-aware approval artifacts<br>• Dual-approval support</p>
+        <p>• Approval-policy variants<br>• Role-based approver constraints<br>• Expiry-aware approval artifacts<br>• Dual-approval support<br>• Policy grammar standardization<br>• Additional enterprise connectors</p>
       </div>
       <div class="runtime-card">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Longer Term</div>
@@ -1160,12 +1210,16 @@ footer {
   <div class="container" style="max-width:980px;">
     <div class="section-label">Technical FAQ</div>
     <div class="faq-grid" style="margin-top:24px;">
-      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a governance runtime for AI agents. It enforces deterministic policy boundaries between agent frameworks and enterprise systems.</p></div>
-      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Surfit sits in the execution path. Agents can still run in any framework; Surfit governs what those agents are allowed to execute.</p></div>
-      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container that carries a pinned policy manifest, execution constraints, and audit lineage for a specific agent action.</p></div>
+      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a governance runtime for AI agents that enforces deterministic policy boundaries between agents and enterprise systems.</p></div>
+      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
+      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container carrying a pinned policy manifest, execution constraints, and audit lineage for a specific action.</p></div>
       <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
-      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes normally within its framework. Surfit governs the execution boundary when the agent attempts to interact with enterprise systems.</p></div>
-      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the reason for the rejection.</p></div>
+      
+      <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
+      <div class="faq-item"><h4>Why can’t agents bypass Surfit?</h4><p>Enterprise systems are configured to require Surfit-mediated tokens, connectors, and policy validation for sensitive operations. Agents do not “choose” whether to obey Surfit — Surfit sits at the execution boundary.</p></div>
+      <div class="faq-item"><h4>Why would an agent “listen” to Surfit?</h4><p>Agents do not voluntarily comply with Surfit. Surfit governs the execution path by controlling the credentials, tokens, and connector interfaces through which enterprise actions are performed.</p></div>
+      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes in its framework. Surfit governs the execution boundary when that agent attempts enterprise actions.</p></div>
+      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the rejection reason.</p></div>
     </div>
   </div>
 </section>
@@ -1196,72 +1250,116 @@ footer {
   <div class="container" style="max-width:980px;">
     <div class="section-label">Demos</div>
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">Runtime Demonstrations</div>
-    <p class="section-body">These demos show how Surfit governs AI agent execution — from runtime enforcement to approval-gated execution authority and cross-agent governance.</p>
+    <p class="section-body demos-framing">Surfit demonstrations progress from execution enforcement primitives to policy-governed, cross-agent, and execution-path governance.</p>
+    <span id="demo1" aria-hidden="true" style="display:none;"></span>
+    <span id="demo2" aria-hidden="true" style="display:none;"></span>
+    <span id="demo3" aria-hidden="true" style="display:none;"></span>
+    <span id="demo4" aria-hidden="true" style="display:none;"></span>
+    <span id="demo5" aria-hidden="true" style="display:none;"></span>
+    <span id="demo6" aria-hidden="true" style="display:none;"></span>
+    <span id="demo7" aria-hidden="true" style="display:none;"></span>
+    <span id="demo8" aria-hidden="true" style="display:none;"></span>
 
-    <div class="runtime-grid demos-grid" style="margin-top:24px;">
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #1 — Runtime Enforcement</h4>
+    <div class="demo-subsection" id="core-demonstrations">
+      <div class="demo-subsection-title">Core Demonstrations</div>
+      <p class="demo-subsection-intro">The core Surfit demonstrations show how execution governance evolves from bounded mutation to policy escalation, cross-agent neutrality, and execution-path control.</p>
+
+      <div class="core-row-1">
+        <div class="runtime-card demo-card" id="demo4-governed-github-execution" data-demo-number="4">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Governed GitHub Execution</h4>
+          </div>
+          <p>Surfit governs AI-originated GitHub mutations at runtime, blocking unsafe actions and allowing bounded workflows.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/b88891ee6ab14d27a554ce6c554bb648" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
-        <p>Shows Surfit intercepting and validating AI agent execution boundaries before actions reach enterprise systems.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+
+        <div class="runtime-card demo-card" id="demo5-approval-gated-merge-governance" data-demo-number="5">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Approval-Gated Merge Governance</h4>
+          </div>
+          <p>Sensitive merge operations require approval artifacts before execution is allowed.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/1a694b5e19084137aa14925039e99dee" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
+        </div>
+
+        <div class="runtime-card demo-card" id="demo6-cross-agent-execution-governance" data-demo-number="6">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Cross-Agent Execution Governance</h4>
+          </div>
+          <p>Surfit governs execution across independent AI agents using the same runtime policy boundary.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/7be184524f894760ba79300b3ff10dcb" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
       </div>
 
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #2 — Deterministic Governance</h4>
+      <div class="core-row-2">
+        <div class="runtime-card demo-card" id="demo7-policy-escalation-for-sensitive-operations" data-demo-number="7">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Policy Escalation for Sensitive Operations</h4>
+          </div>
+          <p>Routine operations pass automatically, while sensitive actions escalate only when governance conditions require it.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/980437a6713d4024ac3b40f8576d1af8" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
-        <p>Demonstrates deterministic policy enforcement, runtime denial of unauthorized actions, and tamper-evident governance artifacts.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+
+        <div class="runtime-card demo-card" id="demo8-execution-path-governance" data-demo-number="8">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Execution Path Governance</h4>
+          </div>
+          <p>Sensitive actions can require a valid prior execution path before they are allowed to execute.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/0e8718191d6145a48c95a7f4e56f34e4" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
       </div>
+    </div>
 
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #3 — Enterprise Integrations</h4>
-        </div>
-        <p>Shows Surfit governing AI agent interactions with enterprise systems such as GitHub, AWS, and Slack.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
-        </div>
-      </div>
+    <div class="demo-subsection" id="foundation-demonstrations">
+      <div class="demo-subsection-title">Foundation Demonstrations</div>
+      <p class="demo-subsection-intro">Earlier demonstrations establish the runtime, policy, and integration primitives that Surfit builds on.</p>
 
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #4 — Governed GitHub Execution</h4>
+      <div class="foundation-grid">
+        <div class="runtime-card demo-card" id="demo1-runtime-enforcement" data-demo-number="1">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Runtime Enforcement</h4>
+          </div>
+          <p>Shows Surfit intercepting and validating execution boundaries before actions reach enterprise systems.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/7a63f61892ac4b4ca5b40c0529af755c" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
-        <p>Surfit governs AI-originated GitHub mutations at runtime, blocking unsafe actions, allowing bounded workflows, and producing verifiable governance evidence.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/b88891ee6ab14d27a554ce6c554bb648" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
-        </div>
-      </div>
 
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #5 — Multi-Stage Execution Governance</h4>
+        <div class="runtime-card demo-card" id="demo2-deterministic-governance" data-demo-number="2">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Deterministic Governance</h4>
+          </div>
+          <p>Demonstrates deterministic policy enforcement and runtime denial of unauthorized actions.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/8ae56c37e6ff4c2991b049c7a475521e" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
-        <p>Surfit governs multi-stage execution authority, requiring approval artifacts before sensitive agent-driven actions are allowed to execute.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/1a694b5e19084137aa14925039e99dee" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
-        </div>
-      </div>
 
-      <div class="runtime-card demo-card">
-        <div class="runtime-card-header">
-          <span class="runtime-icon">▶</span>
-          <h4>Demo #6 — Cross-Agent Execution Governance</h4>
-        </div>
-        <p>Surfit governs execution across independent AI agents. The same policy boundary evaluates actions originating from different agent frameworks.</p>
-        <div class="demo-card-action">
-          <a href="https://www.loom.com/share/7be184524f894760ba79300b3ff10dcb" class="btn-primary btn-demo-orange" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+        <div class="runtime-card demo-card" id="demo3-enterprise-integrations" data-demo-number="3">
+          <div class="runtime-card-header">
+            <span class="runtime-icon">▶</span>
+            <h4>Enterprise Integrations</h4>
+          </div>
+          <p>Shows Surfit governing AI agent interactions with enterprise systems such as GitHub, AWS, and Slack.</p>
+          <div class="demo-card-action">
+            <a href="https://www.loom.com/share/5f23d97a26ef43fba5821d2b4498a894" class="btn-primary" target="_blank" rel="noopener noreferrer">Watch Demo</a>
+          </div>
         </div>
       </div>
     </div>
