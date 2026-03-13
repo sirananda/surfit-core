@@ -8,26 +8,42 @@ services:
     env_file:
       - .env
     environment:
-      SURFIT_ENV: ${SURFIT_ENV:-prod}
-      SURFIT_API_PORT: ${SURFIT_API_PORT:-8000}
-      DATABASE_URL: ${DATABASE_URL}
-      SURFIT_DB_URL: ${DATABASE_URL}
-      REDIS_URL: ${REDIS_URL}
+      SURFIT_ENV: ${SURFIT_ENV:?SURFIT_ENV is required}
+      SURFIT_API_PORT: ${SURFIT_API_PORT:?SURFIT_API_PORT is required}
+      SURFIT_TOKEN_SECRET: ${SURFIT_TOKEN_SECRET:?SURFIT_TOKEN_SECRET is required}
+      SURFIT_API_KEYS_JSON: ${SURFIT_API_KEYS_JSON:?SURFIT_API_KEYS_JSON is required}
+      SURFIT_DEFAULT_TENANT_ID: ${SURFIT_DEFAULT_TENANT_ID:?SURFIT_DEFAULT_TENANT_ID is required}
+      SURFIT_REQUIRE_EXPLICIT_PROD_CONFIG: ${SURFIT_REQUIRE_EXPLICIT_PROD_CONFIG:-1}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      SURFIT_DB_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: ${REDIS_URL:?REDIS_URL is required}
       PYTHONUNBUFFERED: "1"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=3)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   postgres:
     image: postgres:16-alpine
     container_name: surfit-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-surfit}
-      POSTGRES_USER: ${POSTGRES_USER:-surfit}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-surfit_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -35,31 +51,47 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   redis:
     image: redis:7-alpine
     container_name: surfit-redis
     restart: unless-stopped
     command: ["redis-server", "--save", "", "--appendonly", "no"]
-    volumes:
-      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   nginx:
     image: nginx:1.27-alpine
     container_name: surfit-nginx
     restart: unless-stopped
     depends_on:
-      - surfit-api
+      surfit-api:
+        condition: service_healthy
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./ops/certbot/www:/var/www/certbot
+      - ./ops/certbot/conf:/etc/letsencrypt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
 volumes:
   postgres_data:
-  redis_data:

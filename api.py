@@ -28,12 +28,13 @@ from pathlib import Path
 try:
     from surfit_core.ocean import mutate_config as ocean_mutate_config_core
 except ModuleNotFoundError:
-    def ocean_mutate_config_core(*args, **kwargs):
+    def ocean_mutate_config_core(*args, **kwargs):  # type: ignore[no-redef]
         return {
             "status": "REJECTED",
             "reason_code": "MUTATION_CORE_UNAVAILABLE",
             "message": "surfit_core.ocean is unavailable in this build.",
         }
+
 from surfit.connectors.adapter_registry import (
     resolve_connector_type,
     prepare_connector_context,
@@ -103,6 +104,7 @@ def _resolve_db_path(project_root: Path) -> str:
 
 
 DB_PATH = _resolve_db_path(PROJECT_ROOT)
+SURFIT_ENV = os.environ.get("SURFIT_ENV", "dev").strip().lower() or "dev"
 MAX_RUNTIME_SECONDS = 30
 WAVE_TOKEN_TTL_SECONDS = 180
 WAVE_MUTATION_TOKEN_TTL_SECONDS = int(os.environ.get("SURFIT_WAVE_MUTATION_TOKEN_TTL_SECONDS", "600"))
@@ -116,6 +118,8 @@ RATE_LIMIT_EXPORT_PER_MIN = int(os.environ.get("SURFIT_RATE_LIMIT_EXPORT_PER_MIN
 TOKEN_REPLAY_MAX_USES = int(os.environ.get("SURFIT_TOKEN_REPLAY_MAX_USES", "1000"))
 TOKEN_REPLAY_GRACE_SECONDS = int(os.environ.get("SURFIT_TOKEN_REPLAY_GRACE_SECONDS", "60"))
 DEFAULT_TENANT_ID = os.environ.get("SURFIT_DEFAULT_TENANT_ID", "tenant_demo")
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+REDIS_URL = os.environ.get("REDIS_URL", "").strip()
 
 RUNTIME_TOKEN_SERVICE = TokenService(
     token_validation=RUNTIME_TOKEN_VALIDATION,
@@ -153,11 +157,49 @@ def _load_api_key_tenant_map() -> dict[str, str]:
         if out:
             return out
 
+    if SURFIT_ENV == "prod":
+        return {}
+
     # Local dev default keeps single-process demos working.
     return {"surfit-demo-key": DEFAULT_TENANT_ID, "surfit-other-key": "tenant_other"}
 
 
 API_KEY_TENANT_MAP = _load_api_key_tenant_map()
+
+
+def _is_truthy_env(name: str, *, default: bool = False) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _validate_production_config() -> None:
+    strict_prod = _is_truthy_env("SURFIT_REQUIRE_EXPLICIT_PROD_CONFIG", default=(SURFIT_ENV == "prod"))
+    if SURFIT_ENV != "prod" or not strict_prod:
+        return
+
+    missing: list[str] = []
+    if not DATABASE_URL:
+        missing.append("DATABASE_URL")
+    if not REDIS_URL:
+        missing.append("REDIS_URL")
+    if not os.environ.get("SURFIT_API_KEYS_JSON", "").strip() and not os.environ.get("SURFIT_API_KEYS", "").strip():
+        missing.append("SURFIT_API_KEYS_JSON or SURFIT_API_KEYS")
+    if not os.environ.get("SURFIT_DEFAULT_TENANT_ID", "").strip():
+        missing.append("SURFIT_DEFAULT_TENANT_ID")
+    if SURFIT_TOKEN_SECRET in {"", "surfit-local-dev-secret"}:
+        missing.append("SURFIT_TOKEN_SECRET (must not use local default)")
+    if DEFAULT_TENANT_ID == "tenant_demo":
+        missing.append("SURFIT_DEFAULT_TENANT_ID must not be tenant_demo")
+    if not POLICY_ALLOWLISTS_PATH.exists():
+        missing.append(f"SURFIT_POLICY_ALLOWLISTS_PATH file not found: {POLICY_ALLOWLISTS_PATH}")
+
+    if missing:
+        raise RuntimeError(
+            "Production configuration is incomplete. Set explicit values for: "
+            + ", ".join(missing)
+        )
 
 DEFAULT_AGENT_WAVE_ALLOWLIST = {
     "openclaw_poc_agent_v1": {"sales_report_v1"},
@@ -538,6 +580,7 @@ def ensure_wave_tables(conn: sqlite3.Connection) -> None:
 
 @app.on_event("startup")
 def initialize_runtime_schema() -> None:
+    _validate_production_config()
     conn = sqlite3.connect(DB_PATH)
     try:
         ensure_wave_tables(conn)
@@ -601,6 +644,47 @@ def _resolve_time_window(
     end_dt = _parse_iso_dt(to_ts) or now
     start_dt = _parse_iso_dt(from_ts) or (end_dt - timedelta(hours=max(1, int(since_hours))))
     return start_dt.astimezone(timezone.utc).isoformat(), end_dt.astimezone(timezone.utc).isoformat()
+
+
+def _check_db_readiness() -> dict[str, Any]:
+    target = DATABASE_URL or os.environ.get("SURFIT_DB_URL", "").strip()
+    if target.startswith("postgresql://") or target.startswith("postgres://"):
+        try:
+            import psycopg
+        except ModuleNotFoundError:
+            return {"ready": False, "detail": "psycopg not installed"}
+        try:
+            with psycopg.connect(target, connect_timeout=3) as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+                    cur.fetchone()
+            return {"ready": True, "detail": "postgres ok"}
+        except Exception as exc:
+            return {"ready": False, "detail": f"postgres connect failed: {exc}"}
+
+    # Default to sqlite readiness for current runtime schema.
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=2)
+        ensure_wave_tables(conn)
+        conn.close()
+        return {"ready": True, "detail": "sqlite ok"}
+    except Exception as exc:
+        return {"ready": False, "detail": f"sqlite unavailable: {exc}"}
+
+
+def _check_redis_readiness() -> dict[str, Any]:
+    if not REDIS_URL:
+        return {"ready": SURFIT_ENV != "prod", "detail": "REDIS_URL not set"}
+    try:
+        import redis
+    except ModuleNotFoundError:
+        return {"ready": False, "detail": "redis package not installed"}
+    try:
+        client = redis.Redis.from_url(REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
+        client.ping()
+        return {"ready": True, "detail": "redis ok"}
+    except Exception as exc:
+        return {"ready": False, "detail": f"redis ping failed: {exc}"}
 
 
 def _log_api_event(
@@ -1624,6 +1708,44 @@ def verify_audit(wave_id: str, request: Request = None):
     conn.commit()
     conn.close()
     return out
+
+
+@app.get("/healthz")
+def healthz() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "service": "surfit-api",
+        "environment": SURFIT_ENV,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/readyz")
+def readyz() -> JSONResponse:
+    db_status = _check_db_readiness()
+    redis_status = _check_redis_readiness()
+    policy_path_ok = POLICY_ALLOWLISTS_PATH.exists()
+
+    checks = {
+        "database": db_status,
+        "redis": redis_status,
+        "policy_manifest_path": {
+            "ready": policy_path_ok,
+            "detail": str(POLICY_ALLOWLISTS_PATH),
+        },
+    }
+    all_ready = all(bool(item.get("ready")) for item in checks.values())
+    status_code = 200 if all_ready else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "ready" if all_ready else "not_ready",
+            "service": "surfit-api",
+            "environment": SURFIT_ENV,
+            "checks": checks,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        },
+    )
 
 
 @app.get("/api/metrics/summary")
