@@ -1,0 +1,65 @@
+services:
+  surfit-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: surfit-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      SURFIT_ENV: ${SURFIT_ENV:-prod}
+      SURFIT_API_PORT: ${SURFIT_API_PORT:-8000}
+      DATABASE_URL: ${DATABASE_URL}
+      SURFIT_DB_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      - postgres
+      - redis
+    expose:
+      - "8000"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: surfit-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-surfit}
+      POSTGRES_USER: ${POSTGRES_USER:-surfit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-surfit_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-surfit} -d ${POSTGRES_DB:-surfit}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: surfit-redis
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: surfit-nginx
+    restart: unless-stopped
+    depends_on:
+      - surfit-api
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  postgres_data:
+  redis_data:

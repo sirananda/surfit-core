@@ -1,39 +1,431 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi import FastAPI, Request, Query
+from pydantic import BaseModel, Field
 from typing import Any
 from fastapi.responses import JSONResponse
 import uuid
 import sqlite3
 import json
-import csv
 import time
 import os
 import shutil
 import hashlib
-import secrets
-import anthropic
+import threading
 from datetime import datetime, timezone, timedelta
+from collections import defaultdict, deque
+try:
+    import anthropic
+except ModuleNotFoundError:
+    class _AnthropicStub:
+        class Anthropic:  # type: ignore[no-redef]
+            def __init__(self, *args, **kwargs):
+                raise RuntimeError(
+                    "anthropic package is not installed. Install with: python3.11 -m pip install anthropic"
+                )
+
+    anthropic = _AnthropicStub()  # type: ignore[assignment]
 from pathlib import Path
 
+from surfit_core.ocean import mutate_config as ocean_mutate_config_core
+from connectors.adapter_registry import (
+    resolve_connector_type,
+    prepare_connector_context,
+    dispatch_connector_action,
+)
+from surfit.runtime.artifact_service import ArtifactRetrievalService, ArtifactService
+from surfit.runtime.execution_gateway import ExecutionGateway
+from surfit.runtime.policy_manifest_loader import PolicyManifestLoader
+from surfit.runtime.policy_engine import DefaultPolicyEngine
+from surfit.runtime.tenant_context import TenantContextResolver
+from surfit.runtime.token_validation import TokenValidationLayer
+from surfit.runtime.token_service import TokenService, TokenServiceError
+from surfit.runtime.wave_lifecycle_store import WaveInsertPayload, WaveLifecycleStore
+from surfit.runtime.mutation_boundary import MutationBoundaryConfig, MutationBoundaryService
+from surfit.runtime.wave_service import WaveService
+from surfit.runtime.wave_orchestrator import (
+    RuntimeGatewayOrchestratorRequest,
+    WaveOrchestrator,
+    WaveRunPreparationDeps,
+)
+from surfit.runtime.wave_application_service import (
+    WaveApplicationService,
+    WaveRunApplicationDeps,
+    WaveRunApplicationRequest,
+)
+from surfit.storage.artifact_store import FileArtifactStore
+from surfit.demos.handlers._common import DemoHandlerDeps, DemoHandlerError
+from surfit.demos.handlers.context_router import prepare_wave_context
+from surfit.demos.handlers.router import dispatch_template_handler
+
 PROJECT_ROOT = Path(__file__).resolve().parent
-DB_PATH = os.environ.get("SURFIT_DB_PATH", str(PROJECT_ROOT / "surfit_runs.db"))
+RUNTIME_ARTIFACTS_ROOT = Path(os.environ.get("SURFIT_RUNTIME_ARTIFACTS_ROOT", str(PROJECT_ROOT / "artifacts")))
+_RUNTIME_POLICY_MANIFEST_PATH = Path(
+    os.environ.get("SURFIT_POLICY_ALLOWLISTS_PATH", str(PROJECT_ROOT / "policies" / "allowlists.json"))
+)
+RUNTIME_POLICY_MANIFEST_LOADER = PolicyManifestLoader(
+    base_dir=_RUNTIME_POLICY_MANIFEST_PATH.parent,
+    default_manifest_name=_RUNTIME_POLICY_MANIFEST_PATH.name,
+)
+RUNTIME_TENANT_CONTEXT = TenantContextResolver(
+    artifacts_root=RUNTIME_ARTIFACTS_ROOT,
+    default_tenant_id=os.environ.get("SURFIT_DEFAULT_TENANT_ID", "tenant_demo"),
+)
+RUNTIME_ARTIFACT_RETRIEVAL = ArtifactRetrievalService(RUNTIME_ARTIFACTS_ROOT)
+RUNTIME_TOKEN_VALIDATION = TokenValidationLayer()
+RUNTIME_POLICY_ENGINE = DefaultPolicyEngine(RUNTIME_POLICY_MANIFEST_LOADER)
+RUNTIME_WAVE_SERVICE = WaveService()
+RUNTIME_WAVE_ORCHESTRATOR = WaveOrchestrator(RUNTIME_TENANT_CONTEXT)
+RUNTIME_WAVE_APPLICATION_SERVICE = WaveApplicationService()
+RUNTIME_WAVE_LIFECYCLE_STORE = WaveLifecycleStore(
+    default_tenant_id=os.environ.get("SURFIT_DEFAULT_TENANT_ID", "tenant_demo"),
+    now_iso=lambda: datetime.now(timezone.utc).isoformat(),
+    sha256_text=lambda text: hashlib.sha256(text.encode("utf-8")).hexdigest(),
+    canonicalize_policy_manifest=lambda payload: json.dumps(payload, sort_keys=True, separators=(",", ":")),
+)
+
+
+def _resolve_db_path(project_root: Path) -> str:
+    db_url = os.environ.get("SURFIT_DB_URL", "").strip()
+    if db_url:
+        if db_url.startswith("sqlite:///"):
+            return db_url.replace("sqlite:///", "", 1)
+        if db_url.startswith("sqlite://"):
+            return db_url.replace("sqlite://", "", 1)
+        # Postgres/other URLs are reserved for future adapter-backed DB support.
+    return os.environ.get("SURFIT_DB_PATH", str(project_root / "surfit_runs.db"))
+
+
+DB_PATH = _resolve_db_path(PROJECT_ROOT)
 MAX_RUNTIME_SECONDS = 30
 WAVE_TOKEN_TTL_SECONDS = 180
+WAVE_MUTATION_TOKEN_TTL_SECONDS = int(os.environ.get("SURFIT_WAVE_MUTATION_TOKEN_TTL_SECONDS", "600"))
+SURFIT_TOKEN_SECRET = os.environ.get("SURFIT_TOKEN_SECRET", "surfit-local-dev-secret")
+DEMO_SAFE_MODE = os.environ.get("DEMO_SAFE_MODE", "1").lower() not in {"0", "false", "off"}
+OCEAN_PROXY_TIMEOUT_SECONDS = int(os.environ.get("SURFIT_PROXY_TIMEOUT_SECONDS", "5"))
+OCEAN_PROXY_MAX_RESPONSE_BYTES = int(os.environ.get("SURFIT_PROXY_MAX_RESPONSE_BYTES", "1048576"))
+RATE_LIMIT_WAVES_PER_MIN = int(os.environ.get("SURFIT_RATE_LIMIT_WAVES_PER_MIN", "30"))
+RATE_LIMIT_PROXY_PER_MIN = int(os.environ.get("SURFIT_RATE_LIMIT_PROXY_PER_MIN", "300"))
+RATE_LIMIT_EXPORT_PER_MIN = int(os.environ.get("SURFIT_RATE_LIMIT_EXPORT_PER_MIN", "20"))
+TOKEN_REPLAY_MAX_USES = int(os.environ.get("SURFIT_TOKEN_REPLAY_MAX_USES", "1000"))
+TOKEN_REPLAY_GRACE_SECONDS = int(os.environ.get("SURFIT_TOKEN_REPLAY_GRACE_SECONDS", "60"))
+DEFAULT_TENANT_ID = os.environ.get("SURFIT_DEFAULT_TENANT_ID", "tenant_demo")
 
-AGENT_WAVE_ALLOWLIST = {
+RUNTIME_TOKEN_SERVICE = TokenService(
+    token_validation=RUNTIME_TOKEN_VALIDATION,
+    wave_token_ttl_seconds=WAVE_TOKEN_TTL_SECONDS,
+    sha256_text=lambda text: hashlib.sha256(text.encode("utf-8")).hexdigest(),
+)
+
+_RATE_LIMIT_LOCK = threading.Lock()
+_RATE_LIMIT_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+
+def _load_api_key_tenant_map() -> dict[str, str]:
+    raw_json = os.environ.get("SURFIT_API_KEYS_JSON", "").strip()
+    if raw_json:
+        try:
+            payload = json.loads(raw_json)
+            if isinstance(payload, dict):
+                out: dict[str, str] = {}
+                for key, tenant in payload.items():
+                    k = str(key).strip()
+                    t = str(tenant).strip()
+                    if k and t:
+                        out[k] = t
+                if out:
+                    return out
+        except Exception:
+            pass
+
+    raw_csv = os.environ.get("SURFIT_API_KEYS", "").strip()
+    if raw_csv:
+        out = {}
+        for key in raw_csv.split(","):
+            k = key.strip()
+            if k:
+                out[k] = DEFAULT_TENANT_ID
+        if out:
+            return out
+
+    # Local dev default keeps single-process demos working.
+    return {"surfit-demo-key": DEFAULT_TENANT_ID, "surfit-other-key": "tenant_other"}
+
+
+API_KEY_TENANT_MAP = _load_api_key_tenant_map()
+
+DEFAULT_AGENT_WAVE_ALLOWLIST = {
     "openclaw_poc_agent_v1": {"sales_report_v1"},
     "openclaw_marketing_agent_v1": {"marketing_digest_v1"},  # backward compatibility
     "openclaw_market_intelligence_agent_v1": {"market_intelligence_digest_v1"},
     "production_config_agent": {"production_config_change_v1"},
+    "surfit_builder_agent_v1": {"surfit_builder_brief_v1"},
+    "enterprise_change_control_agent": {"ENTERPRISE_CHANGE_CONTROL_V1"},
+    "enterprise_integration_governance_agent": {"ENTERPRISE_INTEGRATION_GOVERNANCE_V1"},
+    "github_governance_agent": {"ENTERPRISE_GITHUB_GOVERNANCE_V1"},
+    "github_multistage_governance_agent": {"ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"},
+    "openclaw_cross_agent_governance_agent": {"ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"},
+    "langgraph_cross_agent_governance_agent": {"ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"},
+    "internal_automation_cross_agent_agent": {"ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"},
 }
 
-MARKET_INTEL_TEMPLATES = {"marketing_digest_v1", "market_intelligence_digest_v1"}
-TEMPLATE_POLICY_ALLOWLIST = {
+DEFAULT_TEMPLATE_POLICY_ALLOWLIST = {
     "sales_report_v1": {"sales_report_policy_v1"},
     "marketing_digest_v1": {"marketing_digest_policy_v1", "market_intelligence_digest_policy_v1"},
     "market_intelligence_digest_v1": {"market_intelligence_digest_policy_v1"},
     "production_config_change_v1": {"prod_config_policy_v1"},
+    "surfit_builder_brief_v1": {"surfit_builder_policy_v1"},
+    "ENTERPRISE_CHANGE_CONTROL_V1": {"enterprise_change_control_policy_v1"},
+    "ENTERPRISE_INTEGRATION_GOVERNANCE_V1": {"enterprise_integration_governance_policy_v1"},
+    "ENTERPRISE_GITHUB_GOVERNANCE_V1": {"enterprise_github_governance_policy_v1"},
+    "ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1": {"enterprise_multistage_execution_governance_policy_v1"},
 }
+
+POLICY_ALLOWLISTS_PATH = Path(
+    os.environ.get("SURFIT_POLICY_ALLOWLISTS_PATH", str(PROJECT_ROOT / "policies" / "allowlists.json"))
+)
+
+
+def _normalize_allowlist_map(raw: dict[str, Any]) -> dict[str, set[str]]:
+    normalized: dict[str, set[str]] = {}
+    for key, values in raw.items():
+        if isinstance(values, (list, set, tuple)):
+            normalized[str(key)] = {str(v) for v in values}
+    return normalized
+
+
+def _sorted_allowlist_map(raw: dict[str, set[str]]) -> dict[str, list[str]]:
+    return {
+        key: sorted(values)
+        for key, values in sorted(raw.items(), key=lambda item: item[0])
+    }
+
+
+def _canonicalize_policy_manifest(payload: dict[str, Any]) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def _default_policy_manifest_payload() -> dict[str, Any]:
+    return {
+        "agent_wave_allowlist": _sorted_allowlist_map(DEFAULT_AGENT_WAVE_ALLOWLIST),
+        "template_policy_allowlist": _sorted_allowlist_map(DEFAULT_TEMPLATE_POLICY_ALLOWLIST),
+        "http_proxy_allowlist": {
+            "allowed_domains": ["localhost", "127.0.0.1", "::1"],
+            "allowed_methods": ["GET"],
+        },
+        "template_runtime_scopes": {
+            "ENTERPRISE_INTEGRATION_GOVERNANCE_V1": {
+                "allowlisted_paths": ["/repo/docs/", "/repo/tests/"],
+                "allowlisted_tools": [
+                    "repo.file_update",
+                    "deployment.approve_release",
+                    "slack.channel.post_message",
+                ],
+            },
+            "ENTERPRISE_GITHUB_GOVERNANCE_V1": {
+                "allowlisted_paths": [
+                    "/docs/",
+                    "/agents/output/",
+                    "/reports/",
+                ],
+                "denied_paths": [
+                    "/.github/workflows/*",
+                    "/infra/*",
+                    "/security/*",
+                    "/secrets/*",
+                    "/src/*",
+                    "/app/*",
+                    "/backend/*",
+                ],
+                "allowlisted_actions": [
+                    "create_branch",
+                    "commit_file",
+                    "open_pull_request",
+                ],
+                "denied_actions": [
+                    "merge_pull_request",
+                    "force_push",
+                    "delete_branch",
+                ],
+                "allowlisted_repos": ["surfit-demo-repo"],
+                "allowlisted_tools": [
+                    "github.create_branch",
+                    "github.commit_file",
+                    "github.open_pull_request",
+                ],
+                "github_policy": {
+                    "allowed_repos": ["surfit-demo-repo"],
+                    "allowed_paths": ["docs/*", "agents/output/*", "reports/*"],
+                    "denied_paths": [
+                        ".github/workflows/*",
+                        "infra/*",
+                        "security/*",
+                        "secrets/*",
+                        "src/*",
+                        "app/*",
+                        "backend/*",
+                    ],
+                    "allowed_actions": [
+                        "create_branch",
+                        "commit_file",
+                        "open_pull_request",
+                    ],
+                    "denied_actions": [
+                        "merge_pull_request",
+                        "force_push",
+                        "delete_branch",
+                    ],
+                },
+            },
+            "ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1": {
+                "allowlisted_paths": [
+                    "/docs/",
+                    "/agents/output/",
+                    "/reports/",
+                ],
+                "denied_paths": [
+                    "/.github/workflows/*",
+                    "/infra/*",
+                    "/security/*",
+                    "/secrets/*",
+                    "/src/*",
+                    "/app/*",
+                    "/backend/*",
+                ],
+                "allowlisted_actions": [
+                    "create_branch",
+                    "commit_file",
+                    "open_pull_request",
+                    "merge_pull_request",
+                ],
+                "denied_actions": [
+                    "force_push",
+                    "delete_branch",
+                ],
+                "allowlisted_repos": ["surfit-demo-repo"],
+                "allowlisted_tools": [
+                    "github.create_branch",
+                    "github.commit_file",
+                    "github.open_pull_request",
+                    "github.merge_pull_request",
+                ],
+                "github_policy": {
+                    "allowed_repos": ["surfit-demo-repo"],
+                    "allowed_paths": ["docs/*", "agents/output/*", "reports/*"],
+                    "denied_paths": [
+                        ".github/workflows/*",
+                        "infra/*",
+                        "security/*",
+                        "secrets/*",
+                        "src/*",
+                        "app/*",
+                        "backend/*",
+                    ],
+                    "allowed_actions": [
+                        "create_branch",
+                        "commit_file",
+                        "open_pull_request",
+                        "merge_pull_request",
+                    ],
+                    "denied_actions": [
+                        "force_push",
+                        "delete_branch",
+                    ],
+                    "require_approval_for_actions": [
+                        "merge_pull_request",
+                    ],
+                },
+            },
+        },
+    }
+
+
+def _ensure_demo8_execution_path_primitives(payload: dict[str, Any]) -> dict[str, Any]:
+    scopes = payload.get("template_runtime_scopes")
+    if not isinstance(scopes, dict):
+        return payload
+    key = "ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"
+    scope = scopes.get(key)
+    if not isinstance(scope, dict):
+        return payload
+
+    def _append_unique(seq: Any, value: str) -> list[str]:
+        out = [str(x) for x in (seq if isinstance(seq, list) else [])]
+        if value not in out:
+            out.append(value)
+        return out
+
+    scope["allowlisted_tools"] = _append_unique(scope.get("allowlisted_tools"), "github.review_commit")
+    scope["allowlisted_actions"] = _append_unique(scope.get("allowlisted_actions"), "review_commit")
+
+    github_policy = scope.get("github_policy")
+    if isinstance(github_policy, dict):
+        github_policy["allowed_actions"] = _append_unique(github_policy.get("allowed_actions"), "review_commit")
+
+    proxy_allowlist = payload.get("http_proxy_allowlist")
+    if isinstance(proxy_allowlist, dict):
+        prefixes = [str(x) for x in (proxy_allowlist.get("allowed_url_prefixes", []) if isinstance(proxy_allowlist.get("allowed_url_prefixes"), list) else [])]
+        review_prefixes: list[str] = []
+        for p in prefixes:
+            for suffix in ("/github/create_branch", "/github/commit_file", "/github/open_pull_request", "/github/merge_pull_request"):
+                if p.endswith(suffix):
+                    review_prefixes.append(p[: -len(suffix)] + "/github/review_commit")
+                    break
+        if not review_prefixes:
+            review_prefixes = ["http://127.0.0.1:8050/github/review_commit"]
+        for rp in review_prefixes:
+            if rp not in prefixes:
+                prefixes.append(rp)
+        proxy_allowlist["allowed_url_prefixes"] = prefixes
+
+    return payload
+
+
+def _load_policy_manifest_snapshot() -> dict[str, Any]:
+    payload: dict[str, Any]
+    version: str | None = None
+
+    if POLICY_ALLOWLISTS_PATH.exists():
+        try:
+            raw = json.loads(POLICY_ALLOWLISTS_PATH.read_text(encoding="utf-8"))
+            agent_map = _normalize_allowlist_map(raw.get("agent_wave_allowlist", {}))
+            template_map = _normalize_allowlist_map(raw.get("template_policy_allowlist", {}))
+            if agent_map and template_map:
+                payload = {
+                    "agent_wave_allowlist": _sorted_allowlist_map(agent_map),
+                    "template_policy_allowlist": _sorted_allowlist_map(template_map),
+                    "http_proxy_allowlist": raw.get("http_proxy_allowlist", _default_policy_manifest_payload()["http_proxy_allowlist"]),
+                    "template_runtime_scopes": raw.get(
+                        "template_runtime_scopes",
+                        _default_policy_manifest_payload().get("template_runtime_scopes", {}),
+                    ),
+                }
+                raw_version = raw.get("policy_manifest_version")
+                if raw_version is not None:
+                    version = str(raw_version)
+            else:
+                payload = _default_policy_manifest_payload()
+        except Exception:
+            payload = _default_policy_manifest_payload()
+    else:
+        payload = _default_policy_manifest_payload()
+
+    payload = _ensure_demo8_execution_path_primitives(payload)
+    canonical = _canonicalize_policy_manifest(payload)
+    manifest_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    manifest_version = version or f"{POLICY_ALLOWLISTS_PATH.name}@sha256:{manifest_hash}"
+
+    return {
+        "manifest_payload": payload,
+        "manifest_json": canonical,
+        "manifest_hash": manifest_hash,
+        "manifest_version": manifest_version,
+        "agent_allowlist": _normalize_allowlist_map(payload.get("agent_wave_allowlist", {})),
+        "template_policy_allowlist": _normalize_allowlist_map(payload.get("template_policy_allowlist", {})),
+    }
+
+
+_INITIAL_POLICY_SNAPSHOT = _load_policy_manifest_snapshot()
+AGENT_WAVE_ALLOWLIST = _INITIAL_POLICY_SNAPSHOT["agent_allowlist"]
+TEMPLATE_POLICY_ALLOWLIST = _INITIAL_POLICY_SNAPSHOT["template_policy_allowlist"]
+MARKET_INTEL_TEMPLATES = {"marketing_digest_v1", "market_intelligence_digest_v1"}
 RUNS_ROOT = Path("./runs")
 PROD_CONFIG_TARGET = "demo_artifacts/prod_config.json"
 PROD_CONFIG_ALLOWED_KEYS = {
@@ -41,6 +433,24 @@ PROD_CONFIG_ALLOWED_KEYS = {
     "rate_limits.requests_per_minute",
     "logging.level",
 }
+
+RUNTIME_MUTATION_BOUNDARY = MutationBoundaryService(
+    MutationBoundaryConfig(
+        token_secret=SURFIT_TOKEN_SECRET,
+        mutation_token_ttl_seconds=WAVE_MUTATION_TOKEN_TTL_SECONDS,
+        demo_safe_mode=DEMO_SAFE_MODE,
+        proxy_timeout_seconds=OCEAN_PROXY_TIMEOUT_SECONDS,
+        proxy_max_response_bytes=OCEAN_PROXY_MAX_RESPONSE_BYTES,
+        token_replay_max_uses=TOKEN_REPLAY_MAX_USES,
+        token_replay_grace_seconds=TOKEN_REPLAY_GRACE_SECONDS,
+        market_intel_templates=MARKET_INTEL_TEMPLATES,
+        prod_config_target=PROD_CONFIG_TARGET,
+        prod_config_allowed_keys=PROD_CONFIG_ALLOWED_KEYS,
+    ),
+    resolve_connector_type=resolve_connector_type,
+    canonicalize_policy_manifest=_canonicalize_policy_manifest,
+    sha256_text=lambda text: hashlib.sha256(text.encode("utf-8")).hexdigest(),
+)
 
 app = FastAPI(title="SurFit Runtime API", version="m13-poc")
 
@@ -73,6 +483,40 @@ class ConfigMutateRequest(BaseModel):
     reason: str | None = None
 
 
+class OceanProxyHttpRequest(BaseModel):
+    method: str
+    url: str
+    headers: dict[str, str] | None = None
+    json_body: Any | None = None
+    body: str | None = None
+    wave_mutation_token: str | None = None
+    governance_context: dict[str, Any] | None = None
+
+
+class RuntimeGatewayRequest(BaseModel):
+    wave_id: str
+    wave_type: str
+    system: str
+    action: str
+    risk_level: str
+    approval_required: bool = False
+    required_execution_sequence: list[str] = Field(default_factory=list)
+    approval_rules: dict[str, Any] = Field(default_factory=dict)
+    execution_timeout: int | None = None
+    trigger_type: str = "manual"
+    context: dict[str, Any] = Field(default_factory=dict)
+    agent_id: str
+    tenant_id: str | None = None
+    orchestrator_id: str | None = None
+    token_scope: list[str] = Field(default_factory=list)
+    pinned_policy_manifest: list[str] = Field(default_factory=list)
+    runtime_rules: list[str] = Field(default_factory=list)
+    policy_manifest_hash: str | None = None
+    policy_reference: str | None = None
+    approval_linkage: dict[str, Any] | None = None
+    execution_path_evidence: dict[str, Any] | None = None
+
+
 class WaveExecutionError(Exception):
     def __init__(self, code: str, message: str, node: str):
         super().__init__(message)
@@ -81,55 +525,7 @@ class WaveExecutionError(Exception):
 
 
 def ensure_wave_tables(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS waves (
-            wave_id TEXT PRIMARY KEY,
-            agent_id TEXT,
-            wave_template_id TEXT NOT NULL,
-            policy_version TEXT NOT NULL,
-            intent TEXT,
-            context_refs_json TEXT,
-            status TEXT NOT NULL,
-            error_code TEXT,
-            error_message TEXT,
-            error_node TEXT,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS approval_requests (
-            approval_request_id TEXT PRIMARY KEY,
-            wave_id TEXT NOT NULL,
-            target_write_path TEXT,
-            proposed_write_hash TEXT,
-            approved_by TEXT,
-            approved_at TEXT,
-            note TEXT,
-            status TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL
-        )
-        """
-    )
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS wave_decisions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            wave_id TEXT NOT NULL,
-            decision TEXT NOT NULL,
-            reason TEXT NOT NULL,
-            rule TEXT NOT NULL,
-            node TEXT NOT NULL,
-            created_at TEXT NOT NULL
-        )
-        """
-    )
-    _ensure_wave_columns(conn)
-    conn.commit()
+    RUNTIME_WAVE_LIFECYCLE_STORE.ensure_schema(conn)
 
 
 @app.on_event("startup")
@@ -141,30 +537,137 @@ def initialize_runtime_schema() -> None:
         conn.close()
 
 
-def _ensure_wave_columns(conn: sqlite3.Connection) -> None:
-    cols = {row[1] for row in conn.execute("PRAGMA table_info(waves)").fetchall()}
-    required = {
-        "agent_id": "TEXT",
-        "error_code": "TEXT",
-        "error_message": "TEXT",
-        "error_node": "TEXT",
-        "workspace_dir": "TEXT",
-        "wave_token_hash": "TEXT",
-        "wave_token_expires_at": "TEXT",
-        "manifest_hash": "TEXT",
-        "manifest_path": "TEXT",
-    }
-    for col, sql_type in required.items():
-        if col not in cols:
-            conn.execute(f"ALTER TABLE waves ADD COLUMN {col} {sql_type}")
-
-
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _require_api_key(request: Request | None) -> tuple[str, str] | JSONResponse:
+    # Internal direct function calls in unit tests may not provide Request.
+    if request is None:
+        return "__internal__", DEFAULT_TENANT_ID
+
+    api_key = (request.headers.get("X-SURFIT-API-KEY") or "").strip()
+    if not api_key:
+        return JSONResponse(
+            status_code=401,
+            content={"error": {"code": "API_KEY_MISSING", "message": "X-SURFIT-API-KEY header is required."}},
+        )
+    tenant_id = API_KEY_TENANT_MAP.get(api_key)
+    if not tenant_id:
+        return JSONResponse(
+            status_code=403,
+            content={"error": {"code": "API_KEY_INVALID", "message": "Invalid API key."}},
+        )
+    return api_key, tenant_id
+
+
+def _authorize_wave_tenant(
+    conn: sqlite3.Connection, wave_id: str, request: Request | None
+) -> tuple[str, str] | JSONResponse:
+    auth = _require_api_key(request)
+    if isinstance(auth, JSONResponse):
+        return auth
+    api_key, tenant_id = auth
+    wave = conn.execute("SELECT tenant_id FROM waves WHERE wave_id = ?", (wave_id,)).fetchone()
+    if wave and wave[0] and str(wave[0]) != tenant_id:
+        return JSONResponse(
+            status_code=403,
+            content={"error": {"code": "TENANT_MISMATCH", "message": "Wave belongs to a different tenant."}},
+        )
+    return api_key, tenant_id
+
+
+def _parse_iso_dt(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
+
+def _resolve_time_window(
+    since_hours: int = 24, from_ts: str | None = None, to_ts: str | None = None
+) -> tuple[str, str]:
+    now = datetime.now(timezone.utc)
+    end_dt = _parse_iso_dt(to_ts) or now
+    start_dt = _parse_iso_dt(from_ts) or (end_dt - timedelta(hours=max(1, int(since_hours))))
+    return start_dt.astimezone(timezone.utc).isoformat(), end_dt.astimezone(timezone.utc).isoformat()
+
+
+def _log_api_event(
+    conn: sqlite3.Connection,
+    tenant_id: str,
+    event_type: str,
+    wave_id: str | None = None,
+    reason_code: str | None = None,
+    node: str | None = None,
+    status: str | None = None,
+) -> None:
+    RUNTIME_WAVE_LIFECYCLE_STORE.log_api_event(
+        conn,
+        tenant_id=tenant_id,
+        wave_id=wave_id,
+        event_type=event_type,
+        reason_code=reason_code,
+        node=node,
+        status=status,
+    )
+
+
+def _rate_limit_check(tenant_id: str, bucket: str, limit_per_min: int) -> bool:
+    if limit_per_min <= 0:
+        return True
+    now = time.time()
+    key = f"{tenant_id}:{bucket}"
+    with _RATE_LIMIT_LOCK:
+        q = _RATE_LIMIT_BUCKETS[key]
+        while q and (now - q[0]) > 60:
+            q.popleft()
+        if len(q) >= limit_per_min:
+            return False
+        q.append(now)
+        return True
+
+
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _decode_wave_mutation_token(token: str) -> tuple[dict[str, Any] | None, str | None]:
+    return RUNTIME_MUTATION_BOUNDARY.decode_wave_mutation_token(token)
+
+
+def _build_mutation_scope(
+    wave_template_id: str,
+    context_refs: dict[str, Any],
+    policy_manifest_payload: dict[str, Any],
+) -> dict[str, Any]:
+    return RUNTIME_MUTATION_BOUNDARY.build_mutation_scope(
+        wave_template_id,
+        context_refs,
+        policy_manifest_payload,
+    )
+
+
+def _mint_wave_mutation_token(
+    wave_id: str,
+    agent_id: str,
+    policy_manifest_hash: str,
+    policy_version: str,
+    wave_template_id: str,
+    scope: dict[str, Any],
+    ttl_seconds: int = WAVE_MUTATION_TOKEN_TTL_SECONDS,
+) -> tuple[str, str, str, str]:
+    return RUNTIME_MUTATION_BOUNDARY.mint_wave_mutation_token(
+        wave_id=wave_id,
+        agent_id=agent_id,
+        policy_manifest_hash=policy_manifest_hash,
+        policy_version=policy_version,
+        wave_template_id=wave_template_id,
+        scope=scope,
+        ttl_seconds=ttl_seconds,
+    )
 
 
 def _sha256_file(path: str) -> str | None:
@@ -181,73 +684,53 @@ def _sha256_file(path: str) -> str | None:
     return h.hexdigest()
 
 
-def _log_decision(conn: sqlite3.Connection, wave_id: str, decision: str, reason: str, rule: str, node: str) -> None:
-    conn.execute(
-        """
-        INSERT INTO wave_decisions (wave_id, decision, reason, rule, node, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (wave_id, decision, reason, rule, node, _now_iso()),
+def _log_decision(
+    conn: sqlite3.Connection,
+    wave_id: str,
+    decision: str,
+    reason: str,
+    rule: str,
+    node: str,
+    tenant_id: str | None = None,
+) -> None:
+    RUNTIME_WAVE_LIFECYCLE_STORE.log_decision(
+        conn,
+        wave_id=wave_id,
+        decision=decision,
+        reason=reason,
+        rule=rule,
+        node=node,
+        tenant_id=tenant_id,
     )
 
 
-def _fetch_decisions(conn: sqlite3.Connection, wave_id: str) -> list[dict[str, str]]:
-    rows = conn.execute(
-        """
-        SELECT decision, reason, rule, node, created_at
-        FROM wave_decisions
-        WHERE wave_id = ?
-        ORDER BY id ASC
-        """,
-        (wave_id,),
-    ).fetchall()
-    return [
-        {
-            "decision": r[0],
-            "reason": r[1],
-            "rule": r[2],
-            "node": r[3],
-            "timestamp": r[4],
-        }
-        for r in rows
-    ]
+def _fetch_decisions(conn: sqlite3.Connection, wave_id: str) -> list[dict[str, str | None]]:
+    return RUNTIME_WAVE_LIFECYCLE_STORE.fetch_decisions(conn, wave_id)
+
+
+def _verify_decision_chain(conn: sqlite3.Connection, wave_id: str) -> dict[str, Any]:
+    return RUNTIME_WAVE_LIFECYCLE_STORE.verify_decision_chain(conn, wave_id)
+
+
+def _verify_policy_manifest(policy_manifest_hash: str | None, policy_manifest_json: str | None) -> dict[str, Any]:
+    return RUNTIME_WAVE_LIFECYCLE_STORE.verify_policy_manifest(policy_manifest_hash, policy_manifest_json)
 
 
 def _issue_wave_token(wave_id: str, agent_id: str) -> tuple[str, str, str]:
-    token = secrets.token_urlsafe(24)
-    token_hash = _sha256_text(token)
-    expires_at = (datetime.now(timezone.utc) + timedelta(seconds=WAVE_TOKEN_TTL_SECONDS)).isoformat()
-    return token, token_hash, expires_at
+    return RUNTIME_TOKEN_SERVICE.issue_wave_token(wave_id=wave_id, agent_id=agent_id)
 
 
 def _validate_wave_token(conn: sqlite3.Connection, wave_id: str, wave_token: str, node: str = "token_validation") -> None:
-    row = conn.execute(
-        """
-        SELECT wave_token_hash, wave_token_expires_at
-        FROM waves
-        WHERE wave_id = ?
-        """,
-        (wave_id,),
-    ).fetchone()
-    if not row:
-        _log_decision(conn, wave_id, "DENY", "wave not found for token validation", "wave_id_exists", node)
-        raise WaveExecutionError("WAVE_TOKEN_INVALID", "Wave token validation failed (wave not found).", node)
-
-    stored_hash = row[0]
-    expires_at = row[1]
-    if not stored_hash:
-        _log_decision(conn, wave_id, "DENY", "wave token hash missing", "token_present", node)
-        raise WaveExecutionError("WAVE_TOKEN_INVALID", "Wave token is missing for mutation step.", node)
-    if _sha256_text(wave_token) != stored_hash:
-        _log_decision(conn, wave_id, "DENY", "token hash mismatch", "token_match", node)
-        raise WaveExecutionError("WAVE_TOKEN_INVALID", "Wave token does not match run scope.", node)
-
-    exp = datetime.fromisoformat(expires_at.replace("Z", "+00:00")) if expires_at else None
-    if not exp or datetime.now(timezone.utc) > exp:
-        _log_decision(conn, wave_id, "DENY", "token expired", "token_expiry", node)
-        raise WaveExecutionError("WAVE_TOKEN_INVALID", "Wave token expired.", node)
-
-    _log_decision(conn, wave_id, "ALLOW", "token valid", "token_validation", node)
+    try:
+        RUNTIME_TOKEN_SERVICE.validate_wave_token(
+            conn,
+            wave_id,
+            wave_token,
+            log_decision=_log_decision,
+            node=node,
+        )
+    except TokenServiceError as e:
+        raise WaveExecutionError(e.code, e.message, e.node)
 
 
 def _commit_output_write(
@@ -288,333 +771,19 @@ def _is_under(base: str, target: str) -> bool:
 
 
 def _resolve_output_path(context_refs_json: str | None) -> str | None:
-    if not context_refs_json:
-        return None
-    try:
-        refs = json.loads(context_refs_json)
-    except Exception:
-        return None
-    return (
-        refs.get("output_report_path")
-        or refs.get("output_digest_path")
-        or refs.get("output_brief_path")
-        or refs.get("output_path")
-    )
+    return RUNTIME_WAVE_LIFECYCLE_STORE.resolve_output_path(context_refs_json)
 
 
 def _normalize_repo_relative(path_text: str) -> str:
     return str(Path(path_text).as_posix().lstrip("./"))
 
 
-def _set_json_path(obj: dict[str, Any], dotted_path: str, value: Any) -> tuple[Any, Any]:
-    parts = dotted_path.split(".")
-    cur: Any = obj
-    for key in parts[:-1]:
-        if not isinstance(cur, dict):
-            raise ValueError(f"json_path '{dotted_path}' is not object-traversable")
-        if key not in cur or not isinstance(cur[key], dict):
-            cur[key] = {}
-        cur = cur[key]
-    if not isinstance(cur, dict):
-        raise ValueError(f"json_path '{dotted_path}' is not object-traversable")
-    last = parts[-1]
-    before = cur.get(last)
-    cur[last] = value
-    return before, value
-
-
-def _execute_production_config_wave(
-    conn: sqlite3.Connection,
-    wave_id: str,
-    workspace_dir: str,
-    target_path: str,
-) -> dict[str, Any]:
-    target = Path(target_path)
-    if not target.exists():
-        raise WaveExecutionError("BAD_CONTEXT", "target_path does not exist", "production_config.bootstrap")
-    config_text = target.read_text(encoding="utf-8")
-    workspace_snapshot = Path(workspace_dir) / "prod_config.snapshot.json"
-    workspace_snapshot.parent.mkdir(parents=True, exist_ok=True)
-    workspace_snapshot.write_text(config_text, encoding="utf-8")
-    _log_decision(conn, wave_id, "ALLOW", "config snapshot captured", "config_snapshot", "production_config.bootstrap")
-    return {
-        "target_path": target_path,
-        "snapshot_path": str(workspace_snapshot),
-        "config_hash": _sha256_text(config_text),
-    }
-
-
-def _execute_sales_report(
-    conn: sqlite3.Connection,
-    wave_id: str,
-    wave_token: str,
-    workspace_dir: str,
-    input_csv_path: str,
-    output_report_path: str,
-    approved_by: str,
-) -> dict[str, Any]:
-    rows = []
-    with open(input_csv_path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            units = float(row.get("units", 0))
-            unit_price = float(row.get("unit_price_usd", 0))
-            revenue = units * unit_price
-            rows.append(
-                {
-                    "date": row.get("date", ""),
-                    "region": row.get("region", ""),
-                    "rep": row.get("rep", ""),
-                    "product": row.get("product", ""),
-                    "units": units,
-                    "unit_price_usd": unit_price,
-                    "revenue_usd": revenue,
-                }
-            )
-
-    total_units = sum(r["units"] for r in rows)
-    total_revenue = sum(r["revenue_usd"] for r in rows)
-
-    by_region = {}
-    for r in rows:
-        by_region.setdefault(r["region"], 0.0)
-        by_region[r["region"]] += r["revenue_usd"]
-
-    lines = [
-        "# Weekly Sales Report",
-        "",
-        f"Generated at: {datetime.now(timezone.utc).isoformat()}",
-        "",
-        "## Deterministic Metrics Summary",
-        f"- Total rows: {len(rows)}",
-        f"- Total units: {total_units:,.0f}",
-        f"- Total revenue (USD): ${total_revenue:,.2f}",
-        "",
-        "### Revenue by Region",
-    ]
-    for region in sorted(by_region.keys()):
-        lines.append(f"- {region}: ${by_region[region]:,.2f}")
-
-    _prompt = (
-        f"You are a CFO-level finance analyst writing for investors and operators.\n"
-        f"Build a detailed executive section with the exact markdown headings below:\n"
-        f"### Executive Readout\n"
-        f"### Key Drivers\n"
-        f"### Risks and Watchouts\n"
-        f"### Actions for Next 7 Days\n\n"
-        f"Requirements:\n"
-        f"- 180-260 words total.\n"
-        f"- Executive Readout must be 2-3 sentences and probabilistic in tone (use language like likely/may/could).\n"
-        f"- Use concrete numbers from the metrics.\n"
-        f"- Call out best and weakest region explicitly.\n"
-        f"- Include at least 3 bullet points under Actions.\n\n"
-        f"Data:\n"
-        f"Total rows: {len(rows)}\n"
-        f"Total units: {total_units:,.0f}\n"
-        f"Total revenue: ${total_revenue:,.2f}\n"
-        f"Revenue by region: {str(by_region)}\n"
-    )
-
-    try:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY is not set")
-        _client = anthropic.Anthropic(api_key=api_key)
-        _msg = _client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=700,
-            messages=[{"role": "user", "content": _prompt}]
-        )
-        _llm_summary = _msg.content[0].text.strip()
-    except Exception as e:
-        top_region = max(by_region, key=by_region.get) if by_region else "N/A"
-        weakest_region = min(by_region, key=by_region.get) if by_region else "N/A"
-        _llm_summary = (
-            "### Executive Readout\n"
-            f"This wave completed with deterministic analysis over {len(rows)} records, producing "
-            f"${total_revenue:,.2f} in total revenue and {total_units:,.0f} total units. "
-            "Given fallback mode, directional conclusions are likely reliable but lack narrative depth from live LLM synthesis.\n\n"
-            "### Key Drivers\n"
-            f"- Strongest region: {top_region}\n"
-            f"- Weakest region: {weakest_region}\n"
-            f"- Revenue concentration suggests {top_region} is carrying the largest share of performance.\n"
-            f"- Variance in regional mix indicates {weakest_region} is under-weighted relative to peers.\n"
-            "- Output integrity and policy checks passed for this run.\n\n"
-            "### Risks and Watchouts\n"
-            "- Narrative generation is currently in deterministic fallback mode (live LLM unavailable).\n"
-            "- Interpret directional trends as signal, not full forecasting, until a live summary validates intent.\n"
-            "- A single-week snapshot may mask volatility in smaller regions.\n\n"
-            "### Actions for Next 7 Days\n"
-            "- Validate regional pricing assumptions against recent pipeline movement.\n"
-            f"- Prioritize an uplift plan for {weakest_region} while protecting momentum in {top_region}.\n"
-            "- Review top three accounts by revenue contribution to isolate concentration risk.\n"
-            "- Run the next wave with live LLM enabled for expanded narrative context."
-        )
-
-    lines.extend(
-        [
-            "",
-            "## LLM Summary",
-            _llm_summary,
-            "",
-            "## Approval Metadata",
-            f"- approved_by: {approved_by}",
-            f"- approved_at: {datetime.now(timezone.utc).isoformat()}",
-            "- note: auto-approved (v1 default path)",
-            "",
-        ]
-    )
-
-    rendered = "\n".join(lines)
-    workspace_output = _commit_output_write(
-        conn=conn,
-        wave_id=wave_id,
-        wave_token=wave_token,
-        workspace_dir=workspace_dir,
-        final_output_path=output_report_path,
-        rendered_content=rendered,
-        node="sales_report.write",
-    )
-    return {
-        "workspace_output": workspace_output,
-        "input_hashes": {"input_csv_path": _sha256_file(input_csv_path)},
-    }
-
-
-def _execute_marketing_digest(
-    conn: sqlite3.Connection,
-    wave_id: str,
-    wave_token: str,
-    workspace_dir: str,
-    sources: list,
-    snapshot_dir: str,
-    output_digest_path: str,
-    run_id: str,
-    approved_by: str,
-) -> dict[str, Any]:
-    import urllib.request
-
-    # Deterministic: fetch sources and extract raw text
-    snapshots = []
-    workspace_snapshots = Path(workspace_dir) / "snapshots"
-    workspace_snapshots.mkdir(parents=True, exist_ok=True)
-    for url in sources:
-        try:
-            req = urllib.request.Request(url, headers={"User-Agent": "SurFit/1.0"})
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                raw = resp.read().decode("utf-8", errors="ignore")
-            # Store snapshot
-            safe_name = url.replace("https://", "").replace("/", "_")[:60]
-            snap_path = workspace_snapshots / f"{safe_name}.txt"
-            snap_path.write_text(raw[:5000], encoding="utf-8")
-            snapshots.append({"url": url, "content": raw[:3000]})
-        except Exception as e:
-            snapshots.append({"url": url, "content": f"[fetch failed: {e}]"})
-
-    combined = "\n\n".join(
-        f"Source: {s['url']}\n{s['content']}" for s in snapshots
-    )
-
-    # Probabilistic: Claude clusters themes and writes digest
-    _prompt = (
-        f"You are a senior market intelligence strategist preparing a next-day decision brief.\n"
-        f"Primary objective: determine what the team should watch, prioritize, and potentially publish tomorrow based on market signals.\n\n"
-        f"Return markdown with EXACT headings in this order:\n"
-        f"### Executive Summary\n"
-        f"### 3 Key Themes\n"
-        f"### 2 Proposed Content Angles\n"
-        f"### Forward-Looking Observation\n\n"
-        f"Requirements:\n"
-        f"- Executive Summary must be 2-3 sentences and probabilistic in tone (use likely/may/could).\n"
-        f"- Executive Summary must answer: what changed, why it matters, and what the team should do next.\n"
-        f"- 3 Key Themes: exactly 3 numbered items, each one sentence.\n"
-        f"- 2 Proposed Content Angles: exactly 2 items, each with a headline and one supporting sentence.\n"
-        f"- Content angles should be ranked by expected relevance for tomorrow's audience.\n"
-        f"- Forward-Looking Observation: 1 paragraph.\n"
-        f"- Use specific details from the source content.\n\n"
-        f"Content:\n{combined[:9000]}"
-    )
-    try:
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY is not set")
-        _client = anthropic.Anthropic(api_key=api_key)
-        _msg = _client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=900,
-            messages=[{"role": "user", "content": _prompt}]
-        )
-        digest_summary = _msg.content[0].text.strip()
-    except Exception as e:
-        digest_summary = (
-            "### Executive Summary\n"
-            "Market signals were collected successfully, and the team can likely use today’s narratives to prioritize tomorrow’s messaging focus. "
-            "In fallback mode, recommendations are directional but still useful for planning a near-term content posture.\n\n"
-            "### 3 Key Themes\n"
-            "1. AI tooling and platform consolidation continues to dominate coverage, implying buyer focus on reliability and governance.\n"
-            "2. Enterprise adoption narratives emphasize control, auditability, and operational safety rather than pure model capability.\n"
-            "3. Funding and partnership news suggests renewed interest in infrastructure vendors that enable compliant deployment.\n\n"
-            "### 2 Proposed Content Angles\n"
-            "1. \"Governed autonomy as the new default\" — Highlight how teams move from experimentation to enforceable runtime controls.\n"
-            "2. \"Execution certainty over model novelty\" — Argue that policy-bound execution is now the differentiator for enterprise adoption.\n\n"
-            "### Forward-Looking Observation\n"
-            "Expect buyers to ask for proof of control (not just performance) in upcoming cycles. Establishing a clear governance narrative now "
-            "will likely improve conversion as procurement and security teams increasingly influence agent deployments.\n"
-        )
-
-    lines = [
-        "# Marketing Digest",
-        "",
-        f"Generated at: {datetime.now(timezone.utc).isoformat()}",
-        f"Run ID: {run_id}",
-        f"Sources fetched: {len(sources)}",
-        "",
-        "## AI Digest",
-        digest_summary,
-        "",
-        "## Sources",
-    ]
-    for s in snapshots:
-        status = "ok" if not s["content"].startswith("[fetch failed") else "failed"
-        lines.append(f"- {s['url']} ({status})")
-
-    lines.extend([
-        "",
-        "## Approval Metadata",
-        f"- approved_by: {approved_by}",
-        f"- approved_at: {datetime.now(timezone.utc).isoformat()}",
-        "- note: auto-approved (v1 default path)",
-        "",
-    ])
-
-    rendered = "\n".join(lines)
-    workspace_output = _commit_output_write(
-        conn=conn,
-        wave_id=wave_id,
-        wave_token=wave_token,
-        workspace_dir=workspace_dir,
-        final_output_path=output_digest_path,
-        rendered_content=rendered,
-        node="market_intel.write",
-    )
-
-    snapshot_hashes = {}
-    for p in workspace_snapshots.glob("*.txt"):
-        h = _sha256_file(str(p))
-        if h:
-            snapshot_hashes[p.name] = h
-
-    return {
-        "workspace_output": workspace_output,
-        "snapshot_hashes": snapshot_hashes,
-        "snapshot_dir": str(workspace_snapshots),
-    }
-
 
 def _insert_wave_row(
     conn: sqlite3.Connection,
     wave_id: str,
     req: WaveRunRequest,
+    tenant_id: str,
     status: str,
     workspace_dir: str | None = None,
     wave_token_hash: str | None = None,
@@ -622,64 +791,83 @@ def _insert_wave_row(
     error_code: str | None = None,
     error_message: str | None = None,
     error_node: str | None = None,
+    policy_manifest_hash: str | None = None,
+    policy_manifest_version: str | None = None,
+    policy_manifest_json: str | None = None,
+    wave_mutation_token: str | None = None,
+    wave_mutation_token_hash: str | None = None,
+    wave_mutation_token_expires_at: str | None = None,
+    wave_mutation_token_payload_json: str | None = None,
 ) -> None:
-    now = _now_iso()
-    conn.execute(
-        """
-        INSERT INTO waves
-            (wave_id, agent_id, wave_template_id, policy_version, intent, context_refs_json, status,
-             error_code, error_message, error_node, workspace_dir, wave_token_hash, wave_token_expires_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            wave_id,
-            req.agent_id,
-            req.wave_template_id,
-            req.policy_version,
-            req.intent,
-            json.dumps(req.context_refs, sort_keys=True),
-            status,
-            error_code,
-            error_message,
-            error_node,
-            workspace_dir,
-            wave_token_hash,
-            wave_token_expires_at,
-            now,
-            now,
+    RUNTIME_WAVE_LIFECYCLE_STORE.insert_wave(
+        conn,
+        WaveInsertPayload(
+            wave_id=wave_id,
+            tenant_id=tenant_id,
+            agent_id=req.agent_id,
+            wave_template_id=req.wave_template_id,
+            policy_version=req.policy_version,
+            intent=req.intent,
+            context_refs=req.context_refs,
+            status=status,
+            workspace_dir=workspace_dir,
+            wave_token_hash=wave_token_hash,
+            wave_token_expires_at=wave_token_expires_at,
+            error_code=error_code,
+            error_message=error_message,
+            error_node=error_node,
+            policy_manifest_hash=policy_manifest_hash,
+            policy_manifest_version=policy_manifest_version,
+            policy_manifest_json=policy_manifest_json,
+            wave_mutation_token=wave_mutation_token,
+            wave_mutation_token_hash=wave_mutation_token_hash,
+            wave_mutation_token_expires_at=wave_mutation_token_expires_at,
+            wave_mutation_token_payload_json=wave_mutation_token_payload_json,
         ),
     )
 
 
-def _deny_and_record(
+def _record_prep_deny(
     conn: sqlite3.Connection,
     wave_id: str,
     req: WaveRunRequest,
-    code: str,
-    message: str,
-    node: str,
-    http_status: int,
-    rule: str,
-) -> JSONResponse:
+    deny: Any,
+    tenant_id: str = DEFAULT_TENANT_ID,
+    policy_manifest_hash: str | None = None,
+    policy_manifest_version: str | None = None,
+    policy_manifest_json: str | None = None,
+) -> dict[str, Any]:
+    code = str(getattr(deny, "code", "WAVE_EXECUTION_ERROR"))
+    message = str(getattr(deny, "message", "Wave execution failed."))
+    node = str(getattr(deny, "node", "run_wave"))
+    rule = str(getattr(deny, "rule", code))
+    if policy_manifest_hash is None or policy_manifest_version is None or policy_manifest_json is None:
+        snapshot = _load_policy_manifest_snapshot()
+        policy_manifest_hash = snapshot["manifest_hash"]
+        policy_manifest_version = snapshot["manifest_version"]
+        policy_manifest_json = snapshot["manifest_json"]
+
     _insert_wave_row(
         conn=conn,
         wave_id=wave_id,
         req=req,
+        tenant_id=tenant_id,
         status="failed",
         error_code=code,
         error_message=message,
         error_node=node,
+        policy_manifest_hash=policy_manifest_hash,
+        policy_manifest_version=policy_manifest_version,
+        policy_manifest_json=policy_manifest_json,
     )
     _log_decision(conn, wave_id, "DENY", message, rule, node)
     conn.commit()
-    return JSONResponse(
-        status_code=http_status,
-        content={
-            "wave_id": wave_id,
-            "status": "failed",
-            "error": {"code": code, "message": message, "node": node},
-        },
-    )
+    return {
+        "wave_id": wave_id,
+        "tenant_id": tenant_id,
+        "status": "failed",
+        "error": {"code": code, "message": message, "node": node},
+    }
 
 
 def _write_manifest(
@@ -690,326 +878,220 @@ def _write_manifest(
     output_path: str,
     extra: dict[str, Any],
 ) -> tuple[str, str]:
-    manifest = {
-        "wave_id": wave_id,
-        "agent_id": req.agent_id,
-        "wave_template_id": req.wave_template_id,
-        "policy_version": req.policy_version,
-        "intent": req.intent,
-        "context_refs": req.context_refs,
-        "output_path": output_path,
-        "timestamps": {"manifested_at": _now_iso()},
-        "evidence": extra,
-    }
-    manifest_text = json.dumps(manifest, sort_keys=True, indent=2)
-    manifest_hash = _sha256_text(manifest_text)
-    manifest_path = str(Path(workspace_dir) / "manifest.json")
-    Path(manifest_path).write_text(manifest_text, encoding="utf-8")
-    conn.execute(
-        "UPDATE waves SET manifest_hash = ?, manifest_path = ?, updated_at = ? WHERE wave_id = ?",
-        (manifest_hash, manifest_path, _now_iso(), wave_id),
+    return RUNTIME_WAVE_LIFECYCLE_STORE.write_manifest(
+        conn,
+        wave_id=wave_id,
+        workspace_dir=workspace_dir,
+        wave_template_id=req.wave_template_id,
+        policy_version=req.policy_version,
+        intent=req.intent,
+        context_refs=req.context_refs,
+        output_path=output_path,
+        evidence=extra,
+        agent_id=req.agent_id,
     )
-    _log_decision(conn, wave_id, "ALLOW", "manifest signed and stored", "manifest_sign", "manifest")
-    return manifest_hash, manifest_path
 
 
 @app.post("/api/waves/run")
-def run_wave(req: WaveRunRequest):
+def run_wave(req: WaveRunRequest, request: Request = None):
+    auth = _require_api_key(request)
+    if isinstance(auth, JSONResponse):
+        return auth
+    _, tenant_id = auth
+    if not _rate_limit_check(tenant_id, "wave_create", RATE_LIMIT_WAVES_PER_MIN):
+        conn = sqlite3.connect(DB_PATH)
+        ensure_wave_tables(conn)
+        try:
+            _log_api_event(
+                conn,
+                tenant_id=tenant_id,
+                event_type="rate_limit",
+                reason_code="RATE_LIMIT_EXCEEDED",
+                node="api.waves.run",
+                status="deny",
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return JSONResponse(
+            status_code=429,
+            content={
+                "reason_code": "RATE_LIMIT_EXCEEDED",
+                "message": "Tenant wave creation rate limit exceeded.",
+            },
+        )
     wave_id = str(uuid.uuid4())
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
     workspace_dir = str((RUNS_ROOT / wave_id).resolve())
-
-    if not req.agent_id:
-        resp = _deny_and_record(
-            conn,
-            wave_id,
-            req,
-            code="AGENT_ID_REQUIRED",
-            message="agent_id is required",
-            node="run_wave",
-            http_status=403,
-            rule="agent_id_present",
-        )
-        conn.close()
-        return resp
-
-    allowed_templates = AGENT_WAVE_ALLOWLIST.get(req.agent_id, set())
-    if req.wave_template_id not in allowed_templates:
-        resp = _deny_and_record(
-            conn,
-            wave_id,
-            req,
-            code="AGENT_NOT_AUTHORIZED",
-            message=f"agent_id '{req.agent_id}' is not authorized for wave_template_id '{req.wave_template_id}'",
-            node="run_wave",
-            http_status=403,
-            rule="agent_wave_allowlist",
-        )
-        conn.close()
-        return resp
-
-    _log_decision(conn, wave_id, "ALLOW", "agent-wave allowlist satisfied", "agent_wave_allowlist", "run_wave")
-
-    allowed_policies = TEMPLATE_POLICY_ALLOWLIST.get(req.wave_template_id, set())
-    if req.policy_version not in allowed_policies:
-        resp = _deny_and_record(
-            conn,
-            wave_id,
-            req,
-            code="POLICY_VERSION_INVALID",
-            message=f"policy_version '{req.policy_version}' is invalid for wave_template_id '{req.wave_template_id}'",
-            node="run_wave",
-            http_status=422,
-            rule="template_policy_allowlist",
-        )
-        conn.close()
-        return resp
-    _log_decision(conn, wave_id, "ALLOW", "policy version valid for template", "template_policy_allowlist", "run_wave")
-
-    # Route context extraction by wave template
-    if req.wave_template_id == "production_config_change_v1":
-        target_path = str(req.context_refs.get("target_path", ""))
-        output_path = target_path
-        input_path = "n/a"
-        snapshot_dir = None
-        sources = []
-        if not target_path:
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="BAD_CONTEXT",
-                message="Missing required context: target_path",
-                node="run_wave",
-                http_status=422,
-                rule="context_required_fields",
-            )
-            conn.close()
-            return resp
-        normalized = _normalize_repo_relative(target_path)
-        if normalized != _normalize_repo_relative(PROD_CONFIG_TARGET):
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="PATH_VIOLATION",
-                message="target_path is not allowlisted for production_config_agent",
-                node="run_wave",
-                http_status=422,
-                rule="target_path_allowlist",
-            )
-            conn.close()
-            return resp
-        _log_decision(conn, wave_id, "ALLOW", "target path allowlisted", "target_path_allowlist", "run_wave")
-    elif req.wave_template_id in MARKET_INTEL_TEMPLATES:
-        sources = req.context_refs.get("sources", [])
-        snapshot_dir = str(req.context_refs.get("snapshot_dir", "./data/marketing_snapshots"))
-        output_path = str(req.context_refs.get("output_digest_path", ""))
-        input_path = "n/a"
-
-        if not sources or not output_path:
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="BAD_CONTEXT",
-                message="Missing required context: sources and output_digest_path",
-                node="run_wave",
-                http_status=422,
-                rule="context_required_fields",
-            )
-            conn.close()
-            return resp
-
-        if not _is_under("./outputs", output_path):
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="PATH_VIOLATION",
-                message="output_digest_path must be under ./outputs/",
-                node="run_wave",
-                http_status=422,
-                rule="output_path_prefix",
-            )
-            conn.close()
-            return resp
-        _log_decision(conn, wave_id, "ALLOW", "output path within allowed prefix", "output_path_prefix", "run_wave")
-    else:
-        input_path = str(req.context_refs.get("input_csv_path", ""))
-        output_path = str(req.context_refs.get("output_report_path", ""))
-        snapshot_dir = None
-        sources = []
-
-        if not input_path or not output_path:
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="BAD_CONTEXT",
-                message="Missing required context paths",
-                node="run_wave",
-                http_status=422,
-                rule="context_required_fields",
-            )
-            conn.close()
-            return resp
-
-        if not _is_under("./data", input_path):
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="PATH_VIOLATION",
-                message="input_csv_path must be under ./data/",
-                node="run_wave",
-                http_status=422,
-                rule="input_path_prefix",
-            )
-            conn.close()
-            return resp
-        if not _is_under("./outputs", output_path):
-            resp = _deny_and_record(
-                conn,
-                wave_id,
-                req,
-                code="PATH_VIOLATION",
-                message="output_report_path must be under ./outputs/",
-                node="run_wave",
-                http_status=422,
-                rule="output_path_prefix",
-            )
-            conn.close()
-            return resp
-        _log_decision(conn, wave_id, "ALLOW", "input/output paths validated", "path_constraints", "run_wave")
-
-    token, token_hash, token_expires_at = _issue_wave_token(wave_id, req.agent_id)
-    Path(workspace_dir).mkdir(parents=True, exist_ok=True)
-    _insert_wave_row(
-        conn=conn,
-        wave_id=wave_id,
-        req=req,
-        status="running",
-        workspace_dir=workspace_dir,
-        wave_token_hash=token_hash,
-        wave_token_expires_at=token_expires_at,
-    )
-    _log_decision(conn, wave_id, "ALLOW", "wave token issued", "wave_token_issue", "run_wave")
-    conn.commit()
-
-    started = time.monotonic()
     try:
-        evidence: dict[str, Any] = {}
-        if req.wave_template_id == "sales_report_v1":
-            evidence = _execute_sales_report(
-                conn=conn,
+        result = RUNTIME_WAVE_APPLICATION_SERVICE.run_wave(
+            WaveRunApplicationRequest(
+                req=req,
+                tenant_id=tenant_id,
                 wave_id=wave_id,
-                wave_token=token,
-                workspace_dir=workspace_dir,
-                input_csv_path=input_path,
-                output_report_path=output_path,
-                approved_by=req.agent_id,
-            )
-        elif req.wave_template_id == "production_config_change_v1":
-            evidence = _execute_production_config_wave(
                 conn=conn,
-                wave_id=wave_id,
                 workspace_dir=workspace_dir,
-                target_path=output_path,
-            )
-        elif req.wave_template_id in MARKET_INTEL_TEMPLATES:
-            evidence = _execute_marketing_digest(
-                conn=conn,
-                wave_id=wave_id,
-                wave_token=token,
-                workspace_dir=workspace_dir,
-                sources=sources,
-                snapshot_dir=snapshot_dir,
-                output_digest_path=output_path,
-                run_id=wave_id,
-                approved_by=req.agent_id,
-            )
-        else:
-            raise WaveExecutionError("WAVE_TEMPLATE_INVALID", "Unsupported wave template.", "run_wave")
-
-        elapsed = time.monotonic() - started
-        if elapsed > MAX_RUNTIME_SECONDS:
-            raise TimeoutError(f"Wave exceeded max runtime of {MAX_RUNTIME_SECONDS}s")
-
-        output_hash = _sha256_file(output_path)
-        evidence["output_hash"] = output_hash
-        evidence["workspace_dir"] = workspace_dir
-        _write_manifest(conn, wave_id, workspace_dir, req, output_path, evidence)
-
-        conn.execute(
-            """
-            UPDATE waves
-            SET status = 'complete',
-                error_code = NULL,
-                error_message = NULL,
-                error_node = NULL,
-                updated_at = ?
-            WHERE wave_id = ?
-            """,
-            (_now_iso(), wave_id),
+                market_intel_templates=MARKET_INTEL_TEMPLATES,
+                prod_config_target=PROD_CONFIG_TARGET,
+                max_runtime_seconds=MAX_RUNTIME_SECONDS,
+            ),
+            WaveRunApplicationDeps(
+                orchestrator=RUNTIME_WAVE_ORCHESTRATOR,
+                build_prep_deps=lambda _conn: WaveRunPreparationDeps(
+                    load_policy_snapshot=_load_policy_manifest_snapshot,
+                    log_decision=lambda _wave_id, _decision, _reason, _rule, _node, _tenant_id: _log_decision(
+                        _conn, _wave_id, _decision, _reason, _rule, _node, tenant_id=_tenant_id
+                    ),
+                    resolve_connector_type=resolve_connector_type,
+                    prepare_wave_context=prepare_wave_context,
+                    normalize_repo_relative=_normalize_repo_relative,
+                    is_under=_is_under,
+                    prepare_connector_context=prepare_connector_context,
+                    issue_wave_token=_issue_wave_token,
+                    build_mutation_scope=_build_mutation_scope,
+                    mint_wave_mutation_token=_mint_wave_mutation_token,
+                    insert_wave_row=lambda **kwargs: _insert_wave_row(conn=_conn, **kwargs),
+                    mkdir=lambda path: Path(path).mkdir(parents=True, exist_ok=True),
+                    commit=_conn.commit,
+                ),
+                build_handler_deps=lambda _conn: DemoHandlerDeps(
+                    project_root=PROJECT_ROOT,
+                    ocean_proxy_http=lambda proxy_req: _ocean_proxy_http_core(_conn, proxy_req),
+                    commit_output_write=lambda **kwargs: _commit_output_write(conn=_conn, **kwargs),
+                    log_decision=lambda _wave_id, _decision, _reason, _rule, _node: _log_decision(
+                        _conn, _wave_id, _decision, _reason, _rule, _node
+                    ),
+                    dispatch_connector_action=lambda **kwargs: dispatch_connector_action(
+                        **kwargs,
+                        proxy_executor=lambda proxy_req: _ocean_proxy_http_core(_conn, proxy_req),
+                    ),
+                    sha256_text=_sha256_text,
+                    sha256_file=_sha256_file,
+                    anthropic_module=anthropic,
+                ),
+                dispatch_template_handler=dispatch_template_handler,
+                write_manifest=lambda _conn, _wave_id, _workspace_dir, _req, _output_path, _evidence: _write_manifest(
+                    _conn, _wave_id, _workspace_dir, _req, _output_path, _evidence
+                ),
+                update_wave_status=lambda _conn, _wave_id, _status, _error_code, _error_message, _error_node: RUNTIME_WAVE_LIFECYCLE_STORE.update_wave_status(
+                    _conn,
+                    wave_id=_wave_id,
+                    status=_status,
+                    error_code=_error_code,
+                    error_message=_error_message,
+                    error_node=_error_node,
+                ),
+                log_decision=lambda _conn, _wave_id, _decision, _reason, _rule, _node: _log_decision(
+                    _conn, _wave_id, _decision, _reason, _rule, _node
+                ),
+                sha256_file=_sha256_file,
+                record_prep_deny=lambda _conn, _wave_id, _req, _deny, _tenant_id, _snapshot: _record_prep_deny(
+                    conn=_conn,
+                    wave_id=_wave_id,
+                    req=_req,
+                    deny=_deny,
+                    tenant_id=_tenant_id,
+                    policy_manifest_hash=_snapshot["manifest_hash"],
+                    policy_manifest_version=_snapshot["manifest_version"],
+                    policy_manifest_json=_snapshot["manifest_json"],
+                ),
+                load_policy_snapshot=_load_policy_manifest_snapshot,
+                monotonic=time.monotonic,
+                wave_execution_error_type=WaveExecutionError,
+            ),
         )
-        conn.commit()
+        if result.http_status is not None and result.http_status != 200:
+            return JSONResponse(status_code=result.http_status, content=result.payload)
+        return result.payload
+    finally:
         conn.close()
-        return {"wave_id": wave_id, "status": "running", "wave_token": token}
 
-    except Exception as e:
-        if isinstance(e, WaveExecutionError):
-            err_code = e.code
-            err_node = e.node
-            err_message = str(e)
-        elif isinstance(e, TimeoutError):
-            err_code = "WAVE_TIMEOUT"
-            err_node = "run_wave"
-            err_message = str(e)
-        else:
-            err_code = "WAVE_EXECUTION_ERROR"
-            err_node = "run_wave"
-            err_message = str(e)
-        _log_decision(conn, wave_id, "DENY", err_message, err_code, err_node)
-        conn.execute(
-            """
-            UPDATE waves
-            SET status = 'failed',
-                error_code = ?,
-                error_message = ?,
-                error_node = ?,
-                updated_at = ?
-            WHERE wave_id = ?
-            """,
-            (err_code, err_message, err_node, _now_iso(), wave_id),
+
+@app.post("/api/runtime/execution-gateway/evaluate")
+def evaluate_runtime_execution(req: RuntimeGatewayRequest):
+    try:
+        out = RUNTIME_WAVE_ORCHESTRATOR.orchestrate_runtime_gateway(
+            RuntimeGatewayOrchestratorRequest(
+                wave_id=req.wave_id,
+                wave_type=req.wave_type,
+                system=req.system,
+                action=req.action,
+                risk_level=req.risk_level,
+                approval_required=req.approval_required,
+                required_execution_sequence=list(req.required_execution_sequence),
+                approval_rules=dict(req.approval_rules),
+                execution_timeout=req.execution_timeout,
+                trigger_type=req.trigger_type,
+                context=dict(req.context),
+                agent_id=req.agent_id,
+                tenant_id=req.tenant_id,
+                orchestrator_id=req.orchestrator_id,
+                token_scope=list(req.token_scope),
+                pinned_policy_manifest=list(req.pinned_policy_manifest),
+                runtime_rules=list(req.runtime_rules),
+                policy_manifest_hash=req.policy_manifest_hash,
+                policy_reference=req.policy_reference,
+                approval_linkage=req.approval_linkage,
+                execution_path_evidence=req.execution_path_evidence,
+            ),
+            wave_service=RUNTIME_WAVE_SERVICE,
+            artifact_service_factory=lambda root: ArtifactService(FileArtifactStore(root)),
+            gateway_factory=lambda artifact_service: ExecutionGateway(
+                policy_engine=RUNTIME_POLICY_ENGINE,
+                token_validation=RUNTIME_TOKEN_VALIDATION,
+                artifact_service=artifact_service,
+            ),
         )
-        conn.commit()
-        conn.close()
-        return {
-            "wave_id": wave_id,
-            "status": "failed",
-            "error": {
-                "code": err_code,
-                "message": err_message,
-                "node": err_node,
-            },
-        }
+    except ValueError as e:
+        return JSONResponse(
+            status_code=422,
+            content={"error": {"code": "INVALID_WAVE_SCHEMA", "message": str(e)}},
+        )
+    return out.payload
+
+
+@app.get("/api/runtime/artifacts/{artifact_id}")
+def get_runtime_artifact(artifact_id: str):
+    artifact = RUNTIME_ARTIFACT_RETRIEVAL.get(artifact_id)
+    if artifact is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"code": "ARTIFACT_NOT_FOUND", "message": "No artifact found for artifact_id."}},
+        )
+    return {
+        "artifact_id": artifact.get("artifact_id"),
+        "schema_version": artifact.get("schema_version"),
+        "tenant_id": artifact.get("tenant_id"),
+        "wave_id": artifact.get("wave_id"),
+        "system": artifact.get("system"),
+        "action": artifact.get("action"),
+        "decision": artifact.get("decision"),
+        "reason_code": artifact.get("reason_code"),
+        "timestamp": artifact.get("timestamp"),
+        "timestamps": artifact.get("timestamps"),
+        "policy_reference": artifact.get("policy_reference"),
+        "policy_manifest_hash": artifact.get("policy_manifest_hash"),
+        "approval_linkage": artifact.get("approval_linkage"),
+        "execution_path_evidence": artifact.get("execution_path_evidence"),
+        "artifact_path": artifact.get("_artifact_path"),
+    }
+
+
+@app.get("/api/runtime/artifacts")
+def list_runtime_artifacts(tenant_id: str | None = None, limit: int = 25):
+    return {
+        "tenant_id": tenant_id,
+        "count": max(0, min(int(limit), 200)),
+        "artifacts": RUNTIME_ARTIFACT_RETRIEVAL.list_recent(tenant_id=tenant_id, limit=max(1, min(int(limit), 200))),
+    }
 
 
 @app.get("/api/waves/{wave_id}/status")
 def wave_status(wave_id: str):
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
-
-    wave = conn.execute(
-        """
-        SELECT wave_id, status, error_code, error_message, error_node, context_refs_json
-        FROM waves
-        WHERE wave_id = ?
-        """,
-        (wave_id,),
-    ).fetchone()
+    wave = RUNTIME_WAVE_LIFECYCLE_STORE.fetch_wave_status_row(conn, wave_id)
 
     conn.close()
 
@@ -1032,7 +1114,11 @@ def wave_status(wave_id: str):
         "wave_id": wave[0],
         "status": wave[1],
         "approval_request_id": None,
-        "summary": {"output_path": output_path},
+        "summary": {
+            "output_path": output_path,
+            "wave_mutation_token_expires_at": wave[6],
+            "policy_manifest_hash_prefix": (wave[7] or "")[:12] if wave[7] else None,
+        },
     }
 
     if wave[1] == "failed":
@@ -1047,26 +1133,12 @@ def wave_status(wave_id: str):
 
 @app.post("/api/approvals/{approval_request_id}")
 def approve_wave(approval_request_id: str, req: ApprovalRequest):
-    now = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
-
-    approval = conn.execute(
-        """
-        SELECT wave_id
-        FROM approval_requests
-        WHERE approval_request_id = ?
-        """,
-        (approval_request_id,),
-    ).fetchone()
-
-    if not approval:
+    wave_id = RUNTIME_WAVE_LIFECYCLE_STORE.fetch_approval_wave_id(conn, approval_request_id)
+    if not wave_id:
         wave_id_prefix = approval_request_id.replace("apr_", "")
-        matches = conn.execute(
-            "SELECT wave_id FROM waves WHERE wave_id LIKE ? ORDER BY created_at DESC",
-            (f"{wave_id_prefix}%",),
-        ).fetchall()
-
+        matches = RUNTIME_WAVE_LIFECYCLE_STORE.find_wave_ids_by_prefix(conn, wave_id_prefix)
         if len(matches) == 0:
             conn.close()
             return {
@@ -1092,41 +1164,23 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
                 },
             }
 
-        wave_id = matches[0][0]
-        conn.execute(
-            """
-            INSERT INTO approval_requests
-                (approval_request_id, wave_id, target_write_path, proposed_write_hash, approved_by, approved_at, note, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                approval_request_id,
-                wave_id,
-                "./outputs/report.md",
-                "demo_proposed_write_hash_placeholder",
-                req.approved_by,
-                now,
-                req.note,
-                "approved",
-                now,
-                now,
-            ),
+        wave_id = matches[0]
+        RUNTIME_WAVE_LIFECYCLE_STORE.create_approval_record(
+            conn,
+            approval_request_id=approval_request_id,
+            wave_id=wave_id,
+            approved_by=req.approved_by,
+            note=req.note,
         )
     else:
-        wave_id = approval[0]
-        conn.execute(
-            """
-            UPDATE approval_requests
-            SET approved_by = ?, approved_at = ?, note = ?, status = 'approved', updated_at = ?
-            WHERE approval_request_id = ?
-            """,
-            (req.approved_by, now, req.note, now, approval_request_id),
+        RUNTIME_WAVE_LIFECYCLE_STORE.update_approval_record(
+            conn,
+            approval_request_id=approval_request_id,
+            approved_by=req.approved_by,
+            note=req.note,
         )
 
-    conn.execute(
-        "UPDATE waves SET status = CASE WHEN status = 'running' THEN 'complete' ELSE status END, updated_at = ? WHERE wave_id = ?",
-        (now, wave_id),
-    )
+    RUNTIME_WAVE_LIFECYCLE_STORE.mark_wave_complete_if_running(conn, wave_id)
 
     conn.commit()
     conn.close()
@@ -1140,138 +1194,265 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
     }
 
 
+def _ocean_proxy_http_core(
+    conn: sqlite3.Connection, req: dict[str, Any], api_tenant_id: str | None = None
+) -> tuple[int, dict[str, Any]]:
+    return RUNTIME_MUTATION_BOUNDARY.proxy_http(
+        conn,
+        req,
+        log_decision=_log_decision,
+        api_tenant_id=api_tenant_id,
+    )
+
+
+@app.post("/ocean/proxy/http")
+def ocean_proxy_http(req: OceanProxyHttpRequest, request: Request = None):
+    auth = _require_api_key(request)
+    if isinstance(auth, JSONResponse):
+        return auth
+    _, tenant_id = auth
+    if not _rate_limit_check(tenant_id, "proxy_request", RATE_LIMIT_PROXY_PER_MIN):
+        conn = sqlite3.connect(DB_PATH)
+        ensure_wave_tables(conn)
+        try:
+            _log_api_event(
+                conn,
+                tenant_id=tenant_id,
+                event_type="rate_limit",
+                reason_code="RATE_LIMIT_EXCEEDED",
+                node="ocean.proxy.http",
+                status="deny",
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        return JSONResponse(
+            status_code=429,
+            content={"reason_code": "RATE_LIMIT_EXCEEDED", "message": "Tenant proxy rate limit exceeded."},
+        )
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        status_code, payload = _ocean_proxy_http_core(
+            conn,
+            {
+                "method": req.method,
+                "url": req.url,
+                "headers": req.headers,
+                "json_body": req.json_body,
+                "body": req.body,
+                "wave_mutation_token": req.wave_mutation_token,
+                "governance_context": req.governance_context,
+            },
+            api_tenant_id=tenant_id,
+        )
+        return JSONResponse(status_code=status_code, content=payload)
+    finally:
+        conn.close()
+
+
 @app.post("/ocean/mutate_config")
 def ocean_mutate_config(req: ConfigMutateRequest):
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
-
-    def reject(reason_code: str, message: str, wave_id: str | None, policy_version: str | None, prev_hash: str | None):
-        if wave_id:
-            _log_decision(conn, wave_id, "DENY", message, reason_code, "ocean.mutate_config")
-            conn.commit()
-        event_payload = {
-            "status": "REJECTED",
-            "reason_code": reason_code,
-            "agent_name": req.agent_name,
-            "target_path": req.target_path,
-            "policy_version": req.policy_version,
-            "wave_id": wave_id,
-            "timestamp": _now_iso(),
-        }
-        return {
-            "status": "REJECTED",
-            "reason_code": reason_code,
-            "message": message,
-            "audit": {
-                "wave_id": wave_id,
-                "policy_version": policy_version,
-                "hash": _sha256_text(json.dumps(event_payload, sort_keys=True)),
-                "prev_hash": prev_hash,
+    try:
+        return ocean_mutate_config_core(
+            conn=conn,
+            req={
+                "wave_id": req.wave_id,
+                "wave_token": req.wave_token,
+                "agent_name": req.agent_name,
+                "policy_version": req.policy_version,
+                "target_path": req.target_path,
+                "mutations": [
+                    {"json_path": m.json_path, "value": m.value}
+                    for m in req.mutations
+                ],
+                "reason": req.reason,
             },
-            "diff_preview": [],
-        }
-
-    wave_id = req.wave_id
-    if not wave_id or not req.wave_token:
-        out = reject("UNAUTHORIZED_AGENT", "Missing wave_id or wave_token.", wave_id, None, None)
+            project_root=PROJECT_ROOT,
+            prod_config_target=PROD_CONFIG_TARGET,
+            prod_config_allowed_keys=PROD_CONFIG_ALLOWED_KEYS,
+            log_decision=_log_decision,
+            now_iso=_now_iso,
+            sha256_text=_sha256_text,
+            token_secret=SURFIT_TOKEN_SECRET,
+        )
+    finally:
         conn.close()
-        return out
 
-    wave = conn.execute(
+
+@app.get("/api/waves/{wave_id}/policy_manifest")
+def get_policy_manifest(wave_id: str, request: Request = None):
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    auth = _authorize_wave_tenant(conn, wave_id, request)
+    if isinstance(auth, JSONResponse):
+        conn.close()
+        return auth
+    row = conn.execute(
         """
-        SELECT wave_id, agent_id, policy_version, manifest_hash
+        SELECT policy_manifest_hash, policy_manifest_version, policy_manifest_json
         FROM waves
         WHERE wave_id = ?
         """,
         (wave_id,),
     ).fetchone()
-    if not wave:
-        out = reject("UNAUTHORIZED_AGENT", "Wave not found.", wave_id, None, None)
-        conn.close()
-        return out
+    conn.close()
 
-    wave_agent = wave[1]
-    wave_policy = wave[2]
-    prev_hash = wave[3]
+    if not row:
+        return {"wave_id": wave_id, "status": "not_found"}
 
+    policy_manifest_hash, policy_manifest_version, policy_manifest_json = row
+    manifest_payload = None
     try:
-        _validate_wave_token(conn, wave_id, req.wave_token, node="ocean.mutate_config.token")
+        manifest_payload = json.loads(policy_manifest_json) if policy_manifest_json else None
     except Exception:
-        out = reject("UNAUTHORIZED_AGENT", "Invalid wave token.", wave_id, wave_policy, prev_hash)
+        manifest_payload = None
+
+    return {
+        "wave_id": wave_id,
+        "policy_manifest_hash": policy_manifest_hash,
+        "policy_manifest_version": policy_manifest_version,
+        "policy_manifest": manifest_payload,
+    }
+
+
+@app.get("/api/waves/{wave_id}/token")
+def get_wave_mutation_token(wave_id: str, request: Request = None):
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    auth = _authorize_wave_tenant(conn, wave_id, request)
+    if isinstance(auth, JSONResponse):
         conn.close()
-        return out
+        return auth
+    row = conn.execute(
+        """
+        SELECT wave_mutation_token, wave_mutation_token_expires_at, policy_manifest_hash, tenant_id
+        FROM waves
+        WHERE wave_id = ?
+        """,
+        (wave_id,),
+    ).fetchone()
+    conn.close()
 
-    if req.agent_name != "production_config_agent" or req.agent_name != wave_agent:
-        out = reject("UNAUTHORIZED_AGENT", "Agent is not authorized for this wave.", wave_id, wave_policy, prev_hash)
+    if not row:
+        return JSONResponse(status_code=404, content={"wave_id": wave_id, "status": "not_found"})
+
+    return {
+        "wave_id": wave_id,
+        "wave_mutation_token": row[0],
+        "wave_mutation_token_expires_at": row[1],
+        "policy_manifest_hash_prefix": (row[2] or "")[:12] if row[2] else None,
+        "tenant_id": row[3],
+    }
+
+
+@app.get("/api/waves/{wave_id}/export")
+def export_wave_bundle(wave_id: str, request: Request = None):
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    auth = _authorize_wave_tenant(conn, wave_id, request)
+    if isinstance(auth, JSONResponse):
         conn.close()
-        return out
-    _log_decision(conn, wave_id, "ALLOW", "agent authorized", "agent_identity", "ocean.mutate_config")
-
-    if req.policy_version != wave_policy:
-        out = reject("POLICY_MISMATCH", "policy_version does not match wave policy.", wave_id, wave_policy, prev_hash)
+        return auth
+    _, tenant_id = auth
+    if not _rate_limit_check(tenant_id, "export_bundle", RATE_LIMIT_EXPORT_PER_MIN):
+        _log_api_event(
+            conn,
+            tenant_id=tenant_id,
+            wave_id=wave_id,
+            event_type="rate_limit",
+            reason_code="RATE_LIMIT_EXCEEDED",
+            node="api.waves.export",
+            status="deny",
+        )
+        conn.commit()
         conn.close()
-        return out
-    _log_decision(conn, wave_id, "ALLOW", "policy version matches wave", "policy_version_match", "ocean.mutate_config")
+        return JSONResponse(
+            status_code=429,
+            content={"reason_code": "RATE_LIMIT_EXCEEDED", "message": "Tenant export rate limit exceeded."},
+        )
+    wave = conn.execute(
+        """
+        SELECT wave_id, tenant_id, agent_id, wave_template_id, policy_version, intent, status, created_at, updated_at,
+               manifest_hash, manifest_path, policy_manifest_hash, policy_manifest_version, policy_manifest_json
+        FROM waves
+        WHERE wave_id = ?
+        """,
+        (wave_id,),
+    ).fetchone()
 
-    normalized_target = _normalize_repo_relative(req.target_path)
-    if normalized_target != _normalize_repo_relative(PROD_CONFIG_TARGET):
-        out = reject("PATH_VIOLATION", "target_path is not allowlisted.", wave_id, wave_policy, prev_hash)
+    if not wave:
+        _log_api_event(conn, tenant_id=tenant_id, wave_id=wave_id, event_type="export_bundle", status="not_found")
+        conn.commit()
         conn.close()
-        return out
-    _log_decision(conn, wave_id, "ALLOW", "target path allowlisted", "target_path_allowlist", "ocean.mutate_config")
+        return JSONResponse(status_code=404, content={"wave_id": wave_id, "status": "not_found"})
 
-    bad_keys = [m.json_path for m in req.mutations if m.json_path not in PROD_CONFIG_ALLOWED_KEYS]
-    if bad_keys:
-        out = reject("KEY_VIOLATION", f"mutation key(s) not allowlisted: {', '.join(bad_keys)}", wave_id, wave_policy, prev_hash)
-        conn.close()
-        return out
-    _log_decision(conn, wave_id, "ALLOW", "mutation keys allowlisted", "mutation_keys_allowlist", "ocean.mutate_config")
+    decisions = _fetch_decisions(conn, wave_id)
+    decision_chain = _verify_decision_chain(conn, wave_id)
+    policy_manifest_check = _verify_policy_manifest(wave[11], wave[13])
+    policy_manifest_payload = policy_manifest_check.get("policy_manifest_payload")
 
-    target_file = PROJECT_ROOT / normalized_target
-    if not target_file.exists():
-        out = reject("PATH_VIOLATION", "target file does not exist.", wave_id, wave_policy, prev_hash)
-        conn.close()
-        return out
+    manifest_valid = False
+    recomputed_manifest_hash = None
+    execution_evidence = None
+    if wave[10] and Path(wave[10]).exists():
+        manifest_text = Path(wave[10]).read_text(encoding="utf-8")
+        recomputed_manifest_hash = _sha256_text(manifest_text)
+        manifest_valid = recomputed_manifest_hash == wave[9]
+        try:
+            manifest_payload = json.loads(manifest_text)
+            if isinstance(manifest_payload, dict):
+                maybe_evidence = manifest_payload.get("evidence")
+                if isinstance(maybe_evidence, dict):
+                    execution_evidence = maybe_evidence
+        except Exception:
+            execution_evidence = None
 
-    try:
-        config_obj = json.loads(target_file.read_text(encoding="utf-8"))
-    except Exception as e:
-        out = reject("PATH_VIOLATION", f"failed to parse target JSON: {e}", wave_id, wave_policy, prev_hash)
-        conn.close()
-        return out
+    integrity = {
+        "manifest_hash": {
+            "stored": wave[9],
+            "recomputed": recomputed_manifest_hash,
+            "valid": manifest_valid,
+            "manifest_path": wave[10],
+        },
+        "decision_chain": decision_chain,
+        "policy_manifest": {
+            "hash": wave[11],
+            "version": wave[12],
+            "recomputed_hash": policy_manifest_check.get("recomputed_policy_manifest_hash"),
+            "valid": bool(policy_manifest_check.get("valid")),
+            "reason": policy_manifest_check.get("reason"),
+        },
+    }
 
-    diff_preview: list[dict[str, Any]] = []
-    for m in req.mutations:
-        before, after = _set_json_path(config_obj, m.json_path, m.value)
-        diff_preview.append({"json_path": m.json_path, "before": before, "after": after})
-
-    target_file.write_text(json.dumps(config_obj, indent=2) + "\n", encoding="utf-8")
-    _log_decision(conn, wave_id, "ALLOW", "config mutation applied", "config_mutation_commit", "ocean.mutate_config")
-    conn.execute("UPDATE waves SET updated_at = ? WHERE wave_id = ?", (_now_iso(), wave_id))
+    _log_api_event(conn, tenant_id=tenant_id, wave_id=wave_id, event_type="export_bundle", status="success")
     conn.commit()
     conn.close()
 
-    event_payload = {
-        "status": "ALLOWED",
-        "reason_code": "OK",
-        "agent_name": req.agent_name,
-        "target_path": req.target_path,
-        "policy_version": req.policy_version,
-        "wave_id": wave_id,
-        "mutations": diff_preview,
-        "timestamp": _now_iso(),
-    }
     return {
-        "status": "ALLOWED",
-        "reason_code": "OK",
-        "message": "Config mutation accepted and applied.",
-        "audit": {
-            "wave_id": wave_id,
-            "policy_version": wave_policy,
-            "hash": _sha256_text(json.dumps(event_payload, sort_keys=True)),
-            "prev_hash": prev_hash,
+        "bundle_version": "surfit_wave_bundle_v1",
+        "wave": {
+            "wave_id": wave[0],
+            "tenant_id": wave[1],
+            "agent_id": wave[2],
+            "agent_name": wave[2],
+            "wave_template_id": wave[3],
+            "policy_version": wave[4],
+            "intent": wave[5],
+            "status": wave[6],
+            "created_at": wave[7],
+            "updated_at": wave[8],
         },
-        "diff_preview": diff_preview,
+        "policy_manifest": {
+            "hash": wave[11],
+            "version": wave[12],
+            "manifest": policy_manifest_payload,
+        },
+        "decision_chain": decisions,
+        "execution_evidence": execution_evidence,
+        "integrity": integrity,
     }
 
 
@@ -1283,7 +1464,7 @@ def export_audit(wave_id: str):
     wave = conn.execute(
         """
         SELECT wave_id, policy_version, status, agent_id, context_refs_json, error_code, error_message, error_node,
-               manifest_hash, manifest_path, workspace_dir
+               manifest_hash, manifest_path, workspace_dir, policy_manifest_hash, policy_manifest_version
         FROM waves
         WHERE wave_id = ?
         """,
@@ -1339,6 +1520,8 @@ def export_audit(wave_id: str):
         "workspace_dir": wave[10],
         "manifest_hash": wave[8],
         "manifest_path": wave[9],
+        "policy_manifest_hash": wave[11],
+        "policy_manifest_version": wave[12],
         "events": decisions,
         "llm_invocations": [
             {
@@ -1360,24 +1543,34 @@ def export_audit(wave_id: str):
 
 
 @app.get("/api/waves/{wave_id}/audit/verify")
-def verify_audit(wave_id: str):
+def verify_audit(wave_id: str, request: Request = None):
     conn = sqlite3.connect(DB_PATH)
     ensure_wave_tables(conn)
+    auth = _authorize_wave_tenant(conn, wave_id, request)
+    if isinstance(auth, JSONResponse):
+        conn.close()
+        return auth
+    _, tenant_id = auth
     row = conn.execute(
-        "SELECT manifest_hash, manifest_path, status FROM waves WHERE wave_id = ?",
+        "SELECT manifest_hash, manifest_path, status, policy_manifest_hash, policy_manifest_version, policy_manifest_json FROM waves WHERE wave_id = ?",
         (wave_id,),
     ).fetchone()
-    conn.close()
 
     if not row:
+        _log_api_event(conn, tenant_id=tenant_id, wave_id=wave_id, event_type="audit_verify", status="not_found")
+        conn.commit()
+        conn.close()
         return {
             "wave_id": wave_id,
             "integrity_status": "CORRUPTED",
             "details": "Wave not found.",
         }
 
-    stored_hash, manifest_path, status = row
+    stored_hash, manifest_path, status, policy_manifest_hash, policy_manifest_version, policy_manifest_json = row
     if not manifest_path or not Path(manifest_path).exists():
+        _log_api_event(conn, tenant_id=tenant_id, wave_id=wave_id, event_type="audit_verify", status="fail")
+        conn.commit()
+        conn.close()
         return {
             "wave_id": wave_id,
             "integrity_status": "CORRUPTED",
@@ -1386,8 +1579,24 @@ def verify_audit(wave_id: str):
 
     manifest_text = Path(manifest_path).read_text(encoding="utf-8")
     recomputed = _sha256_text(manifest_text)
-    ok = stored_hash == recomputed
-    return {
+    manifest_ok = stored_hash == recomputed
+
+    policy_manifest_ok = False
+    recomputed_policy_manifest_hash = None
+    if policy_manifest_hash and policy_manifest_json:
+        try:
+            parsed_policy_manifest = json.loads(policy_manifest_json)
+            canonical_policy_manifest = _canonicalize_policy_manifest(parsed_policy_manifest)
+            recomputed_policy_manifest_hash = _sha256_text(canonical_policy_manifest)
+            policy_manifest_ok = recomputed_policy_manifest_hash == policy_manifest_hash
+        except Exception:
+            policy_manifest_ok = False
+
+    decision_chain = _verify_decision_chain(conn, wave_id)
+    chain_ok = bool(decision_chain.get("valid"))
+    ok = manifest_ok and chain_ok and policy_manifest_ok
+
+    out = {
         "wave_id": wave_id,
         "integrity_status": "VALID" if ok and status == "complete" else "CORRUPTED",
         "details": {
@@ -1395,5 +1604,218 @@ def verify_audit(wave_id: str):
             "recomputed_manifest_hash": recomputed,
             "manifest_path": manifest_path,
             "status": status,
+            "manifest_valid": manifest_ok,
+            "policy_manifest_hash": policy_manifest_hash,
+            "policy_manifest_version": policy_manifest_version,
+            "recomputed_policy_manifest_hash": recomputed_policy_manifest_hash,
+            "policy_manifest_valid": policy_manifest_ok,
+            "decision_chain": decision_chain,
         },
     }
+    _log_api_event(conn, tenant_id=tenant_id, wave_id=wave_id, event_type="audit_verify", status="pass" if out["integrity_status"] == "VALID" else "fail")
+    conn.commit()
+    conn.close()
+    return out
+
+
+@app.get("/api/metrics/summary")
+def metrics_summary(
+    request: Request,
+    since_hours: int = 24,
+    from_ts: str | None = Query(default=None, alias="from"),
+    to_ts: str | None = Query(default=None, alias="to"),
+    top_n: int = 5,
+):
+    auth = _require_api_key(request)
+    if isinstance(auth, JSONResponse):
+        return auth
+    _, tenant_id = auth
+    start_iso, end_iso = _resolve_time_window(since_hours=since_hours, from_ts=from_ts, to_ts=to_ts)
+
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        total_waves = conn.execute(
+            "SELECT COUNT(*) FROM waves WHERE tenant_id = ? AND created_at BETWEEN ? AND ?",
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+        total_decisions = conn.execute(
+            "SELECT COUNT(*) FROM wave_decisions WHERE tenant_id = ? AND created_at BETWEEN ? AND ?",
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+        allow_count = conn.execute(
+            "SELECT COUNT(*) FROM wave_decisions WHERE tenant_id = ? AND decision = 'ALLOW' AND created_at BETWEEN ? AND ?",
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+        deny_count = conn.execute(
+            "SELECT COUNT(*) FROM wave_decisions WHERE tenant_id = ? AND decision = 'DENY' AND created_at BETWEEN ? AND ?",
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+
+        deny_rows = conn.execute(
+            """
+            SELECT rule, COUNT(*) AS n
+            FROM wave_decisions
+            WHERE tenant_id = ? AND decision = 'DENY' AND created_at BETWEEN ? AND ?
+            GROUP BY rule
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchall()
+        event_deny_rows = conn.execute(
+            """
+            SELECT reason_code, COUNT(*) AS n
+            FROM api_events
+            WHERE tenant_id = ? AND status = 'deny' AND created_at BETWEEN ? AND ?
+            GROUP BY reason_code
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchall()
+        deny_map: dict[str, int] = {}
+        for code, n in deny_rows:
+            k = str(code or "UNKNOWN")
+            deny_map[k] = deny_map.get(k, 0) + int(n or 0)
+        for code, n in event_deny_rows:
+            k = str(code or "UNKNOWN")
+            deny_map[k] = deny_map.get(k, 0) + int(n or 0)
+        deny_by_reason_code = [
+            {"reason_code": k, "count": v}
+            for k, v in sorted(deny_map.items(), key=lambda item: item[1], reverse=True)[: max(1, int(top_n))]
+        ]
+
+        proxy_calls_total = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM wave_decisions
+            WHERE tenant_id = ? AND node = 'ocean.proxy.http' AND created_at BETWEEN ? AND ?
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+        proxy_rate_limited = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM api_events
+            WHERE tenant_id = ? AND node = 'ocean.proxy.http' AND reason_code = 'RATE_LIMIT_EXCEEDED'
+              AND created_at BETWEEN ? AND ?
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+        proxy_calls_total = int(proxy_calls_total or 0) + int(proxy_rate_limited or 0)
+
+        audit_rows = conn.execute(
+            """
+            SELECT
+                SUM(CASE WHEN status = 'pass' THEN 1 ELSE 0 END) AS pass_count,
+                COUNT(*) AS total_count
+            FROM api_events
+            WHERE tenant_id = ? AND event_type = 'audit_verify' AND created_at BETWEEN ? AND ?
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()
+        pass_count = int(audit_rows[0] or 0)
+        audit_total = int(audit_rows[1] or 0)
+        audit_verify_pass_rate = (pass_count / audit_total) if audit_total else None
+
+        export_bundle_count = conn.execute(
+            """
+            SELECT COUNT(*)
+            FROM api_events
+            WHERE tenant_id = ? AND event_type = 'export_bundle' AND status = 'success' AND created_at BETWEEN ? AND ?
+            """,
+            (tenant_id, start_iso, end_iso),
+        ).fetchone()[0]
+    finally:
+        conn.close()
+
+    return {
+        "tenant_id": tenant_id,
+        "window": {"from": start_iso, "to": end_iso, "since_hours": since_hours},
+        "total_waves": total_waves,
+        "total_decisions": total_decisions,
+        "allow_count": allow_count,
+        "deny_count": deny_count,
+        "deny_by_reason_code": deny_by_reason_code,
+        "proxy_calls_total": proxy_calls_total,
+        "audit_verify_pass_rate": audit_verify_pass_rate,
+        "export_bundle_count": export_bundle_count,
+    }
+
+
+@app.get("/api/metrics/waves")
+def metrics_waves(
+    request: Request,
+    since_hours: int = 24,
+    from_ts: str | None = Query(default=None, alias="from"),
+    to_ts: str | None = Query(default=None, alias="to"),
+    limit: int = 25,
+):
+    auth = _require_api_key(request)
+    if isinstance(auth, JSONResponse):
+        return auth
+    _, tenant_id = auth
+    start_iso, end_iso = _resolve_time_window(since_hours=since_hours, from_ts=from_ts, to_ts=to_ts)
+
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        wave_rows = conn.execute(
+            """
+            SELECT wave_id, created_at, updated_at, status, policy_manifest_hash
+            FROM waves
+            WHERE tenant_id = ? AND created_at BETWEEN ? AND ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """,
+            (tenant_id, start_iso, end_iso, max(1, int(limit))),
+        ).fetchall()
+        waves_out: list[dict[str, Any]] = []
+        for wave_id, created_at, updated_at, status, policy_manifest_hash in wave_rows:
+            counts_row = conn.execute(
+                """
+                SELECT
+                    SUM(CASE WHEN decision = 'ALLOW' THEN 1 ELSE 0 END),
+                    SUM(CASE WHEN decision = 'DENY' THEN 1 ELSE 0 END)
+                FROM wave_decisions
+                WHERE tenant_id = ? AND wave_id = ?
+                """,
+                (tenant_id, wave_id),
+            ).fetchone()
+            allow_count = int((counts_row[0] if counts_row else 0) or 0)
+            deny_count = int((counts_row[1] if counts_row else 0) or 0)
+            deny_reasons = conn.execute(
+                """
+                SELECT rule, COUNT(*) AS n
+                FROM wave_decisions
+                WHERE tenant_id = ? AND wave_id = ? AND decision = 'DENY'
+                GROUP BY rule
+                ORDER BY n DESC
+                LIMIT 3
+                """,
+                (tenant_id, wave_id),
+            ).fetchall()
+            waves_out.append(
+                {
+                    "wave_id": wave_id,
+                    "created_at": created_at,
+                    "updated_at": updated_at,
+                    "status": status,
+                    "allow_count": allow_count,
+                    "deny_count": deny_count,
+                    "top_deny_reasons": [{"reason_code": r[0], "count": r[1]} for r in deny_reasons],
+                    "policy_manifest_hash_prefix": (policy_manifest_hash or "")[:12] if policy_manifest_hash else None,
+                }
+            )
+    finally:
+        conn.close()
+
+    return {
+        "tenant_id": tenant_id,
+        "window": {"from": start_iso, "to": end_iso, "since_hours": since_hours},
+        "waves": waves_out,
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+
+    host = os.environ.get("SURFIT_API_HOST", "127.0.0.1")
+    port = int(os.environ.get("SURFIT_API_PORT", "8010"))
+    uvicorn.run("api:app", host=host, port=port, reload=False)
