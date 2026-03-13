@@ -25,8 +25,16 @@ except ModuleNotFoundError:
     anthropic = _AnthropicStub()  # type: ignore[assignment]
 from pathlib import Path
 
-from surfit_core.ocean import mutate_config as ocean_mutate_config_core
-from connectors.adapter_registry import (
+try:
+    from surfit_core.ocean import mutate_config as ocean_mutate_config_core
+except ModuleNotFoundError:
+    def ocean_mutate_config_core(*args, **kwargs):
+        return {
+            "status": "REJECTED",
+            "reason_code": "MUTATION_CORE_UNAVAILABLE",
+            "message": "surfit_core.ocean is unavailable in this build.",
+        }
+from surfit.connectors.adapter_registry import (
     resolve_connector_type,
     prepare_connector_context,
     dispatch_connector_action,
