@@ -59,22 +59,47 @@ bash scripts/ops/install_postgres_backup_cron.sh
 Restore (basic):
 
 ```bash
-gunzip -c /root/backups/postgres/<file>.sql.gz | docker compose exec -T postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+gunzip -c /root/backups/postgres/<file>.sql.gz | docker-compose exec postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"
 ```
 
-## 5) Deploy helper
+## 5) Dashboard key expiry monitoring
+
+Run once:
+
+```bash
+cd /root/surfit
+bash scripts/ops/run_dashboard_key_expiry_check.sh
+```
+
+Install daily cron (08:00 UTC):
+
+```bash
+cd /root/surfit
+bash scripts/ops/install_dashboard_key_expiry_cron.sh
+```
+
+Log output path:
+
+- `/var/log/surfit/dashboard_key_expiry.log`
+
+SLA:
+
+- `WARNING`: rotate within 48 hours
+- `EXPIRED`: rotate immediately and reissue dashboard link
+
+## 6) Deploy helper
 
 ```bash
 cd /root/surfit
 bash deploy.sh
 ```
 
-## 6) Health checks
+## 7) Health checks
 
 - Liveness: `GET /healthz`
 - Readiness: `GET /readyz` (checks db, redis, policy manifest path)
 
-## 7) Remaining risks
+## 8) Remaining risks
 
 - Single-node deployment (no HA)
 - No centralized metrics/alerts yet
