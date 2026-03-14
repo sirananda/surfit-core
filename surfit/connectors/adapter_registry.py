@@ -42,9 +42,13 @@ def dispatch_connector_action(
     proxy_executor: Callable[[dict[str, Any]], tuple[int, dict[str, Any]]],
 ) -> dict[str, Any]:
     if connector_type != "github":
-        raise ConnectorValidationError("WAVE_TEMPLATE_INVALID", "Unsupported connector template.", "connector_supported")
+        return {
+            "allowed": False,
+            "reason_code": "CONNECTOR_NOT_SUPPORTED",
+            "message": f"Connector '{connector_type}' is not supported.",
+            "summary": {},
+        }
 
-    # Lazy import prevents API startup crashes when adapter packages are not present.
     try:
         github_service = __import__(
             "adapters.github_connector.github_demo_service",
@@ -113,7 +117,7 @@ class ConnectorRegistry:
 class LegacyGitHubConnector(BaseConnector):
     """
     Bridge adapter so existing GitHub demo connector keeps working while
-    product runtime is connector-agnostic.
+    product runtime remains connector-agnostic.
     """
 
     def __init__(self, proxy_executor: Callable[[dict[str, Any]], tuple[int, dict[str, Any]]]):
@@ -122,32 +126,14 @@ class LegacyGitHubConnector(BaseConnector):
     @property
     def connector_type(self) -> str:
         return "github"
-    return None
 
+    @property
+    def system_name(self) -> str:
+        return "github"
 
-def prepare_connector_context(wave_template_id: str, context_refs: dict[str, Any]) -> dict[str, Any]:
-    _ = wave_template_id
-    return dict(context_refs or {})
-
-
-def dispatch_connector_action(
-    *,
-    connector_type: str,
-    wave_id: str,
-    wave_mutation_token: str,
-    context: dict[str, Any],
-    approved_by: str,
-    policy_manifest_hash: str,
-    policy_version: str,
-    proxy_executor: Callable[[dict[str, Any]], tuple[int, dict[str, Any]]],
-) -> dict[str, Any]:
-    if connector_type != "github":
-        return {
-            "allowed": False,
-            "reason_code": "CONNECTOR_NOT_SUPPORTED",
-            "message": f"Connector '{connector_type}' is not supported.",
-            "summary": {},
-        }
+    @property
+    def supported_actions(self) -> set[str]:
+        return {"read", "open_pull_request", "merge_pull_request"}
 
     def prepare_context(self, context_refs: dict[str, Any]) -> dict[str, Any]:
         return dict(context_refs or {})
@@ -180,4 +166,11 @@ def dispatch_connector_action(
         )
 
 
-__all__ = ["ConnectorRegistry", "LegacyGitHubConnector", "ConnectorValidationError"]
+__all__ = [
+    "ConnectorRegistry",
+    "LegacyGitHubConnector",
+    "ConnectorValidationError",
+    "resolve_connector_type",
+    "prepare_connector_context",
+    "dispatch_connector_action",
+]
