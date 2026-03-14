@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Request, Query
+from fastapi import FastAPI, Request, Query, Header, HTTPException
 from pydantic import BaseModel, Field
 from typing import Any
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 import uuid
 import sqlite3
 import json
@@ -50,6 +51,8 @@ from surfit.runtime.token_service import TokenService, TokenServiceError
 from surfit.runtime.wave_lifecycle_store import WaveInsertPayload, WaveLifecycleStore
 from surfit.runtime.mutation_boundary import MutationBoundaryConfig, MutationBoundaryService
 from surfit.runtime.wave_service import WaveService
+from surfit.runtime.wave_read_service import WaveReadService
+from surfit.runtime.tenant_dashboard_access import TenantDashboardAccessService
 from surfit.runtime.wave_orchestrator import (
     RuntimeGatewayOrchestratorRequest,
     WaveOrchestrator,
@@ -79,6 +82,11 @@ RUNTIME_TENANT_CONTEXT = TenantContextResolver(
     default_tenant_id=os.environ.get("SURFIT_DEFAULT_TENANT_ID", "tenant_demo"),
 )
 RUNTIME_ARTIFACT_RETRIEVAL = ArtifactRetrievalService(RUNTIME_ARTIFACTS_ROOT)
+RUNTIME_WAVE_READ_SERVICE = WaveReadService(RUNTIME_ARTIFACT_RETRIEVAL)
+TENANT_DASHBOARD_CONFIG_PATH = Path(
+    os.environ.get("SURFIT_TENANT_DASHBOARD_CONFIG_PATH", str(PROJECT_ROOT / "tenants" / "dashboard_access.json"))
+)
+TENANT_DASHBOARD_ACCESS_SERVICE = TenantDashboardAccessService(TENANT_DASHBOARD_CONFIG_PATH)
 RUNTIME_TOKEN_VALIDATION = TokenValidationLayer()
 RUNTIME_POLICY_ENGINE = DefaultPolicyEngine(RUNTIME_POLICY_MANIFEST_LOADER)
 RUNTIME_WAVE_SERVICE = WaveService()
@@ -503,6 +511,10 @@ RUNTIME_MUTATION_BOUNDARY = MutationBoundaryService(
 )
 
 app = FastAPI(title="SurFit Runtime API", version="m13-poc")
+if (PROJECT_ROOT / "surfit_console").exists():
+    app.mount("/surfit-console", StaticFiles(directory=str(PROJECT_ROOT / "surfit_console"), html=True), name="surfit_console")
+if (PROJECT_ROOT / "surfit_tenant_dashboard").exists():
+    app.mount("/tenant-dashboard", StaticFiles(directory=str(PROJECT_ROOT / "surfit_tenant_dashboard"), html=True), name="surfit_tenant_dashboard")
 
 
 class WaveRunRequest(BaseModel):
@@ -1176,6 +1188,70 @@ def list_runtime_artifacts(tenant_id: str | None = None, limit: int = 25):
         "tenant_id": tenant_id,
         "count": max(0, min(int(limit), 200)),
         "artifacts": RUNTIME_ARTIFACT_RETRIEVAL.list_recent(tenant_id=tenant_id, limit=max(1, min(int(limit), 200))),
+    }
+
+
+@app.get("/api/runtime/waves/recent")
+def list_recent_runtime_waves(
+    tenant_id: str = Query(..., description="Tenant scope for recent wave timeline."),
+    limit: int = 20,
+):
+    normalized_limit = max(1, min(int(limit), 100))
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        waves = RUNTIME_WAVE_READ_SERVICE.list_recent_waves(
+            conn,
+            tenant_id=tenant_id,
+            limit=normalized_limit,
+        )
+    finally:
+        conn.close()
+    return {
+        "tenant_id": tenant_id,
+        "limit": normalized_limit,
+        "count": len(waves),
+        "waves": waves,
+    }
+
+
+@app.get("/api/runtime/waves/{wave_id}/decisions")
+def get_runtime_wave_decisions(wave_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        payload = RUNTIME_WAVE_READ_SERVICE.get_wave_decisions(conn, wave_id=wave_id)
+    finally:
+        conn.close()
+    if payload is None:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"code": "WAVE_NOT_FOUND", "message": "No wave found for provided wave_id."}},
+        )
+    return payload
+
+
+@app.get("/api/runtime/approvals/recent")
+def list_recent_runtime_approvals(
+    tenant_id: str = Query(..., description="Tenant scope for approvals queue."),
+    limit: int = 20,
+):
+    normalized_limit = max(1, min(int(limit), 100))
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        approvals = RUNTIME_WAVE_READ_SERVICE.list_recent_approvals(
+            conn,
+            tenant_id=tenant_id,
+            limit=normalized_limit,
+        )
+    finally:
+        conn.close()
+    return {
+        "tenant_id": tenant_id,
+        "limit": normalized_limit,
+        "count": len(approvals),
+        "approvals": approvals,
     }
 
 
@@ -1949,3 +2025,159 @@ if __name__ == "__main__":
     host = os.environ.get("SURFIT_API_HOST", "127.0.0.1")
     port = int(os.environ.get("SURFIT_API_PORT", "8010"))
     uvicorn.run("api:app", host=host, port=port, reload=False)
+
+
+def _resolve_tenant_dashboard_identity(
+    request: Request,
+    access_key: str | None,
+):
+    header_token = (request.headers.get("X-Surfit-Tenant-Access") or "").strip()
+    query_token = (access_key or "").strip()
+    token = header_token or query_token
+    if not token:
+        raise HTTPException(status_code=401, detail={"code": "TENANT_DASHBOARD_ACCESS_REQUIRED", "message": "Missing dashboard access key."})
+
+    identity, reason = TENANT_DASHBOARD_ACCESS_SERVICE.resolve_identity_with_reason(token)
+    if identity is None:
+        if reason == "EXPIRED":
+            raise HTTPException(
+                status_code=403,
+                detail={"code": "TENANT_DASHBOARD_ACCESS_EXPIRED", "message": "Dashboard access key has expired."},
+            )
+        raise HTTPException(
+            status_code=403,
+            detail={"code": "TENANT_DASHBOARD_ACCESS_INVALID", "message": "Invalid dashboard access key."},
+        )
+    return identity
+
+
+@app.get("/api/tenant/dashboard/context")
+def get_tenant_dashboard_context(
+    request: Request,
+    access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
+):
+    identity = _resolve_tenant_dashboard_identity(request, access_key)
+    return {
+        "tenant_id": identity.tenant_id,
+        "display_name": identity.display_name,
+        "logo_url": identity.logo_url,
+        "theme": identity.theme,
+        "key_created_at": identity.key_created_at,
+        "key_expires_at": identity.key_expires_at,
+        "key_rotated_at": identity.key_rotated_at,
+    }
+
+
+@app.get("/api/tenant/dashboard/waves/recent")
+def list_tenant_dashboard_recent_waves(
+    request: Request,
+    access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
+    limit: int = 20,
+):
+    identity = _resolve_tenant_dashboard_identity(request, access_key)
+    normalized_limit = max(1, min(int(limit), 100))
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        waves = RUNTIME_WAVE_READ_SERVICE.list_recent_waves(
+            conn,
+            tenant_id=identity.tenant_id,
+            limit=normalized_limit,
+        )
+    finally:
+        conn.close()
+
+    return {
+        "tenant_id": identity.tenant_id,
+        "display_name": identity.display_name,
+        "logo_url": identity.logo_url,
+        "theme": identity.theme,
+        "limit": normalized_limit,
+        "count": len(waves),
+        "waves": waves,
+    }
+
+
+@app.get("/api/tenant/dashboard/waves/{wave_id}/decisions")
+def get_tenant_dashboard_wave_decisions(
+    wave_id: str,
+    request: Request,
+    access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
+):
+    identity = _resolve_tenant_dashboard_identity(request, access_key)
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        payload = RUNTIME_WAVE_READ_SERVICE.get_wave_decisions(conn, wave_id=wave_id)
+    finally:
+        conn.close()
+
+    if payload is None or str(payload.get("tenant_id") or "") != identity.tenant_id:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"code": "WAVE_NOT_FOUND", "message": "No tenant-visible wave found for provided wave_id."}},
+        )
+    return payload
+
+
+@app.get("/api/tenant/dashboard/approvals/recent")
+def list_tenant_dashboard_recent_approvals(
+    request: Request,
+    access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
+    limit: int = 20,
+):
+    identity = _resolve_tenant_dashboard_identity(request, access_key)
+    normalized_limit = max(1, min(int(limit), 100))
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        approvals = RUNTIME_WAVE_READ_SERVICE.list_recent_approvals(
+            conn,
+            tenant_id=identity.tenant_id,
+            limit=normalized_limit,
+        )
+    finally:
+        conn.close()
+
+    return {
+        "tenant_id": identity.tenant_id,
+        "display_name": identity.display_name,
+        "logo_url": identity.logo_url,
+        "theme": identity.theme,
+        "limit": normalized_limit,
+        "count": len(approvals),
+        "approvals": approvals,
+    }
+
+
+@app.get("/api/tenant/dashboard/artifacts/{artifact_id}")
+def get_tenant_dashboard_artifact(
+    artifact_id: str,
+    request: Request,
+    access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
+):
+    identity = _resolve_tenant_dashboard_identity(request, access_key)
+    artifact = RUNTIME_ARTIFACT_RETRIEVAL.get(artifact_id)
+    if artifact is None or str(artifact.get("tenant_id") or "") != identity.tenant_id:
+        return JSONResponse(
+            status_code=404,
+            content={"error": {"code": "ARTIFACT_NOT_FOUND", "message": "No tenant-visible artifact found for artifact_id."}},
+        )
+
+    return {
+        "artifact_id": artifact.get("artifact_id"),
+        "schema_version": artifact.get("schema_version"),
+        "tenant_id": artifact.get("tenant_id"),
+        "wave_id": artifact.get("wave_id"),
+        "system": artifact.get("system"),
+        "action": artifact.get("action"),
+        "decision": artifact.get("decision"),
+        "reason_code": artifact.get("reason_code"),
+        "timestamp": artifact.get("timestamp"),
+        "timestamps": artifact.get("timestamps"),
+        "policy_reference": artifact.get("policy_reference"),
+        "policy_manifest_hash": artifact.get("policy_manifest_hash"),
+        "approval_linkage": artifact.get("approval_linkage"),
+        "execution_path_evidence": artifact.get("execution_path_evidence"),
+        "artifact_path": artifact.get("_artifact_path"),
+    }

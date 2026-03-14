@@ -1,0 +1,184 @@
+:root {
+  --bg: #f6faf9;
+  --panel: #ffffff;
+  --ink: #133128;
+  --muted: #5f7d73;
+  --line: #d8e7e2;
+  --brand: #0f8a6a;
+  --brand-strong: #0b6f55;
+  --good: #176d52;
+  --warn: #9a6a00;
+  --bad: #a12727;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, var(--bg) 0%, #eef6f3 100%);
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.brand-wrap { display: flex; align-items: center; gap: 14px; }
+.tenant-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+.hidden { display: none !important; }
+.logo-slot {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  border: 1px dashed #8eb7aa;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.eyebrow { margin: 0; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+h1 { margin: 2px 0 0; font-size: 24px; }
+.tenant-id { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+
+.controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.controls label { font-size: 12px; color: var(--muted); }
+.controls input {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+}
+.controls button {
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  padding: 0 14px;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+}
+
+.privacy-banner {
+  margin: 12px 24px 0;
+  padding: 10px 12px;
+  border: 1px solid #c8ded6;
+  border-radius: 10px;
+  background: #f2f9f6;
+  color: #27584a;
+  font-size: 13px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 14px 24px;
+}
+.metric-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+}
+.metric-card h3 { margin: 0; font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.metric-card p { margin: 8px 0 4px; font-size: 24px; font-weight: 600; }
+.metric-card span { font-size: 12px; color: var(--muted); }
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr) 300px;
+  gap: 14px;
+  padding: 0 24px 24px;
+}
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  min-height: 460px;
+  overflow: hidden;
+}
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-head h2 { margin: 0; font-size: 16px; }
+.status, .badge { font-size: 12px; color: var(--muted); }
+.summary {
+  margin: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fbfefd;
+  font-size: 13px;
+  white-space: pre-line;
+}
+.subhead {
+  margin: 0 12px 8px;
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+.item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: #fcfffe;
+  font-size: 13px;
+}
+.item strong { font-size: 13px; }
+.meta { display: grid; gap: 4px; margin-top: 6px; color: var(--muted); font-size: 12px; }
+.link-row { margin-top: 8px; }
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--brand-strong);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+.ok { color: var(--good); }
+.warn { color: var(--warn); }
+.bad { color: var(--bad); }
+
+.artifact-dialog { width: min(900px, 96vw); border: 1px solid var(--line); border-radius: 12px; }
+.dialog-head { display: flex; justify-content: space-between; align-items: center; }
+#artifactBody {
+  max-height: 60vh;
+  overflow: auto;
+  font-size: 12px;
+  background: #f8fbfa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+@media (max-width: 1180px) {
+  .metrics-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+  .layout { grid-template-columns: 1fr; }
+  .panel { min-height: 280px; }
+}
