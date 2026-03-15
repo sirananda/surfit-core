@@ -144,7 +144,58 @@ class WaveReadService:
                 }
             )
 
-        return out
+        seen_wave_ids = {str(item.get("wave_id")) for item in out if item.get("wave_id")}
+        for wave_id, artifact_summary in artifact_by_wave.items():
+            if not wave_id or wave_id in seen_wave_ids:
+                continue
+
+            artifact_id = artifact_summary.get("artifact_id")
+            artifact_ts = artifact_summary.get("timestamp")
+            artifact_decision = artifact_summary.get("decision")
+            artifact_reason = artifact_summary.get("reason_code")
+
+            approval_linkage: dict[str, Any] | None = None
+            approval_wave_id = None
+            if artifact_id:
+                artifact_full = self.artifact_retrieval.get(str(artifact_id)) or {}
+                raw_linkage = artifact_full.get("approval_linkage")
+                if isinstance(raw_linkage, dict) and raw_linkage:
+                    approval_linkage = raw_linkage
+                    linked = raw_linkage.get("linked_wave_id")
+                    if isinstance(linked, str) and linked.strip():
+                        approval_wave_id = linked
+
+            out.append(
+                {
+                    "wave_id": wave_id,
+                    "tenant_id": tenant_id,
+                    "template_id": artifact_summary.get("wave_template_id") or artifact_summary.get("template_id"),
+                    "wave_type": artifact_summary.get("wave_type"),
+                    "system": artifact_summary.get("system"),
+                    "action": artifact_summary.get("action"),
+                    "status": "evaluated",
+                    "latest_decision": artifact_decision,
+                    "latest_reason_code": artifact_reason,
+                    "artifact_id": artifact_id,
+                    "approval_request_id": None,
+                    "approval_status": None,
+                    "approval_wave_id": approval_wave_id,
+                    "approval_linkage": approval_linkage,
+                    "created_at": artifact_ts if isinstance(artifact_ts, str) else None,
+                    "updated_at": artifact_ts if isinstance(artifact_ts, str) else None,
+                    "last_event_at": artifact_ts if isinstance(artifact_ts, str) else None,
+                }
+            )
+
+        out.sort(
+            key=lambda row: (
+                row.get("last_event_at") or "",
+                row.get("created_at") or "",
+            ),
+            reverse=True,
+        )
+
+        return out[:normalized_limit]
 
     def get_wave_decisions(self, conn: sqlite3.Connection, *, wave_id: str) -> dict[str, Any] | None:
         wave_row = conn.execute(
