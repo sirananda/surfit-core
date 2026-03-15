@@ -1,0 +1,1 @@
+{"status":"ready","service":"surfit-api","environment":"prod","checks":{"database":{"ready":true,"detail":"postgres ok"},"redis":{"ready":true,"detail":"redis ok"},"policy_manifest_path":{"ready":true,"detail":"/app/policies/allowlists.json"}},"timestamp":"2026-03-15T18:13:31.611197+00:00"}

@@ -3,77 +3,102 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Surfit Tenant Dashboard</title>
-  <link rel="stylesheet" href="/tenant-dashboard/dashboard.css" />
+  <title>Surfit Governance Console</title>
+  <link rel="stylesheet" href="/tenant-dashboard/dashboard.css?v=20260315b" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand-wrap">
-      <div class="logo-slot" id="tenantLogoSlot" aria-label="Tenant logo placeholder">LOGO</div>
-      <img id="tenantLogo" class="tenant-logo hidden" alt="Tenant logo" />
-      <div>
-        <p class="eyebrow">Surfit Tenant View</p>
-        <h1 id="tenantDisplayName">Tenant Dashboard</h1>
-        <p id="tenantIdLabel" class="tenant-id">tenant: -</p>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand-block">
+        <div id="tenantLogoSlot" class="logo-slot">Logo</div>
+        <img id="tenantLogo" class="logo hidden" alt="Tenant logo" />
+        <div>
+          <p class="eyebrow" id="tenantDisplayName">Tenant</p>
+          <h1>Surfit Governance Console</h1>
+          <p class="sub" id="tenantIdLabel">tenant: -</p>
+        </div>
       </div>
-    </div>
-    <div class="controls">
-      <label for="limitInput">Limit</label>
-      <input id="limitInput" type="number" min="1" max="100" value="20" />
-      <button id="refreshBtn">Refresh</button>
-    </div>
-  </header>
-
-  <section class="privacy-banner" role="note">
-    Tenant-scoped mode. Access key is bound to one tenant. This view is read-only and does not expose cross-tenant data.
-  </section>
-
-  <section class="metrics-grid" id="metricsGrid">
-    <article class="metric-card"><h3>Length</h3><p id="metricLength">-</p><span>Total waves in view</span></article>
-    <article class="metric-card"><h3>Height / Risk</h3><p id="metricHeight">-</p><span>Non-allow decision ratio</span></article>
-    <article class="metric-card"><h3>Depth</h3><p id="metricDepth">-</p><span>Decision depth (selected wave)</span></article>
-    <article class="metric-card"><h3>Frequency</h3><p id="metricFrequency">-</p><span>Waves in past 24h</span></article>
-    <article class="metric-card"><h3>Drift</h3><p id="metricDrift">-</p><span>Non-standard reason ratio</span></article>
-    <article class="metric-card"><h3>Splash</h3><p id="metricSplash">-</p><span>Pending approvals</span></article>
-  </section>
-
-  <main class="layout">
-    <section class="panel waves-panel">
-      <div class="panel-head">
-        <h2>Recent Waves</h2>
-        <span id="wavesStatus" class="status">Idle</span>
+      <div class="controls">
+        <label for="limitInput">Limit</label>
+        <input id="limitInput" type="number" min="1" max="100" value="20" />
+        <button id="refreshBtn">Refresh</button>
       </div>
-      <ul id="wavesList" class="list"></ul>
+    </header>
+
+    <nav class="tabs">
+      <button id="tabOverview" class="tab active" type="button">Overview</button>
+      <button id="tabAtlas" class="tab" type="button">Wave Atlas</button>
+    </nav>
+
+    <section id="overviewSection" class="section">
+      <div class="notice">
+        Tenant-scoped mode. Access key is bound to one tenant. This view is read-only and does not expose cross-tenant data.
+      </div>
+
+      <section class="metrics-grid">
+        <article class="metric"><h3>Length</h3><div id="metricLength" class="value">0</div><p>Total waves in view</p></article>
+        <article class="metric"><h3>Height / Risk</h3><div id="metricHeight" class="value">0%</div><p>Non-allow decision ratio</p></article>
+        <article class="metric"><h3>Depth</h3><div id="metricDepth" class="value">0</div><p>Decision depth selected wave</p></article>
+        <article class="metric"><h3>Frequency</h3><div id="metricFrequency" class="value">0</div><p>Waves in past 24h</p></article>
+        <article class="metric"><h3>Drift</h3><div id="metricDrift" class="value">0%</div><p>Non-standard reason ratio</p></article>
+        <article class="metric"><h3>Splash</h3><div id="metricSplash" class="value">0</div><p>Pending approvals</p></article>
+      </section>
+
+      <section class="layout">
+        <section class="panel">
+          <header class="panel-head">
+            <h2>Recent Waves</h2>
+            <span id="wavesStatus" class="status">Idle</span>
+          </header>
+          <ul id="wavesList" class="list"></ul>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <h2>Wave Detail</h2>
+            <span id="selectedWaveBadge" class="status">No wave selected</span>
+          </header>
+          <pre id="waveSummary" class="summary">Select a wave to inspect lifecycle and decisions.</pre>
+          <h3 class="subhead">Decisions <span id="decisionsStatus" class="status">Idle</span></h3>
+          <ul id="decisionsList" class="list"></ul>
+        </section>
+
+        <section class="panel">
+          <header class="panel-head">
+            <h2>Approvals</h2>
+            <span id="approvalsStatus" class="status">Idle</span>
+          </header>
+          <ul id="approvalsList" class="list"></ul>
+        </section>
+      </section>
     </section>
 
-    <section class="panel details-panel">
-      <div class="panel-head">
-        <h2>Wave Detail</h2>
-        <span id="selectedWaveBadge" class="badge">No wave selected</span>
+    <section id="atlasSection" class="section hidden">
+      <div class="atlas-grid">
+        <section class="panel">
+          <header class="panel-head"><h2>Observed Wave Types</h2><span id="atlasStatus" class="status">Idle</span></header>
+          <ul id="atlasList" class="list"></ul>
+        </section>
+        <section class="panel">
+          <header class="panel-head"><h2>Future Wave Templates</h2></header>
+          <ul class="list">
+            <li class="item"><strong>GitHub Pull Request Merge Wave</strong><div class="meta"><span>Concept placeholder</span></div></li>
+            <li class="item"><strong>Terraform Apply Wave</strong><div class="meta"><span>Concept placeholder</span></div></li>
+            <li class="item"><strong>Slack Channel Invite Wave</strong><div class="meta"><span>Concept placeholder</span></div></li>
+          </ul>
+        </section>
       </div>
-      <div id="waveSummary" class="summary">Select a wave to inspect lifecycle and decisions.</div>
-      <div class="subhead">Decisions</div>
-      <span id="decisionsStatus" class="status">Idle</span>
-      <ul id="decisionsList" class="list"></ul>
-    </section>
-
-    <section class="panel approvals-panel">
-      <div class="panel-head">
-        <h2>Approvals</h2>
-        <span id="approvalsStatus" class="status">Idle</span>
-      </div>
-      <ul id="approvalsList" class="list"></ul>
     </section>
   </main>
 
   <dialog id="artifactDialog" class="artifact-dialog">
-    <form method="dialog" class="dialog-head">
+    <div class="dialog-head">
       <h3 id="artifactTitle">Artifact</h3>
-      <button>Close</button>
-    </form>
-    <pre id="artifactBody"></pre>
+      <button type="button" onclick="document.getElementById('artifactDialog').close()">Close</button>
+    </div>
+    <pre id="artifactBody" class="artifact-body"></pre>
   </dialog>
 
-  <script src="/tenant-dashboard/dashboard.js"></script>
+  <script src="/tenant-dashboard/dashboard.js?v=20260315b"></script>
 </body>
 </html>

@@ -1,0 +1,6 @@
+tenant_id=tenant_partner_alpha
+wave_id=wave-proof-approval-1773571873
+approval_request_id=apr_e23c98c8478b
+artifact_id=gart_96de8c13104d45958b53
+key=partner_alpha_fixed_key_20260315
+url=http://46.62.145.237/tenant-dashboard?k=partner_alpha_fixed_key_20260315
