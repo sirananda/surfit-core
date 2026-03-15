@@ -1,8 +1,9 @@
 const params = new URLSearchParams(window.location.search);
 const accessKeyFromUrl = (params.get("k") || "").trim();
+const accessKeyFromSession = (sessionStorage.getItem("surfit_tenant_access_key") || "").trim();
 
 const state = {
-  accessKey: accessKeyFromUrl,
+  accessKey: accessKeyFromUrl || accessKeyFromSession,
   tenantId: null,
   displayName: null,
   logoUrl: null,
@@ -311,12 +312,19 @@ async function loadContext() {
     showFatal("Missing dashboard access key. Open with ?k=<tenant_dashboard_key>");
     return false;
   }
+
+  if (accessKeyFromUrl) {
+    sessionStorage.setItem("surfit_tenant_access_key", accessKeyFromUrl);
+  }
+
   try {
     const payload = await getJson("/api/tenant/dashboard/context");
     applyBranding(payload);
 
-    const cleanUrl = `${window.location.pathname}`;
-    window.history.replaceState({}, document.title, cleanUrl);
+    if (accessKeyFromUrl) {
+      const cleanUrl = `${window.location.pathname}`;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
     return true;
   } catch (error) {
     showFatal(`Dashboard access denied: ${error.message}`);
