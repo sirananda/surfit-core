@@ -34,7 +34,7 @@ def _write_allowlists(path: Path) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def _load_api_module(allowlists_path: Path, artifacts_root: Path):
+def _load_api_module(allowlists_path: Path, artifacts_root: Path, db_path: Path):
     if "anthropic" not in sys.modules:
         fake = types.ModuleType("anthropic")
 
@@ -53,6 +53,7 @@ def _load_api_module(allowlists_path: Path, artifacts_root: Path):
     os.environ["SURFIT_POLICY_ALLOWLISTS_PATH"] = str(allowlists_path)
     os.environ["SURFIT_RUNTIME_ARTIFACTS_ROOT"] = str(artifacts_root)
     os.environ["SURFIT_DEFAULT_TENANT_ID"] = "tenant_contract"
+    os.environ["SURFIT_DB_PATH"] = str(db_path)
 
     if "api" in sys.modules:
         del sys.modules["api"]
@@ -68,8 +69,9 @@ class ExecutionGatewayContractTests(unittest.TestCase):
             tmp = Path(td)
             allowlists = tmp / "allowlists.json"
             artifacts_root = tmp / "artifacts"
+            db_path = tmp / "surfit.db"
             _write_allowlists(allowlists)
-            api = _load_api_module(allowlists, artifacts_root)
+            api = _load_api_module(allowlists, artifacts_root, db_path)
             client = TestClient(api.app)
 
             allow_payload = {
@@ -121,10 +123,24 @@ class ExecutionGatewayContractTests(unittest.TestCase):
             self.assertEqual(pending_resp.status_code, 200)
             pending_body = pending_resp.json()
             self.assertEqual(pending_body["decision"], "PENDING_APPROVAL")
+            self.assertEqual(pending_body.get("approval_status"), "pending")
+            self.assertIsNotNone(pending_body.get("approval_request_id"))
+            self.assertEqual(
+                pending_body.get("approval_linkage", {}).get("approval_request_id"),
+                pending_body.get("approval_request_id"),
+            )
             artifact_path = Path(pending_body["artifact"]["artifact_path"])
             self.assertTrue(artifact_path.exists(), f"Expected artifact to be created at {artifact_path}")
+
+            approvals_resp = client.get("/api/runtime/approvals/recent", params={"tenant_id": "tenant_a", "limit": 5})
+            self.assertEqual(approvals_resp.status_code, 200)
+            approvals_body = approvals_resp.json()
+            self.assertGreaterEqual(approvals_body["count"], 1)
+            approval_item = approvals_body["approvals"][0]
+            self.assertEqual(approval_item["wave_id"], "wave-pending-contract")
+            self.assertEqual(approval_item["approval_request_id"], pending_body["approval_request_id"])
+            self.assertEqual(str(approval_item["approval_status"]).lower(), "pending")
 
 
 if __name__ == "__main__":
     unittest.main()
-

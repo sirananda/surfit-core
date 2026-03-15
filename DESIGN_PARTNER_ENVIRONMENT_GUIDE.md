@@ -104,6 +104,39 @@ Capture from response:
 - `reason_code`
 - `artifact.artifact_id`
 
+## 5A) Run Approval-Path Scenario (Required Proof)
+
+Use this request to force approval-required behavior:
+
+```bash
+curl -s -X POST https://YOUR_DOMAIN/api/runtime/execution-gateway/evaluate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "wave_id":"partner-alpha-approval-wave-1",
+    "wave_type":"governed_execution",
+    "system":"github",
+    "action":"merge_pull_request",
+    "risk_level":"high",
+    "approval_required":true,
+    "approval_rules":{"required_for_actions":["merge_pull_request"]},
+    "trigger_type":"manual",
+    "context":{"wave_template_id":"ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1","runtime_rules":{"allowlisted_actions":["merge_pull_request"]}},
+    "agent_id":"gateway_agent",
+    "tenant_id":"tenant_partner_alpha",
+    "token_scope":["merge_pull_request"],
+    "pinned_policy_manifest":["merge_pull_request"],
+    "runtime_rules":["merge_pull_request"]
+  }' | python3 -m json.tool
+```
+
+Expected response:
+
+- `decision = PENDING_APPROVAL`
+- `reason_code = APPROVAL_REQUIRED`
+- `approval_request_id` present
+- `artifact.artifact_id` present
+- `artifact.approval_linkage.approval_request_id` matches response `approval_request_id`
+
 ## 6) Verify in Operator Console
 
 Open:
@@ -138,6 +171,13 @@ curl -s "https://YOUR_DOMAIN/api/runtime/approvals/recent?tenant_id=tenant_partn
 curl -s "https://YOUR_DOMAIN/api/runtime/artifacts/<artifact_id>" | python3 -m json.tool
 ```
 
+Approval-path success checks:
+
+- latest approval-path wave appears in `/api/runtime/waves/recent`
+- `/api/runtime/approvals/recent` includes `approval_request_id` with `approval_status = pending`
+- `/api/runtime/waves/{wave_id}/decisions` resolves for the approval-path wave
+- artifact payload contains `approval_linkage.approval_request_id`
+
 ## 9) Proof Package Checklist
 
 Record these fields:
@@ -147,6 +187,9 @@ Record these fields:
 - `wave_id`
 - `artifact_id`
 - `approval_request_id` (if present)
+- `approval_status`
+- `decision`
+- `reason_code`
 - key expiration timestamp
 
 Capture screenshots:

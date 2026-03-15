@@ -153,6 +153,19 @@ class WaveReadService:
             artifact_ts = artifact_summary.get("timestamp")
             artifact_decision = artifact_summary.get("decision")
             artifact_reason = artifact_summary.get("reason_code")
+            approval_row = conn.execute(
+                """
+                SELECT approval_request_id, status, updated_at
+                FROM approval_requests
+                WHERE wave_id = ?
+                ORDER BY updated_at DESC
+                LIMIT 1
+                """,
+                (wave_id,),
+            ).fetchone()
+            approval_request_id = approval_row[0] if approval_row else None
+            approval_status = approval_row[1] if approval_row else None
+            approval_updated_at = approval_row[2] if approval_row else None
 
             approval_linkage: dict[str, Any] | None = None
             approval_wave_id = None
@@ -177,13 +190,16 @@ class WaveReadService:
                     "latest_decision": artifact_decision,
                     "latest_reason_code": artifact_reason,
                     "artifact_id": artifact_id,
-                    "approval_request_id": None,
-                    "approval_status": None,
+                    "approval_request_id": approval_request_id,
+                    "approval_status": approval_status,
                     "approval_wave_id": approval_wave_id,
                     "approval_linkage": approval_linkage,
                     "created_at": artifact_ts if isinstance(artifact_ts, str) else None,
                     "updated_at": artifact_ts if isinstance(artifact_ts, str) else None,
-                    "last_event_at": artifact_ts if isinstance(artifact_ts, str) else None,
+                    "last_event_at": self._max_iso(
+                        approval_updated_at if isinstance(approval_updated_at, str) else None,
+                        artifact_ts if isinstance(artifact_ts, str) else None,
+                    ),
                 }
             )
 

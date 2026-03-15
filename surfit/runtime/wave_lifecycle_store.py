@@ -375,12 +375,14 @@ class WaveLifecycleStore:
         *,
         approval_request_id: str,
         wave_id: str,
-        approved_by: str,
+        approved_by: str | None,
         note: str | None,
+        status: str = "approved",
         target_write_path: str = "./outputs/report.md",
         proposed_write_hash: str = "demo_proposed_write_hash_placeholder",
     ) -> None:
         now = self.now_iso()
+        approved_at = now if approved_by else None
         conn.execute(
             """
             INSERT INTO approval_requests
@@ -393,9 +395,9 @@ class WaveLifecycleStore:
                 target_write_path,
                 proposed_write_hash,
                 approved_by,
-                now,
+                approved_at,
                 note,
-                "approved",
+                status,
                 now,
                 now,
             ),

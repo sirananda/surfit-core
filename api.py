@@ -974,6 +974,136 @@ def _record_prep_deny(
     }
 
 
+def _persist_runtime_gateway_pending_approval(
+    conn: sqlite3.Connection,
+    req: RuntimeGatewayRequest,
+    payload: dict[str, Any],
+) -> dict[str, Any]:
+    if str(payload.get("decision") or "").upper() != "PENDING_APPROVAL":
+        return payload
+
+    tenant_id = str(req.tenant_id or DEFAULT_TENANT_ID)
+    now = _now_iso()
+    required_actions = req.approval_rules.get("required_for_actions") if isinstance(req.approval_rules, dict) else None
+    if not isinstance(required_actions, list) or not required_actions:
+        required_actions = [req.action]
+
+    context_refs = dict(req.context) if isinstance(req.context, dict) else {}
+    context_refs.setdefault("wave_type", req.wave_type)
+    context_refs.setdefault("system", req.system)
+    context_refs.setdefault("action", req.action)
+    context_refs.setdefault("wave_template_id", context_refs.get("wave_template_id") or "runtime_gateway")
+    context_refs_json = json.dumps(context_refs, sort_keys=True)
+
+    wave_row = conn.execute(
+        "SELECT wave_id FROM waves WHERE wave_id = ? LIMIT 1",
+        (req.wave_id,),
+    ).fetchone()
+    if wave_row:
+        conn.execute(
+            """
+            UPDATE waves
+            SET status = ?, updated_at = ?, context_refs_json = ?
+            WHERE wave_id = ?
+            """,
+            ("pending_approval", now, context_refs_json, req.wave_id),
+        )
+    else:
+        conn.execute(
+            """
+            INSERT INTO waves (
+                wave_id, agent_id, wave_template_id, policy_version, intent, context_refs_json,
+                status, created_at, updated_at, tenant_id,
+                error_code, error_message, error_node, policy_manifest_hash, policy_manifest_version, policy_manifest_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                req.wave_id,
+                req.agent_id,
+                str(context_refs.get("wave_template_id") or "runtime_gateway"),
+                str(req.policy_reference or "runtime_gateway_policy_v1"),
+                f"runtime_gateway:{req.system}:{req.action}",
+                context_refs_json,
+                "pending_approval",
+                now,
+                now,
+                tenant_id,
+                None,
+                None,
+                None,
+                req.policy_manifest_hash,
+                None,
+                None,
+            ),
+        )
+
+    existing_approval = conn.execute(
+        """
+        SELECT approval_request_id
+        FROM approval_requests
+        WHERE wave_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+        """,
+        (req.wave_id,),
+    ).fetchone()
+
+    approval_request_id = str(existing_approval[0]) if existing_approval and existing_approval[0] else f"apr_{uuid.uuid4().hex[:12]}"
+    if not existing_approval:
+        note_payload = {
+            "tenant_id": tenant_id,
+            "system": req.system,
+            "action": req.action,
+            "required_actions": [str(x) for x in required_actions],
+        }
+        RUNTIME_WAVE_LIFECYCLE_STORE.create_approval_record(
+            conn,
+            approval_request_id=approval_request_id,
+            wave_id=req.wave_id,
+            approved_by=None,
+            note=json.dumps(note_payload, sort_keys=True),
+            status="pending",
+            target_write_path=f"{req.system}:{req.action}",
+            proposed_write_hash=_sha256_text(json.dumps(note_payload, sort_keys=True)),
+        )
+
+    _log_decision(
+        conn,
+        req.wave_id,
+        "PENDING_APPROVAL",
+        str(payload.get("message") or "Action requires approval before execution."),
+        str(payload.get("reason_code") or "APPROVAL_REQUIRED"),
+        "runtime_gateway.evaluate",
+        tenant_id=tenant_id,
+    )
+
+    approval_linkage = {
+        "approval_id": approval_request_id,
+        "approval_request_id": approval_request_id,
+        "approval_wave_id": req.wave_id,
+        "linked_wave_id": req.wave_id,
+    }
+    payload["approval_request_id"] = approval_request_id
+    payload["approval_status"] = "pending"
+    payload["approval_linkage"] = approval_linkage
+
+    artifact = payload.get("artifact")
+    if isinstance(artifact, dict):
+        artifact["approval_linkage"] = approval_linkage
+        artifact_path = artifact.get("artifact_path") or artifact.get("_artifact_path")
+        if isinstance(artifact_path, str) and Path(artifact_path).exists():
+            try:
+                artifact_doc = json.loads(Path(artifact_path).read_text(encoding="utf-8"))
+                if isinstance(artifact_doc, dict):
+                    artifact_doc["approval_linkage"] = approval_linkage
+                    Path(artifact_path).write_text(json.dumps(artifact_doc, sort_keys=True, indent=2), encoding="utf-8")
+            except Exception:
+                pass
+
+    conn.commit()
+    return payload
+
+
 def _write_manifest(
     conn: sqlite3.Connection,
     wave_id: str,
@@ -1152,7 +1282,16 @@ def evaluate_runtime_execution(req: RuntimeGatewayRequest):
             status_code=422,
             content={"error": {"code": "INVALID_WAVE_SCHEMA", "message": str(e)}},
         )
-    return out.payload
+    payload = out.payload
+    if not isinstance(payload, dict):
+        return payload
+
+    conn = sqlite3.connect(DB_PATH)
+    ensure_wave_tables(conn)
+    try:
+        return _persist_runtime_gateway_pending_approval(conn, req, payload)
+    finally:
+        conn.close()
 
 
 @app.get("/api/runtime/artifacts/{artifact_id}")
