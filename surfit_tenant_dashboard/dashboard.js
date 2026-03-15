@@ -346,3 +346,142 @@ els.limitInput.addEventListener("keydown", (e) => { if (e.key === "Enter") refre
   if (!ok) return;
   await refreshAll();
 })();
+
+(function surfitWaveAtlasTabFix() {
+  if (window.__surfitWaveAtlasTabFixApplied) return;
+  window.__surfitWaveAtlasTabFixApplied = true;
+
+  function applyTab(mode) {
+    const overviewBtn = document.getElementById("tabOverview");
+    const atlasBtn = document.getElementById("tabAtlas");
+    const overviewSection = document.getElementById("overviewSection");
+    const atlasSection = document.getElementById("atlasSection");
+    if (!overviewBtn || !atlasBtn || !overviewSection || !atlasSection) return;
+
+    const showOverview = mode !== "atlas";
+    overviewBtn.classList.toggle("active", showOverview);
+    atlasBtn.classList.toggle("active", !showOverview);
+    overviewSection.classList.toggle("hidden", !showOverview);
+    atlasSection.classList.toggle("hidden", showOverview);
+  }
+
+  function bind() {
+    const overviewBtn = document.getElementById("tabOverview");
+    const atlasBtn = document.getElementById("tabAtlas");
+    if (!overviewBtn || !atlasBtn) return;
+    overviewBtn.addEventListener("click", function () { applyTab("overview"); }, { passive: true });
+    atlasBtn.addEventListener("click", function () { applyTab("atlas"); }, { passive: true });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind, { once: true });
+  } else {
+    bind();
+  }
+  setTimeout(bind, 300);
+})();
+
+
+(function surfitAtlasForcePatch() {
+  if (window.__surfitAtlasForcePatchApplied) return;
+  window.__surfitAtlasForcePatchApplied = true;
+
+  function ensureAtlasSection() {
+    let atlas = document.getElementById("atlasSection");
+    if (atlas) return atlas;
+
+    const overview = document.getElementById("overviewSection");
+    if (!overview || !overview.parentElement) return null;
+
+    atlas = document.createElement("section");
+    atlas.id = "atlasSection";
+    atlas.className = "section hidden";
+    atlas.innerHTML = `
+      <div class="atlas-grid">
+        <section class="panel">
+          <header class="panel-head"><h2>Observed Wave Types</h2><span id="atlasStatus" class="status">0 wave types</span></header>
+          <ul id="atlasList" class="list"><li class="item">No wave types observed yet.</li></ul>
+        </section>
+        <section class="panel">
+          <header class="panel-head"><h2>Future Wave Templates</h2></header>
+          <ul class="list">
+            <li class="item"><strong>GitHub Pull Request Merge Wave</strong></li>
+            <li class="item"><strong>Terraform Apply Wave</strong></li>
+            <li class="item"><strong>Slack Channel Invite Wave</strong></li>
+          </ul>
+        </section>
+      </div>
+    `;
+    overview.parentElement.appendChild(atlas);
+    return atlas;
+  }
+
+  function renderAtlasFromWaves() {
+    const atlasList = document.getElementById("atlasList");
+    const atlasStatus = document.getElementById("atlasStatus");
+    if (!atlasList || !atlasStatus || !window.state || !Array.isArray(window.state.waves)) return;
+
+    const map = new Map();
+    for (const w of window.state.waves) {
+      const system = w.system || "unknown_system";
+      const action = w.action || "unknown_action";
+      const k = system + "__" + action;
+      const t = w.last_event_at || w.updated_at || w.created_at || null;
+      if (!map.has(k)) map.set(k, { system, action, count: 0, last: t });
+      const row = map.get(k);
+      row.count += 1;
+      if (t && (!row.last || new Date(t) > new Date(row.last))) row.last = t;
+    }
+
+    const rows = Array.from(map.values()).sort((a,b)=>b.count-a.count);
+    atlasStatus.textContent = rows.length + " wave types";
+    if (!rows.length) {
+      atlasList.innerHTML = '<li class="item">No wave types observed yet.</li>';
+      return;
+    }
+
+    atlasList.innerHTML = rows.map(r => `
+      <li class="item">
+        <strong>${r.system} — ${r.action}</strong>
+        <div class="meta">
+          <span>Observed: ${r.count} waves</span>
+          <span>Last observed: ${r.last ? new Date(r.last).toLocaleString() : "-"}</span>
+        </div>
+      </li>
+    `).join("");
+  }
+
+  function activate(mode) {
+    const overviewBtn = document.getElementById("tabOverview");
+    const atlasBtn = document.getElementById("tabAtlas");
+    const overview = document.getElementById("overviewSection");
+    const atlas = ensureAtlasSection();
+    if (!overviewBtn || !atlasBtn || !overview || !atlas) return;
+
+    const showOverview = mode !== "atlas";
+    overview.classList.toggle("hidden", !showOverview);
+    atlas.classList.toggle("hidden", showOverview);
+    overviewBtn.classList.toggle("active", showOverview);
+    atlasBtn.classList.toggle("active", !showOverview);
+
+    if (!showOverview) renderAtlasFromWaves();
+  }
+
+  function bind() {
+    const overviewBtn = document.getElementById("tabOverview");
+    const atlasBtn = document.getElementById("tabAtlas");
+    if (!overviewBtn || !atlasBtn) return;
+    overviewBtn.onclick = () => activate("overview");
+    atlasBtn.onclick = () => activate("atlas");
+    ensureAtlasSection();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bind, { once: true });
+  } else {
+    bind();
+  }
+  setTimeout(bind, 200);
+  setTimeout(bind, 800);
+})();
+

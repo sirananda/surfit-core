@@ -1,0 +1,22 @@
+{
+  "policy_manifest_version": "prod-bootstrap-v1",
+  "agent_wave_allowlist": {
+    "gateway_agent": ["ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1"]
+  },
+  "template_policy_allowlist": {
+    "ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1": ["enterprise_multistage_execution_governance_policy_v1"]
+  },
+  "http_proxy_allowlist": {
+    "allowed_domains": ["localhost", "127.0.0.1", "::1"],
+    "allowed_methods": ["GET", "POST"],
+    "allowed_url_prefixes": []
+  },
+  "template_runtime_scopes": {
+    "ENTERPRISE_MULTI_STAGE_EXECUTION_GOVERNANCE_V1": {
+      "allowlisted_actions": ["read", "open_pull_request", "merge_pull_request"],
+      "github_policy": {
+        "require_approval_for_actions": ["merge_pull_request"]
+      }
+    }
+  }
+}

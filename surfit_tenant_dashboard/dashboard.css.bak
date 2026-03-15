@@ -1,0 +1,475 @@
+:root {
+  --bg: #0f1517;
+  --bg-soft: #131d20;
+  --panel: #182327;
+  --panel-soft: #1e2c31;
+  --line: #2b3f46;
+  --text: #e8f2ef;
+  --muted: #9fb8b2;
+  --accent: #2ec4a6;
+  --accent-2: #23b08f;
+  --allow: #31d58f;
+  --deny: #ff6b6b;
+  --pending: #f6c453;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  color: var(--text);
+  font: 14px/1.4 "Inter", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top right, #1e3436 0%, var(--bg) 45%);
+}
+.page { max-width: 1600px; margin: 0 auto; padding: 20px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.brand-block { display: flex; align-items: center; gap: 12px; }
+.logo-slot, .logo {
+  width: 56px; height: 56px; border-radius: 12px; border: 1px solid var(--line);
+  background: linear-gradient(160deg, #213239, #182227); display: grid; place-items: center; color: var(--muted);
+}
+.logo { object-fit: cover; }
+.hidden { display: none; }
+.eyebrow { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: 0.2px; }
+h1 { margin: 0; font-size: 18px; color: var(--muted); font-weight: 600; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.controls { display: flex; align-items: center; gap: 8px; }
+.controls input {
+  width: 74px; padding: 8px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text);
+}
+.controls button {
+  padding: 8px 12px; border: 1px solid transparent; border-radius: 10px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-2)); color: #04241d; font-weight: 700; cursor: pointer;
+}
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tab {
+  padding: 8px 12px; border-radius: 10px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--muted); cursor: pointer;
+}
+.tab.active { color: #04241d; background: var(--accent); border-color: var(--accent); font-weight: 700; }
+.notice {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  color: var(--muted); padding: 10px 12px; margin-bottom: 12px;
+}
+.metrics-grid { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+.metric {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  padding: 12px;
+}
+.metric h3 { margin: 0 0 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.metric .value { font-size: 36px; font-weight: 700; line-height: 1; margin-bottom: 6px; }
+.metric p { margin: 0; color: var(--muted); font-size: 12px; }
+.layout { display: grid; grid-template-columns: 1fr 1.6fr 1fr; gap: 12px; }
+.atlas-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 12px; }
+.panel {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); min-height: 520px; overflow: hidden;
+}
+.panel-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px; border-bottom: 1px solid var(--line); background: #1a2a30;
+}
+.panel-head h2 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: .2px; }
+.status { color: var(--muted); font-size: 12px; }
+.summary {
+  margin: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: #172429; color: #d0dfdb; white-space: pre-line;
+}
+.subhead { margin: 0 12px 8px; color: var(--muted); font-size: 12px; text-transform: uppercase; }
+.list { list-style: none; margin: 0; padding: 10px; display: grid; gap: 8px; }
+.item { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: #18272c; }
+.item strong { font-size: 17px; color: #d9ece7; }
+.meta { display: grid; gap: 4px; margin-top: 6px; color: var(--muted); font-size: 13px; }
+.idline {
+  margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  color: #b9d7d0; word-break: break-all;
+}
+.badge {
+  display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .3px;
+}
+.badge.allow { background: rgba(49,213,143,.15); color: var(--allow); border: 1px solid rgba(49,213,143,.4); }
+.badge.deny { background: rgba(255,107,107,.15); color: var(--deny); border: 1px solid rgba(255,107,107,.4); }
+.badge.pending { background: rgba(246,196,83,.15); color: var(--pending); border: 1px solid rgba(246,196,83,.4); }
+.badge.neutral { background: rgba(159,184,178,.12); color: var(--muted); border: 1px solid rgba(159,184,178,.3); }
+.link-btn {
+  margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px;
+  background: #152126; color: var(--accent); cursor: pointer;
+}
+.artifact-dialog { width: min(920px, 96vw); border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); color: var(--text); }
+.dialog-head { display: flex; justify-content: space-between;
+
+cd /root/surfit
+cat > surfit_tenant_dashboard/dashboard.js <<'EOF'
+const params = new URLSearchParams(window.location.search);
+const accessKeyFromUrl = (params.get("k") || "").trim();
+const accessKeyFromSession = (sessionStorage.getItem("surfit_tenant_access_key") || "").trim();
+
+const state = {
+  accessKey: accessKeyFromUrl || accessKeyFromSession,
+  tenantId: null,
+  displayName: null,
+  logoUrl: null,
+  theme: {},
+  limit: 20,
+  waves: [],
+  approvals: [],
+  selectedWave: null,
+  selectedDecisions: [],
+};
+
+const els = {
+  limitInput: document.getElementById("limitInput"),
+  refreshBtn: document.getElementById("refreshBtn"),
+  tenantDisplayName: document.getElementById("tenantDisplayName"),
+  tenantIdLabel: document.getElementById("tenantIdLabel"),
+  tenantLogoSlot: document.getElementById("tenantLogoSlot"),
+  tenantLogo: document.getElementById("tenantLogo"),
+  tabOverview: document.getElementById("tabOverview"),
+  tabAtlas: document.getElementById("tabAtlas"),
+  overviewSection: document.getElementById("overviewSection"),
+  atlasSection: document.getElementById("atlasSection"),
+  atlasStatus: document.getElementById("atlasStatus"),
+  atlasList: document.getElementById("atlasList"),
+  wavesStatus: document.getElementById("wavesStatus"),
+  wavesList: document.getElementById("wavesList"),
+  approvalsStatus: document.getElementById("approvalsStatus"),
+  approvalsList: document.getElementById("approvalsList"),
+  selectedWaveBadge: document.getElementById("selectedWaveBadge"),
+  waveSummary: document.getElementById("waveSummary"),
+  decisionsStatus: document.getElementById("decisionsStatus"),
+  decisionsList: document.getElementById("decisionsList"),
+  artifactDialog: document.getElementById("artifactDialog"),
+  artifactTitle: document.getElementById("artifactTitle"),
+  artifactBody: document.getElementById("artifactBody"),
+  metricLength: document.getElementById("metricLength"),
+  metricHeight: document.getElementById("metricHeight"),
+  metricDepth: document.getElementById("metricDepth"),
+  metricFrequency: document.getElementById("metricFrequency"),
+  metricDrift: document.getElementById("metricDrift"),
+  metricSplash: document.getElementById("metricSplash"),
+};
+
+function esc(v) {
+  return String(v ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function fmtTime(v) {
+  if (!v) return "-";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? String(v) : d.toLocaleString();
+}
+
+function tone(v) {
+  const x = String(v || "").toUpperCase();
+  if (x === "ALLOW" || x === "APPROVED") return "allow";
+  if (x === "DENY" || x === "DENIED") return "deny";
+  if (x === "PENDING_APPROVAL" || x === "PENDING") return "pending";
+  return "neutral";
+}
+
+function badge(v) {
+  return `<span class="badge ${tone(v)}">${esc(v || "-")}</span>`;
+}
+
+function idLine(label, val) {
+  if (!val) return "";
+  return `<div class="idline">${esc(label)}: ${esc(val)}</div>`;
+}
+
+function authHeaders() {
+  return state.accessKey ? { "X-Surfit-Tenant-Access": state.accessKey } : {};
+}
+
+async function getJson(url) {
+  const res = await fetch(url, { headers: authHeaders() });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+  }
+  return res.json();
+}
+
+function showFatal(msg) {
+  els.wavesStatus.textContent = msg;
+  els.approvalsStatus.textContent = msg;
+  els.decisionsStatus.textContent = msg;
+  els.waveSummary.textContent = msg;
+}
+
+function applyBranding(context) {
+  state.tenantId = context.tenant_id;
+  state.displayName = context.display_name || context.tenant_id;
+  state.logoUrl = context.logo_url || null;
+  state.theme = context.theme || {};
+
+  els.tenantDisplayName.textContent = state.displayName;
+  els.tenantIdLabel.textContent = `tenant: ${state.tenantId}`;
+
+  if (state.logoUrl) {
+    els.tenantLogo.src = state.logoUrl;
+    els.tenantLogo.classList.remove("hidden");
+    els.tenantLogoSlot.classList.add("hidden");
+  } else {
+    els.tenantLogo.classList.add("hidden");
+    els.tenantLogoSlot.classList.remove("hidden");
+  }
+}
+
+function artifactButton(artifactId) {
+  if (!artifactId) return "";
+  return `<button class="link-btn" data-artifact-id="${esc(artifactId)}">Inspect artifact ${esc(artifactId)}</button>`;
+}
+
+function wireArtifactButtons(root) {
+  root.querySelectorAll("[data-artifact-id]").forEach((btn) => {
+    btn.addEventListener("click", async (event) => {
+      const artifactId = event.currentTarget.getAttribute("data-artifact-id");
+      if (!artifactId) return;
+      els.artifactTitle.textContent = `Artifact ${artifactId}`;
+      els.artifactBody.textContent = "Loading artifact";
+      els.artifactDialog.showModal();
+      try {
+        const payload = await getJson(`/api/tenant/dashboard/artifacts/${encodeURIComponent(artifactId)}`);
+        els.artifactBody.textContent = JSON.stringify(payload, null, 2);
+      } catch (error) {
+        els.artifactBody.textContent = `Artifact fetch failed: ${error.message}`;
+      }
+    });
+  });
+}
+
+function computeMetrics() {
+  const waves = state.waves;
+  const approvals = state.approvals;
+  const decisions = state.selectedDecisions;
+
+  const total = waves.length;
+  const nonAllow = waves.filter((w) => String(w.latest_decision || "").toUpperCase() !== "ALLOW").length;
+  const height = total ? `${Math.round((nonAllow / total) * 100)}%` : "0%";
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const frequency = waves.filter((w) => {
+    const t = Date.parse(w.created_at || "");
+    return !Number.isNaN(t) && t >= dayAgo;
+  }).length;
+  const driftNum = waves.filter((w) => (w.latest_reason_code || "") && w.latest_reason_code !== "POLICY_ALLOW").length;
+  const drift = total ? `${Math.round((driftNum / total) * 100)}%` : "0%";
+  const pending = approvals.filter((a) => String(a.approval_status || "").toUpperCase() === "PENDING").length;
+
+  els.metricLength.textContent = String(total);
+  els.metricHeight.textContent = height;
+  els.metricDepth.textContent = String(decisions.length || 0);
+  els.metricFrequency.textContent = String(frequency);
+  els.metricDrift.textContent = drift;
+  els.metricSplash.textContent = String(pending);
+}
+
+function renderAtlas() {
+  const map = new Map();
+  for (const w of state.waves) {
+    const system = w.system || "unknown_system";
+    const action = w.action || "unknown_action";
+    const key = `${system}__${action}`;
+    const ts = w.last_event_at || w.updated_at || w.created_at || null;
+    if (!map.has(key)) map.set(key, { system, action, count: 0, lastObserved: ts });
+    const row = map.get(key);
+    row.count += 1;
+    if (ts && (!row.lastObserved || new Date(ts) > new Date(row.lastObserved))) row.lastObserved = ts;
+  }
+  const rows = [...map.values()].sort((a,b) => b.count - a.count);
+  els.atlasStatus.textContent = `${rows.length} wave types`;
+  els.atlasList.innerHTML = rows.length ? rows.map((r) => `
+    <li class="item">
+      <strong>${esc(r.system)} — ${esc(r.action)}</strong>
+      <div class="meta">
+        <span>Observed: ${r.count} waves</span>
+        <span>Last observed: ${esc(fmtTime(r.lastObserved))}</span>
+      </div>
+    </li>
+  `).join("") : '<li class="item">No wave types observed yet.</li>';
+}
+
+async function loadWaves() {
+  els.wavesStatus.textContent = "Loading";
+  try {
+    const payload = await getJson(`/api/tenant/dashboard/waves/recent?limit=${state.limit}`);
+    state.waves = Array.isArray(payload.waves) ? payload.waves : [];
+    els.wavesStatus.textContent = `${state.waves.length} waves`;
+
+    if (!state.waves.length) {
+      state.selectedWave = null;
+      state.selectedDecisions = [];
+      els.wavesList.innerHTML = '<li class="item">No waves for this tenant yet.</li>';
+      els.selectedWaveBadge.textContent = "No wave selected";
+      els.waveSummary.textContent = "No waves for this tenant yet.";
+      els.decisionsList.innerHTML = '<li class="item">No decisions recorded.</li>';
+      els.decisionsStatus.textContent = "0 decisions";
+      computeMetrics();
+      renderAtlas();
+      return;
+    }
+
+    els.wavesList.innerHTML = state.waves.map((w) => `
+      <li class="item">
+        <strong><button class="link-btn" data-wave-id="${esc(w.wave_id)}">${esc(w.wave_id)}</button></strong>
+        <div class="meta">
+          <span>system/action: ${esc(w.system || "-")} / ${esc(w.action || "-")}</span>
+          <span>wave status: ${badge(w.status)}</span>
+          <span>decision: ${badge(w.latest_decision)}</span>
+          <span>reason_code: ${esc(w.latest_reason_code || "-")}</span>
+          <span>approval status: ${badge(w.approval_status)}</span>
+          <span>created: ${esc(fmtTime(w.created_at))}</span>
+          <span>updated: ${esc(fmtTime(w.updated_at || w.last_event_at))}</span>
+        </div>
+        ${idLine("approval_request_id", w.approval_request_id)}
+        ${idLine("artifact_id", w.artifact_id)}
+        ${artifactButton(w.artifact_id)}
+      </li>
+    `).join("");
+
+    els.wavesList.querySelectorAll("[data-wave-id]").forEach((el) => {
+      el.addEventListener("click", async (event) => {
+        const waveId = event.currentTarget.getAttribute("data-wave-id");
+        state.selectedWave = state.waves.find((x) => x.wave_id === waveId) || null;
+        els.selectedWaveBadge.textContent = waveId || "No wave selected";
+        await loadDecisionsForSelected();
+      });
+    });
+
+    wireArtifactButtons(els.wavesList);
+
+    if (!state.selectedWave || !state.waves.some((w) => w.wave_id === state.selectedWave.wave_id)) {
+      state.selectedWave = state.waves[0];
+      els.selectedWaveBadge.textContent = state.selectedWave.wave_id;
+      await loadDecisionsForSelected();
+    }
+
+    computeMetrics();
+    renderAtlas();
+  } catch (error) {
+    els.wavesStatus.textContent = `Error: ${error.message}`;
+  }
+}
+
+async function loadDecisionsForSelected() {
+  const wave = state.selectedWave;
+  if (!wave?.wave_id) return;
+
+  els.decisionsStatus.textContent = "Loading";
+  try {
+    const payload = await getJson(`/api/tenant/dashboard/waves/${encodeURIComponent(wave.wave_id)}/decisions`);
+    state.selectedDecisions = Array.isArray(payload.decisions) ? payload.decisions : [];
+
+    els.waveSummary.textContent = [
+      `wave_id: ${payload.wave_id || "-"}`,
+      `tenant_id: ${payload.tenant_id || "-"}`,
+      `system/action: ${wave.system || "-"} / ${wave.action || "-"}`,
+      `wave status: ${wave.status || "-"}`,
+      `decision: ${wave.latest_decision || "-"}`,
+      `reason_code: ${wave.latest_reason_code || "-"}`,
+      `approval_request_id: ${wave.approval_request_id || "-"}`,
+      `artifact_id: ${wave.artifact_id || "-"}`,
+      `updated: ${fmtTime(payload.updated_at || wave.updated_at || wave.last_event_at)}`,
+    ].join("\n");
+
+    els.decisionsStatus.textContent = `${state.selectedDecisions.length} decisions`;
+    els.decisionsList.innerHTML = state.selectedDecisions.length ? state.selectedDecisions.map((d) => `
+      <li class="item">
+        <strong>${badge(d.decision)}</strong>
+        <div class="meta">
+          <span>reason_code: ${esc(d.reason_code || "-")}</span>
+          <span>policy_reference: ${esc(d.policy_reference || "-")}</span>
+          <span>timestamp: ${esc(fmtTime(d.timestamp || d.created_at))}</span>
+        </div>
+        ${idLine("approval_request_id", d.approval_request_id)}
+        ${idLine("artifact_id", d.artifact_id)}
+        ${artifactButton(d.artifact_id)}
+      </li>
+    `).join("") : '<li class="item">No decisions recorded.</li>';
+
+    wireArtifactButtons(els.decisionsList);
+    computeMetrics();
+  } catch (error) {
+    els.decisionsStatus.textContent = `Error: ${error.message}`;
+  }
+}
+
+async function loadApprovals() {
+  els.approvalsStatus.textContent = "Loading";
+  try {
+    const payload = await getJson(`/api/tenant/dashboard/approvals/recent?limit=${state.limit}`);
+    state.approvals = Array.isArray(payload.approvals) ? payload.approvals : [];
+    els.approvalsStatus.textContent = `${state.approvals.length} approvals`;
+
+    els.approvalsList.innerHTML = state.approvals.length ? state.approvals.map((a) => `
+      <li class="item">
+        <strong>${esc(a.approval_request_id || "-")}</strong>
+        <div class="meta">
+          <span>wave_id: ${esc(a.wave_id || "-")}</span>
+          <span>approval status: ${badge(a.approval_status)}</span>
+          <span>decision: ${badge(a.latest_decision)}</span>
+          <span>reason_code: ${esc(a.latest_reason_code || "-")}</span>
+          <span>system/action: ${esc(a.system || "-")} / ${esc(a.action || "-")}</span>
+          <span>updated: ${esc(fmtTime(a.updated_at || a.last_event_at))}</span>
+        </div>
+        ${idLine("artifact_id", a.artifact_id)}
+        ${artifactButton(a.artifact_id)}
+      </li>
+    `).join("") : '<li class="item">No approvals found.</li>';
+
+    wireArtifactButtons(els.approvalsList);
+    computeMetrics();
+  } catch (error) {
+    els.approvalsStatus.textContent = `Error: ${error.message}`;
+  }
+}
+
+async function loadContext() {
+  if (!state.accessKey) {
+    showFatal("Missing dashboard access key. Open with ?k=<tenant_dashboard_key>");
+    return false;
+  }
+
+  if (accessKeyFromUrl) {
+    sessionStorage.setItem("surfit_tenant_access_key", accessKeyFromUrl);
+  }
+
+  try {
+    const payload = await getJson("/api/tenant/dashboard/context");
+    applyBranding(payload);
+    if (accessKeyFromUrl) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    return true;
+  } catch (error) {
+    showFatal(`Dashboard access denied: ${error.message}`);
+    return false;
+  }
+}
+
+async function refreshAll() {
+  state.limit = Math.max(1, Math.min(100, Number(els.limitInput.value) || 20));
+  els.limitInput.value = String(state.limit);
+  await Promise.all([loadWaves(), loadApprovals()]);
+}
+
+function activateTab(name) {
+  const overview = name === "overview";
+  els.tabOverview.classList.toggle("active", overview);
+  els.tabAtlas.classList.toggle("active", !overview);
+  els.overviewSection.classList.toggle("hidden", !overview);
+  els.atlasSection.classList.toggle("hidden", overview);
+}
+
+els.tabOverview.addEventListener("click", () => activateTab("overview"));
+els.tabAtlas.addEventListener("click", () => activateTab("atlas"));
+els.refreshBtn.addEventListener("click", refreshAll);
+els.limitInput.addEventListener("keydown", (e) => { if (e.key === "Enter") refreshAll(); });
+
+(async () => {
+  const ok = await loadContext();
+  if (!ok) return;
+  await refreshAll();
+})();
