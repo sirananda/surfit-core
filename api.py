@@ -1160,7 +1160,8 @@ def run_wave(req: WaveRunRequest, request: Request = None):
             },
         )
     wave_id = str(uuid.uuid4())
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     workspace_dir = str((RUNS_ROOT / wave_id).resolve())
     try:
@@ -1291,7 +1292,8 @@ def evaluate_runtime_execution(req: RuntimeGatewayRequest):
     if not isinstance(payload, dict):
         return payload
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         return _persist_runtime_gateway_pending_approval(conn, req, payload)
@@ -1341,7 +1343,8 @@ def list_recent_runtime_waves(
     limit: int = 20,
 ):
     normalized_limit = max(1, min(int(limit), 100))
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         waves = RUNTIME_WAVE_READ_SERVICE.list_recent_waves(
@@ -1361,7 +1364,8 @@ def list_recent_runtime_waves(
 
 @app.get("/api/runtime/waves/{wave_id}/decisions")
 def get_runtime_wave_decisions(wave_id: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         payload = RUNTIME_WAVE_READ_SERVICE.get_wave_decisions(conn, wave_id=wave_id)
@@ -1381,7 +1385,8 @@ def list_recent_runtime_approvals(
     limit: int = 20,
 ):
     normalized_limit = max(1, min(int(limit), 100))
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         approvals = RUNTIME_WAVE_READ_SERVICE.list_recent_approvals(
@@ -1401,7 +1406,8 @@ def list_recent_runtime_approvals(
 
 @app.get("/api/waves/{wave_id}/status")
 def wave_status(wave_id: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     wave = RUNTIME_WAVE_LIFECYCLE_STORE.fetch_wave_status_row(conn, wave_id)
 
@@ -1448,10 +1454,13 @@ def _attempt_github_merge_execution(conn: sqlite3.Connection, wave_id: str, appr
     if execute_github_action is None:
         return {"attempted": False, "status": "skipped", "reason": "github_connector_unavailable"}
 
-    row = conn.execute(
-        "SELECT tenant_id, system, action, context_refs FROM waves WHERE wave_id = ?",
-        (wave_id,),
-    ).fetchone()
+    try:
+        row = conn.execute(
+            "SELECT tenant_id, system, action, context_refs FROM waves WHERE wave_id = ?",
+            (wave_id,),
+        ).fetchone()
+    except sqlite3.OperationalError as e:
+        return {"attempted": False, "status": "skipped", "reason": "db_schema_mismatch", "error": str(e)}
     if not row:
         return {"attempted": False, "status": "skipped", "reason": "wave_not_found"}
 
@@ -1518,67 +1527,86 @@ def _attempt_github_merge_execution(conn: sqlite3.Connection, wave_id: str, appr
 
 @app.post("/api/approvals/{approval_request_id}")
 def approve_wave(approval_request_id: str, req: ApprovalRequest):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15)
+    conn.execute("PRAGMA busy_timeout = 15000")
     ensure_wave_tables(conn)
-    wave_id = RUNTIME_WAVE_LIFECYCLE_STORE.fetch_approval_wave_id(conn, approval_request_id)
-    if not wave_id:
-        wave_id_prefix = approval_request_id.replace("apr_", "")
-        matches = RUNTIME_WAVE_LIFECYCLE_STORE.find_wave_ids_by_prefix(conn, wave_id_prefix)
-        if len(matches) == 0:
-            conn.close()
-            return {
-                "wave_id": None,
-                "status": "failed",
-                "approval_request_id": approval_request_id,
-                "error": {
-                    "code": "WAVE_NOT_FOUND",
-                    "message": "No matching wave for approval_request_id prefix",
-                    "node": "approve_wave",
-                },
-            }
-        if len(matches) > 1:
-            conn.close()
-            return {
-                "wave_id": None,
-                "status": "failed",
-                "approval_request_id": approval_request_id,
-                "error": {
-                    "code": "AMBIGUOUS_WAVE_PREFIX",
-                    "message": "approval_request_id prefix maps to multiple waves",
-                    "node": "approve_wave",
-                },
-            }
+    wave_id = None
+    try:
+        wave_id = RUNTIME_WAVE_LIFECYCLE_STORE.fetch_approval_wave_id(conn, approval_request_id)
+        if not wave_id:
+            wave_id_prefix = approval_request_id.replace("apr_", "")
+            matches = RUNTIME_WAVE_LIFECYCLE_STORE.find_wave_ids_by_prefix(conn, wave_id_prefix)
+            if len(matches) == 0:
+                return {
+                    "wave_id": None,
+                    "status": "failed",
+                    "approval_request_id": approval_request_id,
+                    "error": {
+                        "code": "WAVE_NOT_FOUND",
+                        "message": "No matching wave for approval_request_id prefix",
+                        "node": "approve_wave",
+                    },
+                }
+            if len(matches) > 1:
+                return {
+                    "wave_id": None,
+                    "status": "failed",
+                    "approval_request_id": approval_request_id,
+                    "error": {
+                        "code": "AMBIGUOUS_WAVE_PREFIX",
+                        "message": "approval_request_id prefix maps to multiple waves",
+                        "node": "approve_wave",
+                    },
+                }
 
-        wave_id = matches[0]
-        RUNTIME_WAVE_LIFECYCLE_STORE.create_approval_record(
-            conn,
-            approval_request_id=approval_request_id,
-            wave_id=wave_id,
-            approved_by=req.approved_by,
-            note=req.note,
-        )
-    else:
-        RUNTIME_WAVE_LIFECYCLE_STORE.update_approval_record(
-            conn,
-            approval_request_id=approval_request_id,
-            approved_by=req.approved_by,
-            note=req.note,
-        )
+            wave_id = matches[0]
+            RUNTIME_WAVE_LIFECYCLE_STORE.create_approval_record(
+                conn,
+                approval_request_id=approval_request_id,
+                wave_id=wave_id,
+                approved_by=req.approved_by,
+                note=req.note,
+            )
+        else:
+            RUNTIME_WAVE_LIFECYCLE_STORE.update_approval_record(
+                conn,
+                approval_request_id=approval_request_id,
+                approved_by=req.approved_by,
+                note=req.note,
+            )
 
-    execution = _attempt_github_merge_execution(conn, wave_id, req.approved_by)
-    RUNTIME_WAVE_LIFECYCLE_STORE.mark_wave_complete_if_running(conn, wave_id)
+        try:
+            execution = _attempt_github_merge_execution(conn, wave_id, req.approved_by)
+        except Exception as e:
+            execution = {"attempted": True, "status": "error", "error": str(e)}
 
-    conn.commit()
-    conn.close()
+        RUNTIME_WAVE_LIFECYCLE_STORE.mark_wave_complete_if_running(conn, wave_id)
+        conn.commit()
 
-    return {
-        "wave_id": wave_id,
-        "status": "complete",
-        "approval_request_id": approval_request_id,
-        "approved_by": req.approved_by,
-        "note": req.note,
-        "execution": execution,
-    }
+        return {
+            "wave_id": wave_id,
+            "status": "complete",
+            "approval_request_id": approval_request_id,
+            "approved_by": req.approved_by,
+            "note": req.note,
+            "execution": execution,
+        }
+
+    except sqlite3.OperationalError as e:
+        conn.rollback()
+        code = "DB_LOCKED" if "locked" in str(e).lower() else "DB_OPERATION_FAILED"
+        return {
+            "wave_id": wave_id,
+            "status": "failed",
+            "approval_request_id": approval_request_id,
+            "error": {
+                "code": code,
+                "message": str(e),
+                "node": "approve_wave",
+            },
+        }
+    finally:
+        conn.close()
 
 
 def _ocean_proxy_http_core(
@@ -1617,7 +1645,8 @@ def ocean_proxy_http(req: OceanProxyHttpRequest, request: Request = None):
             status_code=429,
             content={"reason_code": "RATE_LIMIT_EXCEEDED", "message": "Tenant proxy rate limit exceeded."},
         )
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         status_code, payload = _ocean_proxy_http_core(
@@ -1640,7 +1669,8 @@ def ocean_proxy_http(req: OceanProxyHttpRequest, request: Request = None):
 
 @app.post("/ocean/mutate_config")
 def ocean_mutate_config(req: ConfigMutateRequest):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         return ocean_mutate_config_core(
@@ -1671,7 +1701,8 @@ def ocean_mutate_config(req: ConfigMutateRequest):
 
 @app.get("/api/waves/{wave_id}/policy_manifest")
 def get_policy_manifest(wave_id: str, request: Request = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     auth = _authorize_wave_tenant(conn, wave_id, request)
     if isinstance(auth, JSONResponse):
@@ -1707,7 +1738,8 @@ def get_policy_manifest(wave_id: str, request: Request = None):
 
 @app.get("/api/waves/{wave_id}/token")
 def get_wave_mutation_token(wave_id: str, request: Request = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     auth = _authorize_wave_tenant(conn, wave_id, request)
     if isinstance(auth, JSONResponse):
@@ -1737,7 +1769,8 @@ def get_wave_mutation_token(wave_id: str, request: Request = None):
 
 @app.get("/api/waves/{wave_id}/export")
 def export_wave_bundle(wave_id: str, request: Request = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     auth = _authorize_wave_tenant(conn, wave_id, request)
     if isinstance(auth, JSONResponse):
@@ -1845,7 +1878,8 @@ def export_wave_bundle(wave_id: str, request: Request = None):
 
 @app.get("/api/waves/{wave_id}/audit/export")
 def export_audit(wave_id: str):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
 
     wave = conn.execute(
@@ -1931,7 +1965,8 @@ def export_audit(wave_id: str):
 
 @app.get("/api/waves/{wave_id}/audit/verify")
 def verify_audit(wave_id: str, request: Request = None):
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     auth = _authorize_wave_tenant(conn, wave_id, request)
     if isinstance(auth, JSONResponse):
@@ -2057,7 +2092,8 @@ def metrics_summary(
     _, tenant_id = auth
     start_iso, end_iso = _resolve_time_window(since_hours=since_hours, from_ts=from_ts, to_ts=to_ts)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         total_waves = conn.execute(
@@ -2179,7 +2215,8 @@ def metrics_waves(
     _, tenant_id = auth
     start_iso, end_iso = _resolve_time_window(since_hours=since_hours, from_ts=from_ts, to_ts=to_ts)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         wave_rows = conn.execute(
@@ -2295,7 +2332,8 @@ def list_tenant_dashboard_recent_waves(
 ):
     identity = _resolve_tenant_dashboard_identity(request, access_key)
     normalized_limit = max(1, min(int(limit), 100))
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         waves = RUNTIME_WAVE_READ_SERVICE.list_recent_waves(
@@ -2324,7 +2362,8 @@ def get_tenant_dashboard_wave_decisions(
     access_key: str | None = Query(default=None, description="Tenant dashboard access key."),
 ):
     identity = _resolve_tenant_dashboard_identity(request, access_key)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         payload = RUNTIME_WAVE_READ_SERVICE.get_wave_decisions(conn, wave_id=wave_id)
@@ -2347,7 +2386,8 @@ def list_tenant_dashboard_recent_approvals(
 ):
     identity = _resolve_tenant_dashboard_identity(request, access_key)
     normalized_limit = max(1, min(int(limit), 100))
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20)
+    conn.execute("PRAGMA busy_timeout = 20000")
     ensure_wave_tables(conn)
     try:
         approvals = RUNTIME_WAVE_READ_SERVICE.list_recent_approvals(
