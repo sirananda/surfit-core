@@ -68,6 +68,11 @@ from surfit.demos.handlers._common import DemoHandlerDeps, DemoHandlerError
 from surfit.demos.handlers.context_router import prepare_wave_context
 from surfit.demos.handlers.router import dispatch_template_handler
 
+try:
+    from connectors.github.action_handlers import execute_action as execute_github_action
+except Exception:
+    execute_github_action = None
+
 PROJECT_ROOT = Path(__file__).resolve().parent
 RUNTIME_ARTIFACTS_ROOT = Path(os.environ.get("SURFIT_RUNTIME_ARTIFACTS_ROOT", str(PROJECT_ROOT / "artifacts")))
 _RUNTIME_POLICY_MANIFEST_PATH = Path(
@@ -1438,6 +1443,79 @@ def wave_status(wave_id: str):
     return payload
 
 
+
+def _attempt_github_merge_execution(conn: sqlite3.Connection, wave_id: str, approved_by: str) -> dict[str, Any]:
+    if execute_github_action is None:
+        return {"attempted": False, "status": "skipped", "reason": "github_connector_unavailable"}
+
+    row = conn.execute(
+        "SELECT tenant_id, system, action, context_refs FROM waves WHERE wave_id = ?",
+        (wave_id,),
+    ).fetchone()
+    if not row:
+        return {"attempted": False, "status": "skipped", "reason": "wave_not_found"}
+
+    tenant_id, system, action, context_refs_raw = row
+    if str(system or "").lower() != "github" or str(action or "").lower() != "merge_pull_request":
+        return {"attempted": False, "status": "skipped", "reason": "not_github_merge_action"}
+
+    context_refs = {}
+    if isinstance(context_refs_raw, str) and context_refs_raw.strip():
+        try:
+            context_refs = json.loads(context_refs_raw)
+        except Exception:
+            context_refs = {}
+
+    owner = (
+        context_refs.get("owner")
+        or context_refs.get("repo_owner")
+        or (context_refs.get("github") or {}).get("owner")
+    )
+    repo = (
+        context_refs.get("repo")
+        or context_refs.get("repo_name")
+        or (context_refs.get("github") or {}).get("repo")
+    )
+    pull_number = (
+        context_refs.get("pull_number")
+        or context_refs.get("pr_number")
+        or (context_refs.get("github") or {}).get("pull_number")
+    )
+
+    if not owner or not repo or not pull_number:
+        return {
+            "attempted": False,
+            "status": "skipped",
+            "reason": "missing_github_context_fields",
+            "required": ["owner", "repo", "pull_number"],
+        }
+
+    payload = {
+        "action": "merge_pull_request",
+        "owner": str(owner),
+        "repo": str(repo),
+        "pull_number": int(pull_number),
+        "commit_title": f"Surfit approved merge for {wave_id}",
+    }
+
+    try:
+        result = execute_github_action(payload)
+    except Exception as e:
+        return {"attempted": True, "status": "error", "error": str(e)}
+
+    status = "executed" if bool(result.get("ok")) else "failed"
+    _log_decision(
+        conn,
+        wave_id=wave_id,
+        decision="ALLOW" if status == "executed" else "DENY",
+        reason_code="GITHUB_MERGE_EXECUTED" if status == "executed" else "GITHUB_MERGE_EXECUTION_FAILED",
+        message="Approved action executed via GitHub connector" if status == "executed" else "Approved action execution failed via GitHub connector",
+        node="approve_wave",
+        tenant_id=str(tenant_id),
+    )
+    return {"attempted": True, "status": status, "result": result}
+
+
 @app.post("/api/approvals/{approval_request_id}")
 def approve_wave(approval_request_id: str, req: ApprovalRequest):
     conn = sqlite3.connect(DB_PATH)
@@ -1487,6 +1565,7 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
             note=req.note,
         )
 
+    execution = _attempt_github_merge_execution(conn, wave_id, req.approved_by)
     RUNTIME_WAVE_LIFECYCLE_STORE.mark_wave_complete_if_running(conn, wave_id)
 
     conn.commit()
@@ -1498,6 +1577,7 @@ def approve_wave(approval_request_id: str, req: ApprovalRequest):
         "approval_request_id": approval_request_id,
         "approved_by": req.approved_by,
         "note": req.note,
+        "execution": execution,
     }
 
 
