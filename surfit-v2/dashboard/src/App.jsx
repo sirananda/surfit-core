@@ -21,6 +21,20 @@ const SurfitAPI = {
       return null;
     }
   },
+  async ingestSlack(payload) {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/ingest/slack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn("[SurfitAPI] Slack ingestion failed:", err.message);
+      return null;
+    }
+  },
   async health() {
     try {
       const res = await fetch(`${API_BASE}/api/v1/health`);
@@ -456,13 +470,13 @@ function ActionControlPanel({ policies, onEditPolicy }) {
 // SIMULATE ACTION PANEL
 // ============================================================
 const SIMULATE_PRESETS = [
-  { label: "Slack DM", system: "slack", action: "post_dm", resource: { resource_id: "D0USER123" }, context: { env: "prod", visibility: "internal", reversible: true } },
-  { label: "Slack Team Post", system: "slack", action: "post_message", resource: { channel_name: "eng-platform" }, context: { env: "prod", visibility: "internal", reversible: true } },
-  { label: "Slack Announcement", system: "slack", action: "post_announcement", resource: { channel_name: "company-announcements" }, context: { env: "prod", visibility: "company_wide", reversible: true } },
-  { label: "Notion Page Create", system: "notion", action: "create_page", resource: { resource_name: "New Doc" }, context: { env: "prod", visibility: "internal", reversible: true } },
+  { label: "Slack DM", system: "slack", action: "post_dm", resource: { channel_id: "D0USER123", channel_name: "dm_user_123" }, context: { env: "prod", visibility: "internal", reversible: true }, content: { text: "Hey, can you review the PR when you get a chance?" } },
+  { label: "Slack Team Post", system: "slack", action: "post_message", resource: { channel_id: "C0ENG001", channel_name: "eng-platform" }, context: { env: "prod", visibility: "internal", reversible: true }, content: { text: "CI pipeline is green. All tests passing." } },
+  { label: "Slack Announcement", system: "slack", action: "post_announcement", resource: { channel_id: "C0ANN001", channel_name: "company-announcements" }, context: { env: "prod", visibility: "company_wide", reversible: true }, content: { text: "Q1 results are in. Company all-hands tomorrow at 2pm." } },
+  { label: "Slack Sensitive", system: "slack", action: "post_message", resource: { channel_id: "C0SEC001", channel_name: "security-incidents" }, context: { env: "prod", visibility: "internal", reversible: true, sensitive_data: true }, content: { text: "Potential credential exposure detected in staging logs." } },
+  { label: "Slack External", system: "slack", action: "post_message", resource: { channel_id: "C0EXT001", channel_name: "partner-updates" }, context: { env: "prod", visibility: "external", reversible: true }, content: { text: "Integration milestone completed. API v2 is live." } },
   { label: "Notion DB Update", system: "notion", action: "update_database_entry", resource: { database: "Sprint Tracker" }, context: { env: "prod", visibility: "internal", reversible: true } },
-  { label: "GitHub Create PR", system: "github", action: "create_pr", resource: { repo: "feature-auth" }, context: { env: "prod", visibility: "internal", reversible: true } },
-  { label: "GitHub Merge to Main", system: "github", action: "merge_pr", resource: { repo: "main" }, context: { env: "prod", visibility: "internal", reversible: false } },
+  { label: "GitHub Merge Main", system: "github", action: "merge_pr", resource: { repo: "main" }, context: { env: "prod", visibility: "internal", reversible: false } },
   { label: "GitHub Deploy Prod", system: "github", action: "deploy_production", resource: { repo: "production" }, context: { env: "prod", visibility: "internal", reversible: false } },
 ];
 
@@ -474,25 +488,62 @@ function SimulatePanel({ onResult }) {
 
   const run = async (preset, idx) => {
     setRunning(idx);
-    const payload = { system: preset.system, action: preset.action, resource: preset.resource, context: preset.context };
-    const result = await SurfitAPI.evaluate(payload);
-    setRunning(null);
-    if (result) {
-      onResult({
-        id: "sim-" + Date.now(),
-        system: preset.system,
+    const isSlack = preset.system === "slack";
+    let result;
+
+    if (isSlack) {
+      // Route Slack through ingestion endpoint
+      const slackPayload = {
+        event_type: "message_attempt",
+        system: "slack",
         action: preset.action,
-        status: result.handling === "approve" ? "pending_approval" : "completed",
-        timestamp: new Date().toISOString(),
-        wave: result.wave_score,
-        decision: result.handling,
-        reason: result.reasons?.[result.reasons.length - 2] || result.reasons?.[0] || "Evaluated by engine",
-        reasons: result.reasons,
-        contributing_factors: result.contributing_factors,
-        destination_class_resolved: result.destination_class_resolved,
-        decidedBy: result.handling === "approve" ? null : "system",
-        proof: result.handling !== "approve" ? { evaluated_at: new Date().toISOString(), wave: result.wave_label } : null,
-      });
+        resource: preset.resource,
+        context: preset.context,
+        content: preset.content,
+      };
+      result = await SurfitAPI.ingestSlack(slackPayload);
+      setRunning(null);
+      if (result) {
+        onResult({
+          id: result.id,
+          system: "slack",
+          action: preset.action,
+          status: result.status,
+          timestamp: result.timestamp,
+          wave: result.wave_score,
+          decision: result.handling,
+          reason: result.reasons?.[result.reasons.length - 2] || result.reasons?.[0] || "Evaluated via Slack ingestion",
+          reasons: result.reasons,
+          contributing_factors: result.contributing_factors,
+          destination_class_resolved: result.destination_class,
+          decidedBy: result.decided_by,
+          proof: result.proof,
+          content_preview: result.content_preview,
+          source: "slack_ingestion",
+        });
+      }
+    } else {
+      // GitHub/Notion use direct evaluate
+      const payload = { system: preset.system, action: preset.action, resource: preset.resource, context: preset.context };
+      result = await SurfitAPI.evaluate(payload);
+      setRunning(null);
+      if (result) {
+        onResult({
+          id: "sim-" + Date.now(),
+          system: preset.system,
+          action: preset.action,
+          status: result.handling === "approve" ? "pending_approval" : "completed",
+          timestamp: new Date().toISOString(),
+          wave: result.wave_score,
+          decision: result.handling,
+          reason: result.reasons?.[result.reasons.length - 2] || result.reasons?.[0] || "Evaluated by engine",
+          reasons: result.reasons,
+          contributing_factors: result.contributing_factors,
+          destination_class_resolved: result.destination_class_resolved,
+          decidedBy: result.handling === "approve" ? null : "system",
+          proof: result.handling !== "approve" ? { evaluated_at: new Date().toISOString(), wave: result.wave_label } : null,
+        });
+      }
     }
   };
 
