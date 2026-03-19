@@ -133,31 +133,32 @@ def load_default_policy() -> CustomerPolicy:
         
         systems={
             "slack": SystemConfig(base_risk=1, description="Messaging platform"),
-            "notion": SystemConfig(base_risk=2, description="Knowledge and docs platform"),
-            "github": SystemConfig(base_risk=3, description="Code and deployment platform"),
-            "aws": SystemConfig(base_risk=4, description="Cloud infrastructure"),
+            "notion": SystemConfig(base_risk=1, description="Knowledge and docs platform"),
+            "github": SystemConfig(base_risk=2, description="Code and deployment platform"),
+            "aws": SystemConfig(base_risk=3, description="Cloud infrastructure"),
         },
         
         action_modifiers={
             "slack": {
                 "post_message": ActionModifier(modifier=0, description="Standard message post"),
-                "post_dm": ActionModifier(modifier=0, description="Direct message"),
+                "post_dm": ActionModifier(modifier=-1, description="Direct message — lowest risk"),
                 "post_announcement": ActionModifier(modifier=2, description="Company-wide announcement"),
                 "update_message": ActionModifier(modifier=0, description="Edit existing message"),
                 "delete_message": ActionModifier(modifier=1, description="Delete a message"),
             },
             "notion": {
                 "create_page": ActionModifier(modifier=0, description="Create new page"),
-                "update_page": ActionModifier(modifier=1, description="Modify existing page"),
+                "update_page": ActionModifier(modifier=0, description="Modify existing page"),
                 "update_database_entry": ActionModifier(modifier=1, description="Modify structured data"),
-                "delete_page": ActionModifier(modifier=2, description="Delete a page"),
+                "delete_page": ActionModifier(modifier=2, description="Delete a page — destructive"),
             },
             "github": {
                 "create_pr": ActionModifier(modifier=0, description="Open a pull request"),
-                "merge_pr": ActionModifier(modifier=2, description="Merge PR into target branch"),
-                "push_branch": ActionModifier(modifier=1, description="Push to a branch"),
+                "merge_pr": ActionModifier(modifier=1, description="Merge PR into target branch"),
+                "push_branch": ActionModifier(modifier=0, description="Push to a branch"),
                 "delete_branch": ActionModifier(modifier=1, description="Delete a branch"),
-                "create_release": ActionModifier(modifier=2, description="Create a release"),
+                "create_release": ActionModifier(modifier=1, description="Create a release"),
+                "deploy_production": ActionModifier(modifier=2, description="Trigger production deployment"),
             },
         },
         
@@ -227,13 +228,13 @@ def load_default_policy() -> CustomerPolicy:
         },
         
         context_modifiers=[
-            ContextModifierConfig(field_name="env", trigger_value="prod", modifier=1, description="Production environment"),
+            ContextModifierConfig(field_name="env", trigger_value="prod", modifier=0, description="Production environment — baseline, not an escalation"),
             ContextModifierConfig(field_name="env", trigger_value="staging", modifier=0, description="Staging environment"),
-            ContextModifierConfig(field_name="env", trigger_value="dev", modifier=-1, description="Development environment"),
+            ContextModifierConfig(field_name="env", trigger_value="dev", modifier=-1, description="Development environment — reduced risk"),
             ContextModifierConfig(field_name="visibility", trigger_value="company_wide", modifier=1, description="Company-wide visibility"),
-            ContextModifierConfig(field_name="visibility", trigger_value="external", modifier=2, description="External visibility"),
-            ContextModifierConfig(field_name="reversible", trigger_value=False, modifier=2, description="Irreversible action"),
-            ContextModifierConfig(field_name="sensitive_data", trigger_value=True, modifier=2, description="Contains sensitive data"),
+            ContextModifierConfig(field_name="visibility", trigger_value="external", modifier=2, description="External visibility — audience outside org"),
+            ContextModifierConfig(field_name="reversible", trigger_value=False, modifier=1, description="Irreversible action"),
+            ContextModifierConfig(field_name="sensitive_data", trigger_value=True, modifier=1, description="Contains sensitive data"),
             ContextModifierConfig(field_name="financial_impact", trigger_value=True, modifier=2, description="Has financial impact"),
             ContextModifierConfig(field_name="approval_required_override", trigger_value=True, modifier=99, description="Manual approval override"),
         ],
