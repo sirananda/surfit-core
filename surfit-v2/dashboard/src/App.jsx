@@ -35,6 +35,42 @@ const SurfitAPI = {
       return null;
     }
   },
+  async getPending() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/pending`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.pending || [];
+    } catch { return []; }
+  },
+  async getActions() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/actions`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.actions || [];
+    } catch { return []; }
+  },
+  async approveAction(actionId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/pending/${actionId}/approve`, { method: "POST" });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn("[SurfitAPI] Approve failed:", err.message);
+      return null;
+    }
+  },
+  async rejectAction(actionId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/pending/${actionId}/reject`, { method: "POST" });
+      if (!res.ok) throw new Error(`API error: ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn("[SurfitAPI] Reject failed:", err.message);
+      return null;
+    }
+  },
   async health() {
     try {
       const res = await fetch(`${API_BASE}/api/v1/health`);
@@ -757,8 +793,24 @@ function Sidebar({ active, onNav, pendingCount }) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function DashboardView({ executions, policies, onAction, onSelectExecution, onNav, onEditPolicy, onSimulateResult, setWaveBreakdown }) {
-  const pending = executions.filter(e => e.status === "pending_approval");
+function DashboardView({ executions, policies, onAction, onSelectExecution, onNav, onEditPolicy, onSimulateResult, setWaveBreakdown, livePending = [] }) {
+  const localPending = executions.filter(e => e.status === "pending_approval");
+  // Combine live pending (from real Slack) with local pending (from simulate)
+  const allPending = [
+    ...livePending.map(p => ({
+      id: p.id, system: "slack", action: "post_message",
+      status: "pending_approval", timestamp: p.timestamp,
+      wave: p.wave_score, decision: p.handling,
+      reason: p.content_text || "Held for approval",
+      channel_name: p.channel_name,
+      content_preview: p.content_text,
+      source: "real_slack",
+      reasons: p.reasons,
+      contributing_factors: p.contributing_factors,
+    })),
+    ...localPending,
+  ];
+  const pending = allPending;
   const resolved = executions.filter(e => e.status !== "pending_approval");
 
   return (
@@ -811,9 +863,12 @@ function DashboardView({ executions, policies, onAction, onSelectExecution, onNa
                   <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
                     <SI system={e.system} size={20} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: c.tx, marginBottom: 2 }}>{fmtA(e.action)}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: c.tx, marginBottom: 2 }}>
+                        {fmtA(e.action)}
+                        {e.source === "real_slack" && <span style={{ fontSize: 8, fontWeight: 700, color: "#000", background: c.gn, borderRadius: 3, padding: "1px 5px", marginLeft: 8, letterSpacing: "0.05em" }}>REAL</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: c.txm }}>
-                        {SYSTEMS[e.system]?.name} {"\u00B7"} {fmtT(e.timestamp)} {"\u00B7"} <span style={{ fontStyle: "italic", color: c.txd }}>{e.reason}</span>
+                        {SYSTEMS[e.system]?.name} {"\u00B7"} {fmtT(e.timestamp)} {"\u00B7"} {e.channel_name ? `#${e.channel_name}` : ""} {"\u00B7"} <span style={{ fontStyle: "italic", color: c.txd }}>{e.content_preview || e.reason}</span>
                       </div>
                     </div>
                     <WaveBadge wave={e.wave} />
@@ -883,6 +938,9 @@ function DashboardView({ executions, policies, onAction, onSelectExecution, onNa
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <SI system={e.system} size={15} />
                     <span style={{ color: c.tx, fontWeight: 500 }}>{SYSTEMS[e.system]?.name}</span>
+                    {e.source === "real_slack" && <span style={{ fontSize: 8, fontWeight: 700, color: "#000", background: c.gn, borderRadius: 3, padding: "1px 5px", letterSpacing: "0.05em" }}>REAL</span>}
+                    {e.source === "real_slack_event" && <span style={{ fontSize: 8, fontWeight: 700, color: "#000", background: c.gn, borderRadius: 3, padding: "1px 5px", letterSpacing: "0.05em" }}>REAL</span>}
+                    {e.source === "simulated" && <span style={{ fontSize: 8, fontWeight: 700, color: c.txd, background: c.sf2, borderRadius: 3, padding: "1px 5px", letterSpacing: "0.05em", border: `1px solid ${c.bd}` }}>SIM</span>}
                   </div>
                 </td>
                 <td style={{ padding: "10px 12px", color: c.txs }}>{fmtA(e.action)}</td>
@@ -1215,8 +1273,42 @@ export default function SurfitApp() {
   const [receiptModal, setReceiptModal] = useState(null);
   const [editingPolicy, setEditingPolicy] = useState(null);
   const [waveBreakdown, setWaveBreakdown] = useState(null);
+  const [livePending, setLivePending] = useState([]);
+  const [liveActions, setLiveActions] = useState([]);
 
-  const pendingCount = execs.filter(e => e.status === "pending_approval").length;
+  // Poll real endpoints every 3 seconds
+  useEffect(() => {
+    const poll = setInterval(() => {
+      SurfitAPI.getPending().then(setLivePending);
+      SurfitAPI.getActions().then(setLiveActions);
+    }, 3000);
+    // Initial fetch
+    SurfitAPI.getPending().then(setLivePending);
+    SurfitAPI.getActions().then(setLiveActions);
+    return () => clearInterval(poll);
+  }, []);
+
+  // Merge live actions into display: live actions first, then local mock/simulated
+  const allExecs = [...liveActions.map(a => ({
+    id: a.id,
+    system: a.system || "slack",
+    action: a.action || "post_message",
+    status: a.status === "executed" ? "completed" : a.status === "approved" ? "approved" : a.status === "blocked" ? "rejected" : a.status === "pending_approval" ? "pending_approval" : a.status,
+    timestamp: a.timestamp,
+    wave: a.wave_score,
+    decision: a.handling,
+    reason: a.content_preview || a.reasons?.[a.reasons.length - 2] || "Evaluated by engine",
+    reasons: a.reasons,
+    contributing_factors: a.contributing_factors,
+    destination_class_resolved: a.destination_class,
+    decidedBy: a.decided_by,
+    proof: a.proof,
+    source: a.source,
+    content_preview: a.content_preview,
+    channel_name: a.channel_name,
+  })), ...execs];
+
+  const pendingCount = livePending.length + execs.filter(e => e.status === "pending_approval").length;
   const nav = useCallback(v => { setSelExec(null); setView(v); }, []);
   const selE = useCallback(e => { setSelExec(e); setView("receipts"); }, []);
 
@@ -1227,8 +1319,35 @@ export default function SurfitApp() {
     }
   }, []);
 
-  const handleAction = useCallback((execId, newStatus) => {
+  const handleAction = useCallback(async (execId, newStatus) => {
     const now = new Date().toISOString();
+
+    // Check if this is a real pending action (from server)
+    const isLivePending = livePending.some(p => p.id === execId);
+    if (isLivePending) {
+      if (newStatus === "approved") {
+        const result = await SurfitAPI.approveAction(execId);
+        if (result) {
+          SurfitAPI.getPending().then(setLivePending);
+          SurfitAPI.getActions().then(setLiveActions);
+          setReceiptModal({
+            id: execId, system: "slack", action: "post_message",
+            status: result.executed ? "approved" : "approved_failed",
+            wave: livePending.find(p => p.id === execId)?.wave_score || 4,
+            decision: "approve", decidedBy: "operator",
+            proof: { executed: result.executed, approved_at: result.approved_at, slack_ts: result.slack_result?.ts },
+            reason: result.executed ? "Approved and executed via dashboard" : "Approved but execution failed",
+          });
+        }
+      } else if (newStatus === "rejected") {
+        await SurfitAPI.rejectAction(execId);
+        SurfitAPI.getPending().then(setLivePending);
+        SurfitAPI.getActions().then(setLiveActions);
+      }
+      return;
+    }
+
+    // Local mock action handling (unchanged)
     let updated = null;
     setExecs(prev => prev.map(e => {
       if (e.id !== execId) return e;
@@ -1241,7 +1360,7 @@ export default function SurfitApp() {
       return updated;
     }));
     setTimeout(() => { if (updated) setReceiptModal(updated); }, 60);
-  }, []);
+  }, [livePending]);
 
   const handlePolicySave = useCallback((system, action, newWave) => {
     setPolicies(prev => prev.map(p =>
@@ -1260,7 +1379,7 @@ export default function SurfitApp() {
       <Sidebar active={view} onNav={nav} pendingCount={pendingCount} />
       <div style={{ flex: 1, padding: "28px 40px", overflowY: "auto" }}>
         <div style={{ maxWidth: 920 }}>
-          {view === "dashboard" && <DashboardView executions={execs} policies={policies} onAction={handleAction} onSelectExecution={selE} onNav={nav} onEditPolicy={setEditingPolicy} onSimulateResult={handleSimulateResult} setWaveBreakdown={setWaveBreakdown} />}
+          {view === "dashboard" && <DashboardView executions={allExecs} policies={policies} onAction={handleAction} onSelectExecution={selE} onNav={nav} onEditPolicy={setEditingPolicy} onSimulateResult={handleSimulateResult} setWaveBreakdown={setWaveBreakdown} livePending={livePending} />}
           {view === "policies" && <PolicyView policies={policies} onEditPolicy={setEditingPolicy} />}
           {view === "receipts" && <ReceiptView executions={execs} selected={selExec} />}
           {view === "onboarding" && <OnboardingView onComplete={() => nav("dashboard")} />}
