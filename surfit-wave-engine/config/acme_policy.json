@@ -1,0 +1,31 @@
+{
+  "tenant_id": "acme-corp",
+  "resource_groups": {
+    "slack": {
+      "announcement": {
+        "destination_class": "company_announcement",
+        "risk_modifier": 2,
+        "visibility": "company_wide",
+        "members": ["company-announcements", "all-hands", "leadership-updates", "board-comms"],
+        "description": "Acme company-wide channels"
+      },
+      "sensitive": {
+        "destination_class": "sensitive_channel",
+        "risk_modifier": 3,
+        "visibility": "internal",
+        "members": ["legal-review", "security-incidents", "m-and-a-confidential"],
+        "description": "Acme sensitive channels — extra protection"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "system": "github",
+      "action": "merge_pr",
+      "resource_name": "production",
+      "forced_wave": 5,
+      "forced_handling": "block",
+      "reason": "Acme policy: all production merges require manual deployment pipeline"
+    }
+  ]
+}
