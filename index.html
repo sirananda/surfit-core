@@ -757,11 +757,17 @@ footer {
 }
 </style>
 <style id="surfit-display-font-override">
-:root { --surfit-display-font: 'Outfit', sans-serif; }
+:root { --surfit-display-font: 'Righteous', cursive; }
 .section-title,
 .thesis-statement,
 .brand-heading {
   font-family: var(--surfit-display-font, 'Righteous', cursive) !important;
+}
+</style>
+<style>
+.section-title, .thesis-statement, .brand-heading {
+  font-family: "Outfit", sans-serif !important;
+  font-weight: 700 !important;
 }
 </style>
 </head>
@@ -804,8 +810,8 @@ footer {
 
     <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct.</p>
 
-    <p class="hero-substrate">Control and route AI actions across Slack, GitHub, X, and more — based on your business rules.</p>
-    <p class="hero-saw-def">Low-risk actions run automatically. High-risk actions are checked or escalated. Every action is recorded with a full execution log.</p>
+    <p class="hero-substrate">Control and route AI actions across Slack, GitHub, X, Notion, AWS, internal APIs, and more — based on your business rules.</p>
+    <p class="hero-saw-def">Works with OpenClaw and proprietary internal agents.</p>
     <p class="hero-saw-def">Surfit is the control layer for agent actions. Independent of any single model provider or agent framework.</p>
 
 
@@ -891,13 +897,13 @@ footer {
       <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:24px;">
         Surfit sits between your agents and your systems. Every action is evaluated against your business rules and handled based on risk — from automatic execution to escalation.
       </p>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;align-items:start;">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;align-items:stretch;">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;">
           <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Agents</div>
           <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;">OpenClaw, LangGraph, internal agents</div>
           <div style="font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;">Execution request</div>
         </div>
-        <div style="background:var(--surface);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:18px 16px;">
+        <div style="background:var(--surface);border:2px solid rgba(38,192,255,0.5);border-radius:10px;padding:18px 16px;background:rgba(38,192,255,0.06);">
           <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Surfit Decision Layer</div>
           <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.7;">
             • action evaluation<br>
@@ -1210,7 +1216,7 @@ footer {
   <div class="container" style="max-width:980px;">
     <div class="section-label">Technical FAQ</div>
     <div class="faq-grid" style="margin-top:24px;">
-      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a governance runtime for AI agents that enforces deterministic policy boundaries between agents and enterprise systems.</p></div>
+      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agent actions that evaluates every action against your business rules before execution — routing actions across Slack, GitHub, X, and more based on risk.</p></div>
       <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
       <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container carrying a pinned policy manifest, execution constraints, and audit lineage for a specific action.</p></div>
       <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
@@ -1250,7 +1256,7 @@ footer {
   <div class="container" style="max-width:920px;">
     <div class="section-label">Product Demo</div>
     <div class="section-title brand-heading" style="font-family:'Righteous',cursive !important;">See Surfit in Action</div>
-    <p class="section-body" style="max-width:640px;">Surfit decides how agent actions are handled across your systems — before they execute.</p>
+    <p class="section-body" style="max-width:640px;">Surfit controls how agent actions are handled across your systems — before they execute.</p>
     <div style="margin-top:40px;position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 16px 48px rgba(0,0,0,0.4);">
       <iframe
         src="https://www.loom.com/embed/fc96615026364af89a84a15667dc25f3"
