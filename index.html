@@ -814,7 +814,7 @@ footer {
 
     <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct.</p>
 
-    <p class="hero-substrate" style="max-width:900px;">Control and route AI actions across Slack, GitHub, X, Notion, AWS, internal APIs, and more — based on your business rules.</p>
+    
     
     <p class="hero-saw-def" style="margin-top:28px;margin-bottom:24px;">Surfit is the control layer for agent actions. Independent of any single model provider or agent framework.</p>
 
@@ -902,20 +902,14 @@ footer {
       <p style="font-size:15px;font-weight:300;color:var(--muted);line-height:1.8;max-width:600px;margin:12px auto 0;">Any agent framework connects to Surfit. Surfit evaluates and controls execution across all downstream systems.</p>
     </div>
     <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;max-width:1000px;margin:0 auto;">
-      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;max-width:220px;">
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;min-width:200px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:4px;">Agent Framework</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);">OpenClaw</div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:center;max-width:240px;">
+        <div style="background:var(--surface);border:1px solid rgba(255,115,30,0.3);border-radius:10px;padding:20px 24px;text-align:center;min-width:220px;">
+          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;">Agent Framework + Sandbox</div>
+          <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:2px;">OpenClaw</div>
+          <div style="font-size:12px;color:var(--muted);">powered by NemoClaw</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;">Sandboxed agent execution with network egress control</div>
         </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;min-width:200px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:4px;">Sandbox Runtime</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);">NemoClaw</div>
-        </div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;text-align:center;min-width:200px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Proprietary</div>
-          <div style="font-size:14px;font-weight:500;color:var(--text);">Custom Agents</div>
-        </div>
-        <div style="margin-top:6px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5;max-width:200px;">Agents reason and act. Sandboxes control network egress. Neither governs business correctness.</div>
+        <div style="margin-top:8px;font-size:12px;text-align:center;line-height:1.6;max-width:220px;"><span style="color:var(--text);">Agents reason and act. Sandboxes control network egress.</span> <span style="color:var(--orange);font-weight:500;">Neither governs business correctness.</span></div>
       </div>
       <div style="color:var(--border);font-size:24px;padding:0 20px;">→</div>
       <div style="background:rgba(38,192,255,0.06);border:2px solid rgba(38,192,255,0.4);border-radius:12px;padding:24px 32px;text-align:center;min-width:180px;">
@@ -972,7 +966,7 @@ footer {
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;">
           <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Enterprise Systems</div>
-          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;">Slack, GitHub, X, Notion, AWS, internal APIs</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;">Slack, GitHub, X, Notion, AWS, internal APIs, and more</div>
           <div style="font-size:12px;font-weight:300;color:var(--muted);line-height:1.6;">Actions execute within policy boundaries. Blocked actions never reach the system.</div>
         </div>
       </div>
@@ -1254,7 +1248,7 @@ footer {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:26px;">
       <div class="runtime-card" style="border-color:rgba(38,192,255,0.25);">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;">✓ Live</div>
-        <p>• Wave runtime enforcement across Slack, GitHub, X<br>• Deterministic risk classification (Wave 1–5)<br>• Real-time execution gating with approve/reject<br>• Policy manifest verification (SHA256)<br>• Cross-system action evaluation from single engine<br>• Cloud-hosted dashboard with live polling<br>• SQLite-backed persistence across restarts<br>• Tamper-evident execution receipts<br>• Approval DM notifications via Slack<br>• Adapter SDK for external agent frameworks</p>
+        <p style="color:var(--text);">• Wave runtime enforcement across Slack, GitHub, X<br>• Deterministic risk classification (Wave 1–5)<br>• Real-time execution gating with approve/reject/block<br>• Policy manifest verification (SHA256)<br>• Cross-system action evaluation from single engine<br>• Cloud-hosted dashboard with live action polling<br>• SQLite-backed persistence across server restarts<br>• Tamper-evident execution receipts with proof<br>• Approval DM notifications to operators via Slack<br>• Keyword + context-based content risk scoring<br>• GitHub webhook integration (pull_request events)<br>• X/Twitter post classification and gating<br>• Agent demo: 7 actions across 4 systems, all correct<br>• Always-on cloud deployment (Hetzner, systemd managed)<br>• Adapter SDK for external agent frameworks</p>
       </div>
       <div class="runtime-card" style="border-color:rgba(255,115,30,0.25);">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:14px;">◐ In Progress</div>
