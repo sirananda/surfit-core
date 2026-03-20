@@ -805,18 +805,19 @@ footer {
 
     <div class="hero-badge">
       <span class="hero-badge-dot"></span>
-      Works with OpenClaw and proprietary internal agents
+      Works with any agent framework
     </div>
 
     <div class="hero-wordmark">
       <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
     </div>
 
-    <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct.</p>
+    <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct for your business.</p>
 
     
     
-    <p class="hero-saw-def" style="margin-top:32px;margin-bottom:32px;font-size:13px;">Surfit is the control layer for agent actions. Independent of any single model provider or agent framework.</p>
+    <p class="hero-saw-def" style="margin-top:20px;margin-bottom:8px;font-size:13px;">Control and route AI actions across your systems — before they execute.</p>
+    <p class="hero-saw-def" style="margin-bottom:32px;font-size:12px;">Low-risk actions run automatically. High-risk actions are checked or escalated.</p>
 
 
 
@@ -826,6 +827,21 @@ footer {
 
 
 
+  </div>
+</section>
+
+
+<!-- WHERE AGENTS FAIL -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 48px;">
+  <div class="container" style="max-width:800px;text-align:center;">
+    <div class="section-label">Where agents fail</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin:24px auto 28px;max-width:600px;text-align:left;">
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:14px;color:var(--text);">An agent posts confidential data to a public Slack channel</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:14px;color:var(--text);">An agent merges valid code that breaks your business</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:14px;color:var(--text);">An agent triggers the wrong workflow across systems</div>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">These actions are technically valid — but operationally wrong.</p>
+    <p style="font-size:16px;color:var(--blue);font-weight:600;">Surfit prevents this.</p>
   </div>
 </section>
 
@@ -840,12 +856,14 @@ footer {
           <span class="accent-blue"> The missing layer is correctness.</span>
         </div>
         <p class="section-body">
-          AI agents now post messages, publish content, modify systems, and trigger workflows with real business impact.
-          
-          
-          
+          AI agents now post messages, publish content, modify systems, and trigger workflows with real business impact. Most systems ensure agents run. Nothing ensures they act correctly for your business.
           <br><br>
-          Most systems ensure agents run. Nothing ensures they act correctly for your business. Technically safe doesn't mean correct — an agent can take valid actions with bad business impact. Surfit evaluates every action before execution.
+          <strong style="color:var(--text);">Correct means:</strong><br>
+          → the right action<br>
+          → in the right place<br>
+          → under the right conditions<br>
+          → for your business<br><br>
+          Surfit evaluates every action before execution.
         </p>
       </div>
 
@@ -904,10 +922,10 @@ footer {
     <div style="display:flex;align-items:stretch;justify-content:center;gap:0;max-width:960px;margin:0 auto;">
       <div style="display:flex;flex-direction:column;align-items:center;width:220px;flex-shrink:0;">
         <div style="background:var(--surface);border:1px solid rgba(255,115,30,0.3);border-radius:10px;padding:22px 20px;text-align:center;width:100%;flex:1;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;">Agent Framework + Sandbox</div>
+          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--orange);margin-bottom:6px;">Agent Framework</div>
           <div style="font-size:16px;font-weight:500;color:var(--text);margin-bottom:2px;">OpenClaw</div>
           <div style="font-size:12px;color:var(--muted);">powered by <span style="color:var(--text);">NemoClaw</span></div>
-          <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;">Sandboxed agent execution with network egress control</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--muted);line-height:1.5;">Including OpenClaw, LangGraph, and internal systems</div>
         </div>
         <div style="margin-top:10px;font-size:12px;text-align:center;line-height:1.6;"><span style="color:var(--text);">Agents reason and act. Sandboxes control network egress.</span> <span style="color:var(--orange);font-weight:600;">Neither governs business correctness.</span></div>
       </div>
@@ -954,7 +972,7 @@ footer {
       <div class="section-label">How Surfit Works</div>
       <div class="section-title brand-heading" style="margin-bottom:20px;">Your agents propose actions. Surfit ensures they are correct.</div>
       <p style="font-size:16px;font-weight:300;color:var(--muted);line-height:1.8;margin-bottom:24px;">
-        Surfit sits between your agents and your systems. Every action is evaluated against your business rules and handled based on risk — from automatic execution to escalation.
+        Agent → Surfit → Systems. Every action is evaluated against your business rules and handled based on risk — from automatic execution to escalation.
       </p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left;align-items:stretch;">
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 16px;">
@@ -1069,8 +1087,8 @@ footer {
   <div class="container">
     <div class="flow-header">
       <div class="section-label">Execution Boundary Model</div>
-      <div class="section-title brand-heading" style="">Every action flows through the Wave system.</div>
-      <p class="section-body">Actions are classified into Waves 1-5 based on risk. Low waves execute automatically. High waves are checked or escalated. Every action produces a verifiable execution receipt.</p>
+      <div class="section-title brand-heading" style="">Every action is assigned a risk level.</div>
+      <p class="section-body">Low → runs automatically. Medium → runs with logging. High → requires checks. Critical → escalated. Execution is controlled dynamically — not blocked by default.</p>
     </div>
 
     <div class="flow-diagram">
@@ -1332,7 +1350,7 @@ footer {
     <div class="section-label">Built for Enterprise AI</div>
     <div class="section-title brand-heading" style="">Decide what gets executed —<br>before it happens.</div>
     <p class="section-body">Surfit is the control layer for agent actions. Every action evaluated, every decision explained, every outcome recorded — across every system your agents touch.</p>
-    <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Works with OpenClaw and proprietary internal agents &nbsp;·&nbsp; Governed by Surfit</p>
+    <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Works with any agent framework &nbsp;·&nbsp; Governed by Surfit</p>
   </div>
 </section>
 
