@@ -1027,9 +1027,9 @@ footer {
         <!-- Babysitters -->
         <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
           <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Output Validation</div>
-          <div style="font-size:10px;color:var(--muted);">Guardrails AI · CTGT</div>
+          <div style="font-size:10px;color:var(--text);opacity:0.8;">Guardrails AI · CTGT</div>
           <div style="font-size:10px;color:var(--green);margin-top:4px;">✓ "Text looks safe"</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;font-style:italic;">Checks words, not actions</div>
+          <div style="font-size:9px;color:var(--text);margin-top:2px;font-style:italic;opacity:0.7;">Checks words, not actions</div>
         </div>
 
         <div style="color:var(--muted);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
@@ -1037,9 +1037,9 @@ footer {
         <!-- Guards -->
         <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
           <div style="font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Sandbox &amp; Access</div>
-          <div style="font-size:10px;color:var(--muted);">IronClaw · NemoClaw</div>
+          <div style="font-size:10px;color:var(--text);opacity:0.8;">IronClaw · NemoClaw</div>
           <div style="font-size:10px;color:var(--green);margin-top:4px;">✓ "Access permitted"</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;font-style:italic;">Checks the door, not the decision</div>
+          <div style="font-size:9px;color:var(--text);margin-top:2px;font-style:italic;opacity:0.7;">Checks the door, not the decision</div>
         </div>
 
         <div style="color:var(--muted);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
@@ -1490,17 +1490,20 @@ footer {
         <div style="margin-bottom:16px;">
           <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Pre-built Agent Logic</div>
           <div style="color:var(--text);font-size:13px;line-height:2;">
-            • Breaks under real-world variability — cannot reliably assess risk across systems<br>
-            • Logic becomes fragmented across agents with no consistent control layer
+            • Hardcoded rules break when context changes — a safe action in staging is dangerous in production<br>
+            • Cannot evaluate business context — doesn't know if it's Monday morning or earnings week<br>
+            • Logic is embedded inside the agent — a model update or prompt change can silently alter what's "allowed"
           </div>
         </div>
 
         <div>
           <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Internal Builds</div>
           <div style="color:var(--text);font-size:13px;line-height:2;">
-            • Requires rebuilding decision infrastructure for every new integration<br>
-            • Quickly becomes brittle, inconsistent, and expensive to maintain<br>
-            • No unified enforcement — decisions vary across systems and teams
+            • Every new system requires new decision logic — Slack rules don't apply to GitHub, GitHub rules don't apply to AWS<br>
+            • The team that builds the agent is the team that builds the governance — that's self-regulation, not enforcement<br>
+            • Credentials stay inside the agent — governance is advisory, not architectural<br>
+            • Breaks the moment you add a second agent, a new framework, or a third-party system<br>
+            • No cross-system consistency — every integration is a one-off
           </div>
         </div>
       </div>
