@@ -812,6 +812,7 @@ footer {
       <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
     </div>
 
+    <p style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;font-weight:600;">Evals don't control execution. Surfit does.</p>
     <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct for your business.</p>
 
     
@@ -850,6 +851,38 @@ footer {
           → under the right conditions<br>
           → for your business<br><br>
           Correctness is defined by your policies — not the agent. Surfit evaluates every action before execution.
+        </p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:28px 0;max-width:800px;">
+          <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:18px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--red);margin-bottom:10px;font-weight:600;">Evals ≠ Control</div>
+            <div style="font-size:13px;line-height:1.7;color:var(--text);">Evals run inside the agent.<br>They can flag, warn, or suggest.<br><strong style="color:var(--red);">But the agent still executes.</strong></div>
+          </div>
+          <div style="background:rgba(38,192,255,0.06);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:18px;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);margin-bottom:10px;font-weight:600;">Surfit = Control</div>
+            <div style="font-size:13px;line-height:1.7;color:var(--text);">Agent does not hold credentials.<br>Every action must pass through Surfit.<br><strong style="color:var(--blue);">Surfit decides, then executes.</strong></div>
+          </div>
+        </div>
+
+        <p style="font-size:14px;font-style:italic;color:var(--text);border-left:3px solid var(--blue);padding-left:14px;margin:20px 0;">If the agent holds the credentials, governance is advisory.<br>If an external layer holds them, governance is enforceable.</p>
+
+        <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:18px;margin:24px 0;max-width:800px;">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">Example: Agent wants to merge a PR</div>
+          <div style="font-size:13px;line-height:1.8;color:var(--muted);">
+            Guardrails → output is fine ✓<br>
+            CTGT → model is compliant ✓<br>
+            IronClaw → permissions are safe ✓<br>
+            <span style="color:var(--red);font-weight:600;">So it goes through… into production. Payments break.</span>
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;line-height:1.8;color:var(--muted);">
+            <strong style="color:var(--blue);">With Surfit:</strong><br>
+            → Intercepts before execution<br>
+            → Evaluates business context (production branch, payment code, no review)<br>
+            → <strong style="color:var(--blue);">Holds the action. Business protected.</strong>
+          </div>
+        </div>
+
+        <p style="display:none;">
         </p>
       </div>
 
@@ -1001,7 +1034,7 @@ footer {
         <div style="flex:0.4;display:flex;align-items:center;justify-content:center;">
           <div style="border:2px dashed rgba(239,68,68,0.3);border-radius:8px;padding:10px 8px;text-align:center;width:100%;">
             <div style="font-size:10px;color:var(--red);font-weight:600;">NO LAYER HERE</div>
-            <div style="font-size:9px;color:var(--muted);margin-top:2px;">Nobody evaluates<br>business impact</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:2px;">Nobody controls whether<br>the action happens</div>
           </div>
         </div>
 
@@ -1018,6 +1051,7 @@ footer {
       </div>
 
       <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--red);font-weight:500;">Guardrails AI and CTGT never saw the action — they only check the model's words, not what the agent does with them. IronClaw granted access because the agent needed it — but access control ends at the door. Once the agent was inside with live credentials, it merged directly to production. No layer evaluated whether it should. No one was in the path.</div>
+      <div style="text-align:center;margin-top:14px;font-size:14px;font-weight:600;color:var(--red);">Everything passed checks. It still went through.</div>
     </div>
 
     <!-- FLOW 2: WITH SURFIT -->
@@ -1094,7 +1128,7 @@ footer {
         <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Guardrails AI · NeMo Guardrails</div>
         <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Validates LLM text outputs — toxicity, PII, hallucinations, schema compliance.</div>
         <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "Is this output safe?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Does not govern what the agent does to real systems</div>
+        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Runs inside the agent — agent can bypass, remove, or reconfigure</div>
       </div>
 
       <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;">
