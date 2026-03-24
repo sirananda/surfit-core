@@ -831,53 +831,6 @@ footer {
 </section>
 
 
-<!-- WHERE AGENTS FAIL -->
-<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 48px;">
-  <div class="container" style="max-width:800px;text-align:center;">
-    <div class="section-label">Where agents fail</div>
-    <div style="max-width:820px;margin:24px auto 28px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:6px;padding:0 18px;">
-        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#22c55e;font-weight:600;text-align:center;">What the agent did</div>
-        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#ef4444;font-weight:600;text-align:center;">What actually happened</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Posted a message to #general in Slack</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Shared confidential revenue data with 500 employees</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Merged a passing PR to main on GitHub</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Broke the billing pipeline for 3 hours</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Published a post to the company X account</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Released an unapproved product announcement publicly</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Updated a Notion database entry</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Overwrote pricing data with incorrect values before a board meeting</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Provisioned a new EC2 instance on AWS</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Spun up a public-facing server with no security group in production</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent a Slack DM to a team lead</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent an internal performance review to the wrong person</div>
-        </div>
-      </div>
-    </div>
-    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">Every action above was technically valid — but operationally wrong.</p>
-    <p style="font-size:16px;color:var(--blue);font-weight:600;">Surfit prevents this.</p>
-  </div>
-</section>
-
 <!-- THESIS -->
 <section class="thesis" id="how-it-works">
   <div class="container">
@@ -1064,7 +1017,7 @@ footer {
 
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--red);font-weight:500;">Guardrails AI and CTGT validated the output. IronClaw and NemoClaw controlled the access. But the agent held the credentials — and no one evaluated whether the action was correct for the business.</div>
+      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--red);font-weight:500;">Guardrails AI and CTGT never saw the action — they only check the model's words, not what the agent does with them. IronClaw granted access because the agent needed it — but access control ends at the door. Once the agent was inside with live credentials, it merged directly to production. No layer evaluated whether it should. No one was in the path.</div>
     </div>
 
     <!-- FLOW 2: WITH SURFIT -->
@@ -1112,15 +1065,15 @@ footer {
             </div>
             <div style="background:rgba(38,192,255,0.06);border:1px solid rgba(38,192,255,0.2);border-radius:6px;padding:10px;text-align:center;">
               <div style="font-size:9px;color:var(--blue);font-weight:600;letter-spacing:.1em;margin-bottom:6px;">WAVE 4-5 · HELD</div>
-              <div style="font-size:10px;color:var(--muted);line-height:1.5;">PR merge to main → ⏸<br><span style="font-size:9px;">Financial system implications detected</span><br><br>Post to company X → ⏸<br><span style="font-size:9px;">External-facing, unapproved content</span></div>
-              <div style="font-size:9px;color:var(--blue);margin-top:6px;font-weight:500;">2 actions held. Right teams notified.</div>
+              <div style="font-size:10px;color:var(--muted);line-height:1.5;">PR merge to main → ⏸<br><span style="font-size:9px;">Production system. Financial implications.</span><br><br>Post to company X → ⏸<br><span style="font-size:9px;">External-facing. Unapproved content.</span></div>
+              <div style="font-size:9px;color:var(--blue);margin-top:6px;font-weight:500;">2 actions held. Business protected.</div>
             </div>
           </div>
         </div>
 
       </div>
 
-      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--blue);font-weight:500;">The agent never held the credentials. Surfit evaluated every action in business context. Most executed instantly. The dangerous ones were caught.</div>
+      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--blue);font-weight:500;">The agent never held the credentials. Surfit evaluated every action in business context.<br><br>Routine actions flowed instantly across five systems. Pre-defined high-risk actions were caught. The business stayed protected.</div>
     </div>
 
   </div>
@@ -1292,45 +1245,50 @@ footer {
   </div>
 </section>
 
-<!-- TECHNICAL FAQ -->
-<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
-  <div class="container" style="max-width:980px;">
-    <div class="section-label">Technical FAQ</div>
-    <div class="faq-grid" style="margin-top:24px;">
-      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agents that evaluates every action against your business rules before execution — governing actions across Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more based on risk.</p></div>
-      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
-      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a risk level assigned to each agent action. Lower-risk Waves execute automatically with logging. Higher-risk Waves are held for approval before execution. Every Wave produces an auditable record of what happened and why.</p></div>
-      <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
-      
-      <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
-      <div class="faq-item"><h4>Why can’t agents bypass Surfit?</h4><p>Enterprise systems are configured to require Surfit-mediated tokens, connectors, and policy validation for sensitive operations. Agents do not “choose” whether to obey Surfit — Surfit sits at the execution boundary.</p></div>
-      <div class="faq-item"><h4>Why would an agent “listen” to Surfit?</h4><p>Agents do not voluntarily comply with Surfit. Surfit governs the execution path by controlling the credentials, tokens, and connector interfaces through which enterprise actions are performed.</p></div>
-      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes in its framework. Surfit governs the execution boundary when that agent attempts enterprise actions.</p></div>
-      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the rejection reason.</p></div>
-      <div class="faq-item"><h4>How is Surfit different from security tools like CrowdStrike?</h4><p>Security platforms decide what is allowed — they enforce access policies, protect endpoints, and block threats at the infrastructure layer. Surfit decides what should happen — it evaluates agent actions in business context and routes decisions to the right teams. Security says "this process can run." Surfit says "this action is correct for the business." Different layer, different purpose. They work together, not in competition.</p></div>
-      <div class="faq-item"><h4>How is Surfit different from agent runtime governance (like OpenClaw)?</h4><p>Agent runtimes decide what to do — they plan, reason, and select tools. Some runtimes add internal governance features like approvals or sandboxing. But when governance lives inside the agent runtime, it's controlled by the same system it's supposed to constrain. Surfit sits outside the agent entirely — at the execution boundary. It's framework-agnostic, vendor-neutral, and architecturally independent. The agent can't override Surfit because Surfit holds the execution credentials, not the agent.</p></div>
+<!-- WHERE AGENTS FAIL -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 48px;">
+  <div class="container" style="max-width:800px;text-align:center;">
+    <div class="section-label">Where agents fail</div>
+    <div style="max-width:820px;margin:24px auto 28px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:6px;padding:0 18px;">
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#22c55e;font-weight:600;text-align:center;">What the agent did</div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#ef4444;font-weight:600;text-align:center;">What actually happened</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Posted a message to #general in Slack</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Shared confidential revenue data with 500 employees</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Merged a passing PR to main on GitHub</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Broke the billing pipeline for 3 hours</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Published a post to the company X account</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Released an unapproved product announcement publicly</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Updated a Notion database entry</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Overwrote pricing data with incorrect values before a board meeting</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Provisioned a new EC2 instance on AWS</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Spun up a public-facing server with no security group in production</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent a Slack DM to a team lead</div>
+          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
+          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent an internal performance review to the wrong person</div>
+        </div>
+      </div>
     </div>
-  </div>
-</section>
-
-<!-- VISUALIZATION VIDEO -->
-<section id="visualization" style="background:var(--dark);border-top:1px solid var(--border);padding:72px 48px;">
-  <div class="container" style="max-width:980px;">
-    <div class="section-label">Architecture Visualization</div>
-    <div class="section-title brand-heading" style="">See Surfit runtime governance in motion.</div>
-    <p class="section-body">A technical walkthrough of cross-agent runtime enforcement at the neutral Surfit execution boundary.</p>
-
-    <div style="margin-top:18px;display:flex;gap:12px;flex-wrap:wrap;">
-      <a href="/visualization/index.html" class="btn-primary">Open Standalone Visualization</a>
-      <a href="/outputs/surfit_visualization/surfit-visualization-162s.webm?v=20260311" class="btn-ghost">Direct Video File</a>
-    </div>
-
-    <div style="margin-top:24px;border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:12px;">
-      <video controls playsinline preload="metadata" style="display:block;width:100%;border-radius:10px;background:#020811;">
-        <source src="outputs/surfit_visualization/surfit-visualization-162s.webm?v=20260311" type="video/webm">
-        Your browser does not support embedded video playback.
-      </video>
-    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">Every action above was technically valid — but operationally wrong.</p>
+    <p style="font-size:16px;color:var(--blue);font-weight:600;">Surfit prevents this.</p>
   </div>
 </section>
 
@@ -1396,6 +1354,27 @@ footer {
         </div>
       </div>
 
+    </div>
+  </div>
+</section>
+
+<!-- TECHNICAL FAQ -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
+  <div class="container" style="max-width:980px;">
+    <div class="section-label">Technical FAQ</div>
+    <div class="faq-grid" style="margin-top:24px;">
+      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agents that evaluates every action against your business rules before execution — governing actions across Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more based on risk.</p></div>
+      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
+      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a risk level assigned to each agent action. Lower-risk Waves execute automatically with logging. Higher-risk Waves are held for approval before execution. Every Wave produces an auditable record of what happened and why.</p></div>
+      <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
+      
+      <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
+      <div class="faq-item"><h4>Why can’t agents bypass Surfit?</h4><p>Enterprise systems are configured to require Surfit-mediated tokens, connectors, and policy validation for sensitive operations. Agents do not “choose” whether to obey Surfit — Surfit sits at the execution boundary.</p></div>
+      <div class="faq-item"><h4>Why would an agent “listen” to Surfit?</h4><p>Agents do not voluntarily comply with Surfit. Surfit governs the execution path by controlling the credentials, tokens, and connector interfaces through which enterprise actions are performed.</p></div>
+      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes in its framework. Surfit governs the execution boundary when that agent attempts enterprise actions.</p></div>
+      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the rejection reason.</p></div>
+      <div class="faq-item"><h4>How is Surfit different from security tools like CrowdStrike?</h4><p>Security platforms decide what is allowed — they enforce access policies, protect endpoints, and block threats at the infrastructure layer. Surfit decides what should happen — it evaluates agent actions in business context and routes decisions to the right teams. Security says "this process can run." Surfit says "this action is correct for the business." Different layer, different purpose. They work together, not in competition.</p></div>
+      <div class="faq-item"><h4>How is Surfit different from agent runtime governance (like OpenClaw)?</h4><p>Agent runtimes decide what to do — they plan, reason, and select tools. Some runtimes add internal governance features like approvals or sandboxing. But when governance lives inside the agent runtime, it's controlled by the same system it's supposed to constrain. Surfit sits outside the agent entirely — at the execution boundary. It's framework-agnostic, vendor-neutral, and architecturally independent. The agent can't override Surfit because Surfit holds the execution credentials, not the agent.</p></div>
     </div>
   </div>
 </section>
