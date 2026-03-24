@@ -817,7 +817,7 @@ footer {
     
     
     <p class="hero-saw-def" style="margin-top:20px;margin-bottom:8px;font-size:13px;">Control and route AI actions across your systems — before they execute.</p>
-    <p class="hero-saw-def" style="margin-bottom:32px;font-size:12px;">Low-risk actions run automatically. High-risk actions are checked or escalated.</p>
+    <p class="hero-saw-def" style="margin-bottom:32px;font-size:12px;">Low-risk actions execute automatically. High-risk actions require approval before execution.</p>
 
 
 
@@ -1156,14 +1156,14 @@ footer {
   <div class="container">
     <div class="section-label">Architecture</div>
     <div class="section-title brand-heading" style="">Built in layers.<br>Enforced at runtime.</div>
-    <p style="font-size:14px;font-weight:300;color:var(--muted);margin-top:12px;max-width:680px;">Surfit enforces policy checks before tool invocation, isolates workspace per Wave, anchors policy lineage with hashes, gates mutation paths with wave tokens, and exposes audit verification endpoints.</p>
+    <p style="font-size:14px;font-weight:300;color:var(--muted);margin-top:12px;max-width:680px;">Surfit evaluates every agent action against business policy before execution. Each action is classified by risk, routed to the right team when needed, and recorded with a hash-chained audit trail.</p>
 
     <div class="arch-grid">
       <div class="arch-card">
         <div class="arch-card-num">01</div>
         <div class="arch-card-tag tag-blue">Execution</div>
-        <div class="arch-card-title">Policy-Governed Graph Executor</div>
-        <div class="arch-card-body">Graph-based Wave execution with policy check before every tool invocation. Each node is evaluated at runtime. The execution structure is governed — the reasoning inside tool nodes is not constrained.</div>
+        <div class="arch-card-title">Policy-Governed Execution Engine</div>
+        <div class="arch-card-body">Every agent action passes through policy evaluation before execution. Each action is classified, risk-scored, and routed at runtime. The execution boundary is governed — the agent's internal reasoning is not constrained.</div>
       </div>
       <div class="arch-card">
         <div class="arch-card-num">02</div>
@@ -1173,9 +1173,9 @@ footer {
       </div>
       <div class="arch-card">
         <div class="arch-card-num">03</div>
-        <div class="arch-card-tag tag-blue">Intelligence</div>
-        <div class="arch-card-title">Governed LLM Integration</div>
-        <div class="arch-card-body">LLM treated as a tool node — not a privileged actor. Provider, model, prompt boundary, raw input, sanitized input, and output all logged. Write actions are policy-evaluated, not manually reviewed.</div>
+        <div class="arch-card-tag tag-blue">Control</div>
+        <div class="arch-card-title">System-Level Action Control</div>
+        <div class="arch-card-body">Agent actions are evaluated at the system boundary — not at the model layer. Surfit governs what agents do to external systems, not how they reason internally. Every write action is policy-evaluated and classified by business context before execution.</div>
       </div>
       <div class="arch-card">
         <div class="arch-card-num">04</div>
@@ -1242,7 +1242,7 @@ footer {
           </span>
           <h4>CISOs and Security Leaders</h4>
         </div>
-        <p>Security teams expanding AI capabilities face a tradeoff between innovation and operational risk. Surfit enforces deterministic boundaries using scoped mutation tokens, policy manifests, and runtime validation before actions are executed.</p>
+        <p>Security teams expanding AI capabilities face a tradeoff between innovation and operational risk. Surfit enforces deterministic boundaries at the execution layer — every agent action is policy-evaluated, risk-classified, and either auto-executed or held for approval before reaching any system.</p>
         <div class="runtime-outcome">Outcome: Agents gain controlled authority. Security teams retain enforcement guarantees.</div>
       </div>
 
@@ -1253,7 +1253,7 @@ footer {
           </span>
           <h4>Enterprise Architecture Teams</h4>
         </div>
-        <p>Large organizations often run heterogeneous AI stacks across multiple frameworks and vendors. Surfit provides a neutral governance runtime that sits in the execution path without requiring framework lock-in.</p>
+        <p>Large organizations often run heterogeneous AI stacks across multiple frameworks and vendors. Surfit provides a neutral decision layer that sits at the execution boundary — evaluating every agent action in business context regardless of which framework produced it.</p>
         <div class="runtime-outcome">Outcome: Unified execution governance across agent ecosystems. Neutral integration layer for multiple frameworks.</div>
       </div>
 
@@ -1317,7 +1317,7 @@ footer {
     <div class="faq-grid" style="margin-top:24px;">
       <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agents that evaluates every action against your business rules before execution — governing actions across Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more based on risk.</p></div>
       <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
-      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container carrying a pinned policy manifest, execution constraints, and audit lineage for a specific action.</p></div>
+      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a risk level assigned to each agent action. Lower-risk Waves execute automatically with logging. Higher-risk Waves are held for approval before execution. Every Wave produces an auditable record of what happened and why.</p></div>
       <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
       
       <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
