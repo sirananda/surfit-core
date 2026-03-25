@@ -47,7 +47,7 @@ nav {
   border-bottom:1px solid var(--border);
 }
 .blog-header h1 {
-  font-family:'Righteous',cursive; font-size:42px; color:var(--text);
+  font-family:'Righteous',cursive; font-size:42px; color:var(--text); letter-spacing:0.02em;
   margin-bottom:12px;
 }
 .blog-header p { color:var(--muted); font-size:15px; font-weight:300; }
@@ -128,17 +128,13 @@ footer {
 </div>
 
 <div class="container" style="max-width:1000px;">
-  <div class="blog-categories">
-    <span class="blog-cat landscape">Surfit Updates</span>
-    <span class="blog-cat update">Landscape</span>
-    <span class="blog-cat incident">Incidents</span>
-  </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:40px 0;">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;padding:40px 0;">
 
     <!-- Column 1: Surfit Updates -->
     <div>
-      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(38,192,255,0.2);">Surfit Updates</div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:16px;padding:6px 14px;border:1px solid rgba(38,192,255,0.3);border-radius:6px;text-align:center;">Surfit Updates</div>
       <a href="/blog/introducing-surfit" class="post-card">
         <div class="post-meta">
           <span class="post-tag landscape">Surfit Updates</span>
@@ -151,13 +147,13 @@ footer {
 
     <!-- Column 2: Landscape -->
     <div>
-      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--orange);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(255,115,30,0.2);">Landscape</div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--orange);font-weight:600;margin-bottom:16px;padding:6px 14px;border:1px solid rgba(255,115,30,0.3);border-radius:6px;text-align:center;">Landscape</div>
       <div style="font-size:13px;color:var(--muted);font-style:italic;padding:20px 0;">Coming soon — industry analysis and competitive landscape.</div>
     </div>
 
     <!-- Column 3: Incidents -->
     <div>
-      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(239,68,68,0.2);">Incidents</div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:16px;padding:6px 14px;border:1px solid rgba(239,68,68,0.3);border-radius:6px;text-align:center;">Incidents</div>
       <a href="/blog/litellm-compromise" class="post-card">
         <div class="post-meta">
           <span class="post-tag incident">Incident</span>
