@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The AI Agent Control Landscape — March 2026</title>
+<meta name="description" content="A comprehensive breakdown of every tool in the AI agent control stack — what they do, where they fall short, and why execution authority is the missing layer.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #0a0f1a;
+  --darker: #060b14;
+  --surface: #111827;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --red: #ef4444;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+a { color:var(--text); text-decoration:underline; text-decoration-color:rgba(226,232,240,0.3); }
+a:hover { text-decoration-color:var(--text); }
+.surfit-card a { color:var(--blue); text-decoration-color:rgba(38,192,255,0.3); }
+.surfit-card a:hover { text-decoration-color:var(--blue); }
+
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  background:var(--darker);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-wordmark { font-family:'Righteous',cursive; font-size:18px; }
+.nav-wordmark .s { color:#26c0ff; }
+.nav-wordmark .d { color:#7a9ab8; font-size:12px; margin:0 1px; }
+.nav-wordmark .a { color:#ff731e; }
+.nav-links { list-style:none; display:flex; gap:24px; align-items:center; }
+.nav-links a { color:var(--text); font-size:13px; font-weight:500; text-decoration:none; }
+.nav-links a:hover { color:var(--blue); }
+
+.container { max-width:720px; margin:0 auto; padding:0 24px; }
+
+.post-header {
+  padding:60px 24px 40px;
+  border-bottom:1px solid var(--border);
+  max-width:720px; margin:0 auto;
+}
+.post-tag {
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:3px 10px; border-radius:3px; font-weight:700;
+  display:inline-block; margin-bottom:16px;
+}
+.post-tag.landscape { background:rgba(255,115,30,0.1); color:var(--orange); }
+.post-date { font-size:12px; color:var(--muted); margin-bottom:16px; }
+.post-header h1 {
+  font-size:32px; line-height:1.2; font-weight:700;
+  color:var(--text); margin-bottom:16px;
+}
+.post-header .subtitle { font-size:16px; color:rgba(226,232,240,0.75); line-height:1.6; font-weight:300; }
+
+.post-body { padding:40px 0 60px; }
+.post-body h2 {
+  font-size:22px; font-weight:700; color:var(--text);
+  margin:40px 0 16px; padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.post-body h2:first-child { border-top:none; margin-top:0; padding-top:0; }
+.post-body h3 {
+  font-size:17px; font-weight:600; color:var(--text);
+  margin:28px 0 12px;
+}
+.post-body p {
+  font-size:15px; line-height:1.8; color:rgba(226,232,240,0.75);
+  margin-bottom:16px; font-weight:300;
+}
+.post-body strong { color:var(--text); font-weight:600; }
+.post-body .blue { color:var(--blue); }
+.post-body .red { color:var(--red); }
+.post-body .orange { color:var(--orange); }
+
+.tool-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px 24px; margin:20px 0;
+}
+.tool-header {
+  display:flex; justify-content:space-between; align-items:flex-start;
+  margin-bottom:12px;
+}
+.tool-name { font-size:18px; font-weight:700; color:var(--text); }
+.tool-meta { text-align:right; }
+.tool-meta span { display:block; font-size:11px; color:var(--muted); }
+.tool-layer {
+  display:inline-block; font-size:9px; letter-spacing:0.1em;
+  text-transform:uppercase; padding:2px 8px; border-radius:3px;
+  font-weight:700; margin-bottom:10px;
+}
+.tool-layer.output { background:rgba(255,115,30,0.1); color:var(--orange); }
+.tool-layer.model { background:rgba(255,115,30,0.1); color:var(--orange); }
+.tool-layer.sandbox { background:rgba(255,115,30,0.1); color:var(--orange); }
+.tool-layer.infra { background:rgba(255,115,30,0.1); color:var(--orange); }
+.tool-layer.runtime { background:rgba(255,115,30,0.1); color:var(--orange); }
+.tool-layer.execution { background:rgba(38,192,255,0.1); color:var(--blue); }
+.tool-desc { font-size:13px; line-height:1.7; color:rgba(226,232,240,0.75); margin-bottom:12px; }
+.tool-links { font-size:12px; margin-bottom:12px; }
+.tool-links a { margin-right:12px; }
+.tool-gap {
+  font-size:13px; padding:10px 14px; border-radius:6px;
+  background:rgba(239,68,68,0.05); border-left:3px solid var(--red);
+  color:rgba(226,232,240,0.75);
+}
+.tool-gap strong { color:var(--red); }
+
+.surfit-card {
+  background:rgba(38,192,255,0.04); border:2px solid rgba(38,192,255,0.3);
+  border-radius:10px; padding:24px 28px; margin:28px 0;
+  box-shadow:0 0 20px rgba(38,192,255,0.05);
+}
+
+.post-cta {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:28px; text-align:center; margin:40px 0;
+}
+.post-cta p { font-size:15px; color:var(--text); margin-bottom:16px; }
+.post-cta a {
+  display:inline-block; background:var(--blue); color:#000;
+  padding:10px 24px; border-radius:6px; font-weight:600;
+  font-size:13px; text-decoration:none;
+}
+.post-cta a:hover { opacity:0.9; text-decoration:none; }
+
+.back-link { display:block; padding:20px 0; font-size:13px; color:var(--muted); }
+
+footer {
+  border-top:1px solid var(--border); padding:32px 48px;
+  text-align:center;
+}
+.footer-logo { font-family:'Righteous',cursive; font-size:14px; }
+.footer-logo .s { color:#26c0ff; }
+.footer-logo .d { color:#7a9ab8; font-size:10px; }
+.footer-logo .a { color:#ff731e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <div class="nav-wordmark">
+      <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="post-header">
+    <span class="post-tag landscape">Landscape</span>
+    <div class="post-date">March 26, 2026</div>
+    <h1>The AI Agent Control Landscape — March 2026</h1>
+    <p class="subtitle">March 2026 brought major advances in AI agent control — new frameworks, new security stacks, new funding rounds. But it also revealed <strong style="color:var(--blue);">a massive gap that none of them fill.</strong> Here's every major tool in the stack, what layer they operate at, what they do well, and why execution authority over real business systems remains unsolved.</p>
+  </div>
+
+  <div class="post-body">
+
+    <h2>Five Layers, One Missing</h2>
+
+    <p>As AI agents move from advisory to autonomous, an entire ecosystem of tools has emerged to make them safer, more compliant, and more controlled. These tools are real, well-funded, and solve genuine problems.</p>
+
+    <p>But they all share one characteristic: <strong class="orange">the agent still executes on its own.</strong></p>
+
+    <p>Every tool in this landscape operates on the agent's inputs, outputs, model behavior, access permissions, or runtime environment. None of them sit in the execution path between the agent and the business systems it touches. None of them hold the credentials. None of them evaluate whether a specific action should happen for the business right now.</p>
+
+    <p>This post maps every major player, the layer they occupy, and <strong>the gap that remains.</strong></p>
+
+    <h2>Layer 1: Output Validation</h2>
+    <p class="orange" style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:16px;">Answers: "Is this output safe?"</p>
+
+    <div class="tool-card">
+      <div class="tool-header">
+        <div>
+          <div class="tool-name">Guardrails AI</div>
+          <span class="tool-layer output">Output Validation</span>
+        </div>
+        <div class="tool-meta">
+          <span>Founded 2023</span>
+          <span>$7.5M Seed (Feb 2024)</span>
+          <span>~$1.1M revenue</span>
+        </div>
+      </div>
+      <div class="tool-desc">Open-source Python framework for validating LLM text inputs and outputs. Checks for toxicity, PII leakage, hallucinations, schema compliance, and custom validation rules. Includes Guardrails Hub — a community marketplace of reusable validators — and Snowglobe, a simulation engine for testing guardrails before production.</div>
+      <div class="tool-links">
+        <a href="https://guardrailsai.com">guardrailsai.com</a>
+        <a href="https://github.com/guardrails-ai/guardrails">GitHub</a>
+        <a href="https://guardrailsai.com/guardrailsoss">Guardrails OSS</a>
+        <a href="https://guardrailsai.com/snowglobe">Snowglobe</a>
+      </div>
+      <div class="tool-desc">Backed by Zetta Venture Partners, Bloomberg Beta, Pear VC, GitHub Fund. Angels include Ian Goodfellow and Logan Kilpatrick. 11 employees.</div>
+      <div class="tool-gap">
+        <strong>The gap:</strong> Guardrails validates what the model says — not what the agent does with it. It runs inside the agent's pipeline as a Python library. The agent still holds the credentials. The agent can bypass, remove, or reconfigure the guardrail. Validation is advisory. The agent still executes on its own.
+      </div>
+    </div>
+
+    <h3>Also in this layer:</h3>
+    <p><strong>NVIDIA NeMo Guardrails</strong> — NVIDIA's programmable guardrails framework for LLM applications. Defines conversational boundaries using Colang, a domain-specific language. Controls what the model can say and how it responds, but does not govern agent actions on external systems. <a href="https://github.com/NVIDIA/NeMo-Guardrails">GitHub</a></p>
+
+    <h2>Layer 2: Model Behavior Control</h2>
+    <p class="orange" style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:16px;">Answers: "Is this model compliant?"</p>
+
+    <div class="tool-card">
+      <div class="tool-header">
+        <div>
+          <div class="tool-name">CTGT</div>
+          <span class="tool-layer model">Model Behavior</span>
+        </div>
+        <div class="tool-meta">
+          <span>Founded 2023</span>
+          <span>$7.7M Seed (Feb 2025)</span>
+          <span>YC W24</span>
+        </div>
+      </div>
+      <div class="tool-desc">Modifies model behavior at the representation level using mechanistic interpretability. Identifies and removes hallucinations, bias, and unwanted behavior in LLMs without retraining or fine-tuning. Claims 500x faster model deployment. Their product Mentat provides a runtime policy engine that enforces compliance at the inference layer.</div>
+      <div class="tool-links">
+        <a href="https://www.ctgt.ai">ctgt.ai</a>
+        <a href="https://www.ctgt.ai/research/introducing-mentat">Mentat</a>
+        <a href="https://www.ctgt.ai/access">Platform Access</a>
+      </div>
+      <div class="tool-desc">Backed by Google's Gradient, General Catalyst, Y Combinator, Liquid 2, Deepwater. Angels include François Chollet, Paul Graham, Michael Seibel. Working with Fortune 10 companies including PwC and JP Morgan.</div>
+      <div class="tool-gap">
+        <strong>The gap:</strong> CTGT controls what the model produces — not what the agent does with that output. It operates at the inference layer, shaping model behavior before the agent even acts. It does not sit between the agent and external systems. The agent still holds the credentials. The agent still executes on its own.
+      </div>
+    </div>
+
+    <h2>Layer 3: Sandbox & Environment Security</h2>
+    <p class="orange" style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:16px;">Answers: "Can this agent access this?"</p>
+
+    <div class="tool-card">
+      <div class="tool-header">
+        <div>
+          <div class="tool-name">NVIDIA NemoClaw + OpenShell</div>
+          <span class="tool-layer sandbox">Sandbox & Access</span>
+        </div>
+        <div class="tool-meta">
+          <span>Alpha: March 16, 2026</span>
+          <span>GTC 2026 launch</span>
+          <span>Open source</span>
+        </div>
+      </div>
+      <div class="tool-desc">Reference stack for running OpenClaw agents inside a secure sandbox. Built on NVIDIA OpenShell runtime with Rust-based container isolation, network egress control, filesystem restrictions, and declarative YAML security policies. Includes managed inference with NVIDIA Nemotron models. Announced at GTC 2026. Not production-ready — APIs and behavior may change.</div>
+      <div class="tool-links">
+        <a href="https://github.com/NVIDIA/NemoClaw">GitHub</a>
+        <a href="https://www.nvidia.com/en-us/ai/nemoclaw/">nvidia.com/nemoclaw</a>
+        <a href="https://docs.nvidia.com/nemoclaw/latest/index.html">Developer Guide</a>
+        <a href="https://nvidianews.nvidia.com/news/nvidia-announces-nemoclaw">Press Release</a>
+      </div>
+      <div class="tool-desc">NVIDIA is partnering with Cisco, CrowdStrike, Google, and Microsoft Security to integrate OpenShell into enterprise security stacks. Jensen Huang called OpenClaw "the operating system for personal AI."</div>
+      <div class="tool-gap">
+        <strong>The gap:</strong> NemoClaw controls WHERE the agent can go — which network endpoints it can reach, which files it can access. Once access is granted (because the agent needs GitHub access to be useful), NemoClaw has no opinion on whether THIS SPECIFIC PR merge should happen. It checks the door. It does not evaluate the action. The agent still executes on its own.
+      </div>
+    </div>
+
+    <h3>Also in this layer:</h3>
+    <p><strong>IronClaw</strong> — Container-level security for OpenClaw agents. Rust-based network isolation and sandboxing. Part of the broader OpenShell ecosystem. Controls access, not business decisions.</p>
+
+    <h2>Layer 4: Infrastructure & Endpoint Security</h2>
+    <p class="orange" style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:16px;">Answers: "Is this process allowed to run?"</p>
+
+    <div class="tool-card">
+      <div class="tool-header">
+        <div>
+          <div class="tool-name">CrowdStrike · Palo Alto Networks · Okta</div>
+          <span class="tool-layer infra">Infrastructure Security</span>
+        </div>
+        <div class="tool-meta">
+          <span>Public companies</span>
+          <span>Established players</span>
+        </div>
+      </div>
+      <div class="tool-desc">Enterprise-grade infrastructure, endpoint, and identity security. CrowdStrike detects and prevents threats at the endpoint level. Palo Alto Networks secures network traffic and cloud infrastructure. Okta manages identity and access. These are the foundation of enterprise security — but they operate below the application layer.</div>
+      <div class="tool-links">
+        <a href="https://www.crowdstrike.com">crowdstrike.com</a>
+        <a href="https://www.paloaltonetworks.com">paloaltonetworks.com</a>
+        <a href="https://www.okta.com">okta.com</a>
+      </div>
+      <div class="tool-gap">
+        <strong>The gap:</strong> Infrastructure security answers "is this process allowed to run on this machine?" It has no concept of what the agent is doing at the application layer. CrowdStrike doesn't know the difference between a Slack message to #eng-platform and a Slack message to #company-announcements. It secures the infrastructure. The agent still executes on its own.
+      </div>
+    </div>
+
+    <h2>Layer 5: Agent Runtimes & Frameworks</h2>
+    <p class="orange" style="font-size:12px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;margin-bottom:16px;">Answers: "What should the agent do?"</p>
+
+    <div class="tool-card">
+      <div class="tool-header">
+        <div>
+          <div class="tool-name">OpenClaw · LangChain · CrewAI · AutoGen</div>
+          <span class="tool-layer runtime">Agent Runtime</span>
+        </div>
+        <div class="tool-meta">
+          <span>OpenClaw: 250K+ GitHub stars</span>
+          <span>LangChain: $125M Series A (Oct 2025)</span>
+        </div>
+      </div>
+      <div class="tool-desc">Agent frameworks that plan, reason, and execute. OpenClaw is the fastest-growing open source agent runtime, described by NVIDIA as "the operating system for personal AI." LangChain provides the most widely-used tool/chain orchestration. CrewAI enables multi-agent collaboration. AutoGen (Microsoft) enables multi-agent conversation patterns.</div>
+      <div class="tool-links">
+        <a href="https://github.com/openclaw/openclaw">OpenClaw GitHub</a>
+        <a href="https://www.langchain.com">langchain.com</a>
+        <a href="https://www.crewai.com">crewai.com</a>
+        <a href="https://github.com/microsoft/autogen">AutoGen GitHub</a>
+      </div>
+      <div class="tool-desc">Some runtimes are adding internal governance features — approval workflows, tool allowlists, permission systems. OpenClaw's <a href="https://docs.openclaw.ai/tools/clawhub">ClawHub</a> marketplace now includes security-focused plugins.</div>
+      <div class="tool-gap">
+        <strong>The gap:</strong> When governance lives inside the agent framework, it's controlled by the same system it's supposed to constrain. The agent still holds the credentials. A model update, a prompt change, or a framework reconfiguration can silently alter what's "allowed." Self-regulation is not enforcement. The agent still executes on its own.
+      </div>
+    </div>
+
+    <h3>Related: MCP (Model Context Protocol)</h3>
+    <p><a href="https://modelcontextprotocol.io">Model Context Protocol</a> — Anthropic's open standard for connecting AI models to external data sources and tools. MCP standardizes how agents connect to systems, but does not evaluate or govern what the agent does once connected. It's a transport layer, not a decision layer. <a href="https://github.com/modelcontextprotocol">GitHub</a></p>
+
+    <h2>The Missing Layer: Execution Authority</h2>
+
+    <div class="surfit-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);margin-bottom:4px;">Layer 6 — Execution Authority</div>
+          <div style="font-size:22px;font-weight:700;color:var(--blue);">Surfit</div>
+        </div>
+        <div style="background:var(--blue);color:#000;font-size:9px;font-weight:700;padding:3px 12px;border-radius:10px;letter-spacing:.1em;">WHERE EXECUTION HAPPENS</div>
+      </div>
+
+      <p style="font-size:14px;line-height:1.8;color:var(--text);margin-bottom:16px;">Every tool above feeds into the agent. <strong class="blue">Surfit is where the agent's output becomes real.</strong></p>
+
+      <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">Surfit sits between the agent and every system it touches — Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more. The agent proposes an action. Surfit evaluates it in business context. Low-risk actions execute instantly. High-risk actions are held and routed. Everything produces a receipt.</p>
+
+      <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">The architectural distinction: <strong class="blue">Surfit holds the credentials. The agent doesn't.</strong> The agent calls Surfit's API, not the external system's API. Surfit evaluates the action and executes using credentials only Surfit holds. The agent never touches the external system directly.</p>
+
+      <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">This is not another guardrail, another validator, or another sandbox. This is the layer where business decisions about agent actions are actually made and enforced — architecturally, not advisorily.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:16px;">
+        <div style="font-size:12px;color:var(--text);padding:8px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Holds credentials — agent cannot bypass</div>
+        <div style="font-size:12px;color:var(--text);padding:8px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Cross-system consistency — one decision model</div>
+        <div style="font-size:12px;color:var(--text);padding:8px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Every action receipted and auditable</div>
+      </div>
+    </div>
+
+    <h2>The Pattern</h2>
+
+    <p>Look at every tool in this landscape. Each one is valuable. Each one solves a real problem. And each one ends the same way:</p>
+
+    <p><strong class="orange">→ The agent still executes on its own.</strong></p>
+
+    <p>Guardrails validates the output. <strong class="orange">The agent still executes on its own.</strong></p>
+    <p>CTGT constrains the model. <strong class="orange">The agent still executes on its own.</strong></p>
+    <p>NemoClaw controls the access. <strong class="orange">The agent still executes on its own.</strong></p>
+    <p>CrowdStrike secures the infrastructure. <strong class="orange">The agent still executes on its own.</strong></p>
+    <p>OpenClaw decides what to do. <strong class="orange">The agent still executes on its own.</strong></p>
+
+    <p><strong class="blue">Surfit is where that changes.</strong> The agent proposes. Surfit evaluates, decides, and executes. The agent never holds the credentials. The agent never touches the system directly. This is not a feature that can be bolted onto any of the tools above — it's an architectural decision that changes how agents interact with every external system.</p>
+
+    <p>Every tool makes agents capable. <strong class="blue">Surfit is where capable agents execute.</strong></p>
+
+    <div class="post-cta">
+      <p>See how Surfit operates across multiple systems — with a live demo showing real agent actions being evaluated, routed, and receipted.</p>
+      <a href="https://www.surfit.ai/#demo">Watch the Demo</a>
+    </div>
+
+    <a href="/blog/" class="back-link">← Back to Blog</a>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+  </div>
+</footer>
+
+</body>
+</html>
