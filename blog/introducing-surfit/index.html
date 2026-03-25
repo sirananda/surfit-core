@@ -68,7 +68,7 @@ nav {
 }
 .post-body h2:first-child { border-top:none; margin-top:0; padding-top:0; }
 .post-body p {
-  font-size:15px; line-height:1.8; color:var(--muted);
+  font-size:15px; line-height:1.8; color:rgba(226,232,240,0.75);
   margin-bottom:16px; font-weight:300;
 }
 .post-body strong { color:var(--text); font-weight:600; }
@@ -143,7 +143,7 @@ footer {
 
 <div class="container">
   <div class="post-header">
-    <span class="post-tag landscape">Landscape</span>
+    <span class="post-tag landscape">Surfit Updates</span>
     <div class="post-date">March 25, 2026</div>
     <h1>Introducing Surfit — The Decision Layer for AI Agent Actions</h1>
     <p class="subtitle">Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system with real credentials. That's the layer Surfit builds.</p>
@@ -177,8 +177,8 @@ footer {
     <p>Surfit evaluates each action in business context — not just "is this safe?" but "is this the right action for the organization right now?" — and either auto-executes it or holds it based on risk.</p>
 
     <div class="highlight">
-      <p><strong>Wave 1–3:</strong> Low-risk actions execute automatically with full logging. A Slack update to #eng-platform, a Notion log entry, a PR to a dev branch — these flow through instantly. No friction.</p>
-      <p><strong>Wave 4–5:</strong> High-risk actions are held. A PR merge to main that touches payment code. A post to the company X account. An AWS infrastructure change. These are intercepted before execution and surfaced with full context.</p>
+      <p><strong>Low-risk actions</strong> execute automatically with full logging. A Slack update to #eng-platform, a Notion log entry, a PR to a dev branch — these flow through instantly. No friction.</p>
+      <p><strong>High-risk actions</strong> are held before execution. A PR merge to main that touches payment code. A post to the company X account. An AWS infrastructure change. These are intercepted and surfaced with full context.</p>
     </div>
 
     <p>Most actions never need a human. Surfit's risk classification determines what flows and what's caught — based on content, destination, and context, not static rules.</p>
@@ -254,7 +254,7 @@ footer {
 
     <h2>What's Live Today</h2>
 
-    <p>Surfit currently governs agent actions across seven system categories: <strong>Slack, GitHub, X (Twitter), Notion, Gmail, Outlook, and AWS</strong>. Every action is evaluated by the same risk classification engine, producing a consistent decision model across all systems.</p>
+    <p>Surfit currently governs agent actions across ten system categories, including <strong>Slack, GitHub, X, Notion, Gmail, Outlook, and AWS</strong>. Every action is evaluated by the same risk classification engine, producing a consistent decision model across all systems.</p>
 
     <p>The system includes a real-time operator dashboard, client-facing views with per-customer isolation, hash-chained execution receipts, and context-aware classification that evaluates actions by content, destination, and context — not just type.</p>
 

@@ -124,35 +124,49 @@ footer {
 
 <div class="blog-header">
   <h1>Surfit Blog</h1>
-  <p>Incidents, landscape analysis, and the case for decision infrastructure.</p>
+  <p>Product updates, industry landscape, and incident analysis.</p>
 </div>
 
-<div class="container">
+<div class="container" style="max-width:1000px;">
   <div class="blog-categories">
+    <span class="blog-cat landscape">Surfit Updates</span>
+    <span class="blog-cat update">Landscape</span>
     <span class="blog-cat incident">Incidents</span>
-    <span class="blog-cat landscape">Landscape</span>
-    <span class="blog-cat update">Updates</span>
   </div>
 
-  <div class="post-list">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:40px 0;">
 
-    <a href="/blog/introducing-surfit" class="post-card">
-      <div class="post-meta">
-        <span class="post-tag landscape">Landscape</span>
-        <span class="post-date">March 25, 2026</span>
-      </div>
-      <h2>Introducing Surfit — The Decision Layer for AI Agent Actions</h2>
-      <p>Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system. That's the layer Surfit builds.</p>
-    </a>
+    <!-- Column 1: Surfit Updates -->
+    <div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(38,192,255,0.2);">Surfit Updates</div>
+      <a href="/blog/introducing-surfit" class="post-card">
+        <div class="post-meta">
+          <span class="post-tag landscape">Surfit Updates</span>
+          <span class="post-date">March 25, 2026</span>
+        </div>
+        <h2>Introducing Surfit — The Decision Layer for AI Agent Actions</h2>
+        <p>Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system.</p>
+      </a>
+    </div>
 
-    <a href="/blog/litellm-compromise" class="post-card">
-      <div class="post-meta">
-        <span class="post-tag incident">Incident</span>
-        <span class="post-date">March 25, 2026</span>
-      </div>
-      <h2>LiteLLM Got Compromised. Here's Why Your Agent's Credentials Shouldn't Live Where They Can Be Stolen.</h2>
-      <p>A malicious version of one of the most popular Python LLM libraries was pushed to PyPI. It stole every credential on the machine. This is exactly why credentials shouldn't live in the agent's environment.</p>
-    </a>
+    <!-- Column 2: Landscape -->
+    <div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--orange);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(255,115,30,0.2);">Landscape</div>
+      <div style="font-size:13px;color:var(--muted);font-style:italic;padding:20px 0;">Coming soon — industry analysis and competitive landscape.</div>
+    </div>
+
+    <!-- Column 3: Incidents -->
+    <div>
+      <div style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(239,68,68,0.2);">Incidents</div>
+      <a href="/blog/litellm-compromise" class="post-card">
+        <div class="post-meta">
+          <span class="post-tag incident">Incident</span>
+          <span class="post-date">March 25, 2026</span>
+        </div>
+        <h2>LiteLLM Got Compromised. Here's Why Your Agent's Credentials Shouldn't Live Where They Can Be Stolen.</h2>
+        <p>A malicious version of one of the most popular Python LLM libraries was pushed to PyPI. It stole every credential on the machine.</p>
+      </a>
+    </div>
 
   </div>
 </div>
