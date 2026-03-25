@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Surfit.AI</title>
+<meta name="description" content="Surfit blog — incidents, landscape analysis, and updates on AI agent control and decision infrastructure.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #0a0f1a;
+  --darker: #060b14;
+  --surface: #111827;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --red: #ef4444;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+a { color:var(--blue); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  background:var(--darker);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-wordmark { font-family:'Righteous',cursive; font-size:18px; }
+.nav-wordmark .s { color:#26c0ff; }
+.nav-wordmark .d { color:#7a9ab8; font-size:12px; margin:0 1px; }
+.nav-wordmark .a { color:#ff731e; }
+.nav-links { list-style:none; display:flex; gap:24px; align-items:center; }
+.nav-links a { color:var(--muted); font-size:13px; font-weight:500; text-decoration:none; }
+.nav-links a:hover { color:var(--text); }
+.nav-links a.active { color:var(--blue); font-weight:600; }
+
+.container { max-width:800px; margin:0 auto; padding:0 24px; }
+
+.blog-header {
+  text-align:center; padding:60px 24px 40px;
+  border-bottom:1px solid var(--border);
+}
+.blog-header h1 {
+  font-family:'Righteous',cursive; font-size:42px; color:var(--text);
+  margin-bottom:12px;
+}
+.blog-header p { color:var(--muted); font-size:15px; font-weight:300; }
+
+.blog-categories {
+  display:flex; justify-content:center; gap:12px;
+  padding:24px 0; border-bottom:1px solid var(--border);
+}
+.blog-cat {
+  font-size:11px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:4px 12px; border-radius:4px; font-weight:600;
+  border:1px solid var(--border); color:var(--muted);
+  cursor:pointer; transition:all 0.2s;
+}
+.blog-cat:hover, .blog-cat.active { border-color:var(--blue); color:var(--blue); }
+.blog-cat.incident { border-color:rgba(239,68,68,0.3); color:var(--red); }
+.blog-cat.landscape { border-color:rgba(38,192,255,0.3); color:var(--blue); }
+.blog-cat.update { border-color:rgba(255,115,30,0.3); color:var(--orange); }
+
+.post-list { padding:40px 0; }
+
+.post-card {
+  display:block; text-decoration:none;
+  border:1px solid var(--border); border-radius:10px;
+  padding:24px 28px; margin-bottom:16px;
+  background:var(--surface); transition:all 0.2s;
+}
+.post-card:hover { border-color:var(--blue); text-decoration:none; transform:translateY(-1px); }
+.post-meta {
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:10px;
+}
+.post-tag {
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:2px 8px; border-radius:3px; font-weight:700;
+}
+.post-tag.incident { background:rgba(239,68,68,0.1); color:var(--red); }
+.post-tag.landscape { background:rgba(38,192,255,0.1); color:var(--blue); }
+.post-tag.update { background:rgba(255,115,30,0.1); color:var(--orange); }
+.post-date { font-size:11px; color:var(--muted); }
+.post-card h2 { font-size:20px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.post-card p { font-size:14px; color:var(--muted); line-height:1.6; }
+
+footer {
+  border-top:1px solid var(--border); padding:32px 48px;
+  text-align:center;
+}
+.footer-logo { font-family:'Righteous',cursive; font-size:14px; }
+.footer-logo .s { color:#26c0ff; }
+.footer-logo .d { color:#7a9ab8; font-size:10px; }
+.footer-logo .a { color:#ff731e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <div class="nav-wordmark">
+      <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/" class="active">Blog</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#for-teams">For Teams</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="blog-header">
+  <h1>Surfit Blog</h1>
+  <p>Incidents, landscape analysis, and the case for decision infrastructure.</p>
+</div>
+
+<div class="container">
+  <div class="blog-categories">
+    <span class="blog-cat incident">Incidents</span>
+    <span class="blog-cat landscape">Landscape</span>
+    <span class="blog-cat update">Updates</span>
+  </div>
+
+  <div class="post-list">
+
+    <a href="/blog/introducing-surfit" class="post-card">
+      <div class="post-meta">
+        <span class="post-tag landscape">Landscape</span>
+        <span class="post-date">March 25, 2026</span>
+      </div>
+      <h2>Introducing Surfit — The Decision Layer for AI Agent Actions</h2>
+      <p>Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system. That's the layer Surfit builds.</p>
+    </a>
+
+    <a href="/blog/litellm-compromise" class="post-card">
+      <div class="post-meta">
+        <span class="post-tag incident">Incident</span>
+        <span class="post-date">March 25, 2026</span>
+      </div>
+      <h2>LiteLLM Got Compromised. Here's Why Your Agent's Credentials Shouldn't Live Where They Can Be Stolen.</h2>
+      <p>A malicious version of one of the most popular Python LLM libraries was pushed to PyPI. It stole every credential on the machine. This is exactly why credentials shouldn't live in the agent's environment.</p>
+    </a>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+  </div>
+</footer>
+
+</body>
+</html>

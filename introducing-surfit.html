@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Introducing Surfit — The Decision Layer for AI Agent Actions</title>
+<meta name="description" content="Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system. That's the layer Surfit builds.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #0a0f1a;
+  --darker: #060b14;
+  --surface: #111827;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --red: #ef4444;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+a { color:var(--blue); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  background:var(--darker);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-wordmark { font-family:'Righteous',cursive; font-size:18px; }
+.nav-wordmark .s { color:#26c0ff; }
+.nav-wordmark .d { color:#7a9ab8; font-size:12px; margin:0 1px; }
+.nav-wordmark .a { color:#ff731e; }
+.nav-links { list-style:none; display:flex; gap:24px; align-items:center; }
+.nav-links a { color:var(--muted); font-size:13px; font-weight:500; text-decoration:none; }
+.nav-links a:hover { color:var(--text); }
+
+.container { max-width:720px; margin:0 auto; padding:0 24px; }
+
+.post-header {
+  padding:60px 24px 40px;
+  border-bottom:1px solid var(--border);
+  max-width:720px; margin:0 auto;
+}
+.post-tag {
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:3px 10px; border-radius:3px; font-weight:700;
+  display:inline-block; margin-bottom:16px;
+}
+.post-tag.landscape { background:rgba(38,192,255,0.1); color:var(--blue); }
+.post-tag.incident { background:rgba(239,68,68,0.1); color:var(--red); }
+.post-date { font-size:12px; color:var(--muted); margin-bottom:16px; }
+.post-header h1 {
+  font-family:'Righteous',cursive; font-size:36px; line-height:1.2;
+  color:var(--text); margin-bottom:16px;
+}
+.post-header .subtitle { font-size:16px; color:var(--muted); line-height:1.6; font-weight:300; }
+
+.post-body { padding:40px 0 60px; }
+.post-body h2 {
+  font-size:22px; font-weight:700; color:var(--text);
+  margin:40px 0 16px; padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.post-body h2:first-child { border-top:none; margin-top:0; padding-top:0; }
+.post-body p {
+  font-size:15px; line-height:1.8; color:var(--muted);
+  margin-bottom:16px; font-weight:300;
+}
+.post-body strong { color:var(--text); font-weight:600; }
+.post-body .highlight {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+.post-body .highlight p { margin-bottom:8px; }
+.post-body .highlight p:last-child { margin-bottom:0; }
+.post-body .blue { color:var(--blue); }
+.post-body .red { color:var(--red); }
+.post-body .orange { color:var(--orange); }
+
+.post-body .comparison {
+  display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0;
+}
+.post-body .comp-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:18px;
+}
+.post-body .comp-card.surfit {
+  border-color:rgba(38,192,255,0.4); background:rgba(38,192,255,0.04);
+}
+.post-body .comp-label {
+  font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
+  font-weight:600; margin-bottom:8px;
+}
+
+.post-cta {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:28px; text-align:center; margin:40px 0;
+}
+.post-cta p { font-size:15px; color:var(--text); margin-bottom:16px; }
+.post-cta a {
+  display:inline-block; background:var(--blue); color:#000;
+  padding:10px 24px; border-radius:6px; font-weight:600;
+  font-size:13px; text-decoration:none;
+}
+.post-cta a:hover { opacity:0.9; text-decoration:none; }
+
+.back-link { display:block; padding:20px 0; font-size:13px; color:var(--muted); }
+
+footer {
+  border-top:1px solid var(--border); padding:32px 48px;
+  text-align:center;
+}
+.footer-logo { font-family:'Righteous',cursive; font-size:14px; }
+.footer-logo .s { color:#26c0ff; }
+.footer-logo .d { color:#7a9ab8; font-size:10px; }
+.footer-logo .a { color:#ff731e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <div class="nav-wordmark">
+      <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="post-header">
+    <span class="post-tag landscape">Landscape</span>
+    <div class="post-date">March 25, 2026</div>
+    <h1>Introducing Surfit — The Decision Layer for AI Agent Actions</h1>
+    <p class="subtitle">Evals check what the model says. Sandboxes control where agents run. Nobody controls what actually happens when an agent acts on a real system with real credentials. That's the layer Surfit builds.</p>
+  </div>
+
+  <div class="post-body">
+
+    <h2>The Problem Nobody's Solving</h2>
+
+    <p>AI agents are moving from advisory to autonomous. They're no longer just suggesting — they're posting to Slack, merging PRs, deploying infrastructure, sending emails, and modifying databases. Every one of these actions has real business consequences.</p>
+
+    <p>The industry has built tools for every layer of this stack except one:</p>
+
+    <div class="highlight">
+      <p><strong class="orange">Guardrails AI</strong> validates what the model says — toxicity, PII, hallucinations, schema compliance. It checks the output text. It never sees what the agent does with that text.</p>
+      <p><strong class="orange">CTGT / Mentat</strong> controls how the model behaves — activation steering, representation-level policy enforcement. It makes the model more compliant. It doesn't sit between the agent and real systems.</p>
+      <p><strong class="orange">IronClaw / NemoClaw</strong> controls what the agent can access — container isolation, network egress, permissions. Once access is granted, it has no opinion on whether THIS SPECIFIC action should happen.</p>
+      <p><strong class="orange">CrowdStrike / Palo Alto / Okta</strong> protects infrastructure — endpoints, networks, identity. It operates below the application layer. It has no concept of business context.</p>
+    </div>
+
+    <p>Every one of these tools answers a version of the same question: <strong>"Is this allowed and safe?"</strong></p>
+
+    <p>None of them answer: <strong class="blue">"Should this specific action actually happen right now for the business?"</strong></p>
+
+    <p>That's the gap. And it's where Surfit sits.</p>
+
+    <h2>What Surfit Does</h2>
+
+    <p>Surfit is a control layer that sits between AI agents and the systems they act on. Every action the agent proposes passes through Surfit before it reaches any external system.</p>
+
+    <p>Surfit evaluates each action in business context — not just "is this safe?" but "is this the right action for the organization right now?" — and either auto-executes it or holds it based on risk.</p>
+
+    <div class="highlight">
+      <p><strong>Wave 1–3:</strong> Low-risk actions execute automatically with full logging. A Slack update to #eng-platform, a Notion log entry, a PR to a dev branch — these flow through instantly. No friction.</p>
+      <p><strong>Wave 4–5:</strong> High-risk actions are held. A PR merge to main that touches payment code. A post to the company X account. An AWS infrastructure change. These are intercepted before execution and surfaced with full context.</p>
+    </div>
+
+    <p>Most actions never need a human. Surfit's risk classification determines what flows and what's caught — based on content, destination, and context, not static rules.</p>
+
+    <h2>The Architectural Distinction</h2>
+
+    <p>There's one thing that separates Surfit from every other tool in this space, and it's not a feature — it's an architectural decision:</p>
+
+    <p><strong class="blue">Surfit holds the credentials. The agent doesn't.</strong></p>
+
+    <p>In every current agent framework — LangChain, CrewAI, OpenClaw, custom builds — the agent has access to the credentials it needs to operate. It holds the Slack token, the GitHub PAT, the AWS keys. When it decides to act, it acts.</p>
+
+    <p>Surfit inverts this. The agent calls Surfit's API instead of calling the external system directly. Surfit evaluates the action, and if approved, executes it using credentials only Surfit holds. The agent never touches the external system's credentials.</p>
+
+    <div class="comparison">
+      <div class="comp-card">
+        <div class="comp-label red">Evals (Inside the Agent)</div>
+        <p style="font-size:13px;line-height:1.7;color:var(--muted);">Evals run inside the agent pipeline. They can flag, warn, or suggest. But the agent still holds the credentials. It can bypass, remove, or reconfigure the eval. <strong>Governance is advisory.</strong></p>
+      </div>
+      <div class="comp-card surfit">
+        <div class="comp-label blue">Surfit (Outside the Agent)</div>
+        <p style="font-size:13px;line-height:1.7;color:var(--muted);">The agent does not hold credentials. Every action must pass through Surfit. Surfit evaluates in business context and executes using its own credentials. <strong class="blue">Governance is enforceable.</strong></p>
+      </div>
+    </div>
+
+    <p>This is the core distinction: <strong>if the agent holds the credentials, governance is advisory. If an external layer holds them, governance is enforceable.</strong></p>
+
+    <h2>A Concrete Example</h2>
+
+    <p>An agent wants to merge a PR to main.</p>
+
+    <div class="highlight">
+      <p>Guardrails → output is fine ✓</p>
+      <p>CTGT → model is compliant ✓</p>
+      <p>IronClaw → permissions are safe ✓</p>
+      <p><strong class="red">So it goes through… into production. Payments break.</strong></p>
+    </div>
+
+    <p>Every tool said yes. The merge was technically valid. But it was merging before a release, touching payment code, and the engineering lead hadn't reviewed it.</p>
+
+    <div class="highlight">
+      <p><strong class="blue">With Surfit:</strong></p>
+      <p>→ Agent proposes the merge to Surfit's API (not GitHub directly)</p>
+      <p>→ Surfit evaluates: production branch, payment code, no prior review</p>
+      <p>→ Wave 5 — <strong class="blue">held. Business protected.</strong></p>
+    </div>
+
+    <p>The five routine actions that agent attempted earlier — Slack updates, Notion entries, dev branch PRs — all flowed through automatically at Wave 1-3. No friction. Full audit trail. Only the high-risk action was caught.</p>
+
+    <h2>Where Surfit Sits in the Stack</h2>
+
+    <p>The AI control stack has five layers. Each answers a different question:</p>
+
+    <div class="highlight">
+      <p><strong class="orange">01 — Output Validation</strong> (Guardrails AI): "Is this output safe?"</p>
+      <p><strong class="orange">02 — Model Behavior</strong> (CTGT / Mentat): "Is this model compliant?"</p>
+      <p><strong class="orange">03 — Sandbox / Access</strong> (IronClaw / NemoClaw): "Can this agent access this?"</p>
+      <p><strong class="orange">04 — Infrastructure</strong> (CrowdStrike / Palo Alto): "Is this process allowed?"</p>
+      <p><strong class="blue">05 — Decision Authority</strong> (Surfit): "Should this action happen for the business right now?"</p>
+    </div>
+
+    <p>These layers don't compete. They complement. An organization could use all five simultaneously and they wouldn't overlap. But without layer 05, every agent action that passes through layers 01–04 executes directly on production with no business-level evaluation.</p>
+
+    <h2>Why This Can't Be Built Into Existing Tools</h2>
+
+    <p>The most common question we hear: "Why can't Guardrails / CTGT / OpenClaw just add this?"</p>
+
+    <p>They could build basic approval workflows. What they can't easily do: <strong>rearchitect their entire product so the agent no longer holds credentials.</strong></p>
+
+    <p>Guardrails AI is a Python library that wraps around the agent's pipeline. Asking it to hold credentials and sit at the execution boundary means becoming a different product. CTGT operates at model inference — moving from model internals to system-level execution proxy is a company pivot. OpenClaw's entire architecture assumes the agent authenticates directly to systems.</p>
+
+    <p>Surfit was designed from the ground up for this layer. Credential separation isn't a feature — it's the foundation the entire product is built on.</p>
+
+    <h2>What's Live Today</h2>
+
+    <p>Surfit currently governs agent actions across seven system categories: <strong>Slack, GitHub, X (Twitter), Notion, Gmail, Outlook, and AWS</strong>. Every action is evaluated by the same risk classification engine, producing a consistent decision model across all systems.</p>
+
+    <p>The system includes a real-time operator dashboard, client-facing views with per-customer isolation, hash-chained execution receipts, and context-aware classification that evaluates actions by content, destination, and context — not just type.</p>
+
+    <div class="post-cta">
+      <p>See Surfit in action — a 2-minute demo showing real agent actions being evaluated, classified, and enforced across multiple systems.</p>
+      <a href="https://www.surfit.ai/#demo">Watch the Demo</a>
+    </div>
+
+    <p style="font-size:14px;font-style:italic;color:var(--muted);border-left:3px solid var(--blue);padding-left:14px;">Guardrails tests and filters. CTGT shapes models. Surfit decides what actually happens.</p>
+
+    <a href="/blog/" class="back-link">← Back to Blog</a>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+  </div>
+</footer>
+
+</body>
+</html>

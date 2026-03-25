@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Surfit.AI — Control Layer for AI Agents</title>
+<title>Surfit.AI — Control Layer for Agent Actions</title>
 <meta name="description" content="Agents can act. Surfit makes sure those actions are correct, controlled, and aligned with your business. Control and route AI actions across Slack, GitHub, X, and more.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 68'><path d='M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z' fill='%2326c0ff'/><path d='M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z' fill='%2326c0ff'/><path d='M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z' fill='%2326c0ff'/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Righteous&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -790,7 +790,6 @@ footer {
     </div>
   </a>
   <ul class="nav-links">
-    <li><a href="/blog/" style="color:var(--blue);font-weight:600;">Blog</a></li>
     <li><a href="#how-it-works">How It Works</a></li>
     <li><a href="#architecture">Architecture</a></li>
     <li><a href="#for-teams">For Teams</a></li>
@@ -813,13 +812,12 @@ footer {
       <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
     </div>
 
-    <p style="font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;font-weight:600;">Evals don't control execution. Surfit does.</p>
     <p class="hero-tagline">Agents can act. Surfit makes sure those actions are correct for your business.</p>
 
     
     
     <p class="hero-saw-def" style="margin-top:20px;margin-bottom:8px;font-size:13px;">Control and route AI actions across your systems — before they execute.</p>
-    <p class="hero-saw-def" style="margin-bottom:32px;font-size:12px;">Low-risk actions execute automatically. High-risk actions require approval before execution.</p>
+    <p class="hero-saw-def" style="margin-bottom:32px;font-size:12px;">Low-risk actions run automatically. High-risk actions are checked or escalated.</p>
 
 
 
@@ -832,6 +830,23 @@ footer {
   </div>
 </section>
 
+
+<!-- WHERE AGENTS FAIL -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 48px;">
+  <div class="container" style="max-width:800px;text-align:center;">
+    <div class="section-label">Where agents fail</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:24px auto 28px;max-width:700px;text-align:left;">
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent posts confidential data to a public Slack channel</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent merges valid code that breaks production</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent triggers the wrong workflow across systems</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent publishes an unapproved statement to your public timeline</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent updates a database with logically incorrect values</div>
+      <div style="padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-left:3px solid #ef4444;border-radius:6px;font-size:13px;color:var(--text);">An agent sends the right message to the wrong audience</div>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">These actions are technically valid — but operationally wrong.</p>
+    <p style="font-size:16px;color:var(--blue);font-weight:600;">Surfit prevents this.</p>
+  </div>
+</section>
 
 <!-- THESIS -->
 <section class="thesis" id="how-it-works">
@@ -851,9 +866,7 @@ footer {
           → in the right place<br>
           → under the right conditions<br>
           → for your business<br><br>
-          Correctness is defined by your policies — not the agent. Surfit evaluates every action before execution.
-        </p>
-
+          Surfit evaluates every action before execution.
         </p>
       </div>
 
@@ -897,39 +910,6 @@ footer {
         </div>
       </div>
     </div>
-
-    <!-- EVALS VS CONTROL — full width below grid -->
-    <div style="max-width:800px;margin:40px auto 0;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-        <div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:18px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--red);margin-bottom:10px;font-weight:600;">Evals ≠ Control</div>
-          <div style="font-size:13px;line-height:1.7;color:var(--text);">Evals run inside the agent.<br>They can flag, warn, or suggest.<br><strong style="color:var(--red);">But the agent still executes.</strong></div>
-        </div>
-        <div style="background:rgba(38,192,255,0.06);border:1px solid rgba(38,192,255,0.25);border-radius:10px;padding:18px;">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--blue);margin-bottom:10px;font-weight:600;">Surfit = Control</div>
-          <div style="font-size:13px;line-height:1.7;color:var(--text);">Agent does not hold credentials.<br>Every action must pass through Surfit.<br><strong style="color:var(--blue);">Surfit decides, then executes.</strong></div>
-        </div>
-      </div>
-
-      <p style="font-size:14px;font-style:italic;color:var(--text);border-left:3px solid var(--blue);padding-left:14px;margin:0 0 24px 0;">If the agent holds the credentials, governance is advisory.<br>If an external layer holds them, governance is enforceable.</p>
-
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:18px;">
-        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:12px;">Example: Agent wants to merge a PR</div>
-        <div style="font-size:13px;line-height:1.8;color:var(--muted);">
-          Guardrails → output is fine ✓<br>
-          CTGT → model is compliant ✓<br>
-          IronClaw → permissions are safe ✓<br>
-          <span style="color:var(--red);font-weight:600;">So it goes through… into production. Payments break.</span>
-        </div>
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;line-height:1.8;color:var(--muted);">
-          <strong style="color:var(--blue);">With Surfit:</strong><br>
-          → Intercepts before execution<br>
-          → Evaluates business context (production branch, payment code, no review)<br>
-          → <strong style="color:var(--blue);">Holds the action. Business protected.</strong>
-        </div>
-      </div>
-    </div>
-
   </div>
 </section>
 
@@ -952,7 +932,7 @@ footer {
         </div>
         <div style="margin-top:10px;font-size:12px;text-align:center;line-height:1.6;"><span style="color:var(--text);">Agents reason and act. Sandboxes control network egress.</span> <span style="color:var(--orange);font-weight:600;">Neither governs business correctness.</span></div>
       </div>
-      <div style="color:var(--blue);font-size:26px;padding:0 16px;flex-shrink:0;display:flex;align-items:center;opacity:0.8;">→</div>
+      <div style="color:var(--border);font-size:22px;padding:0 16px;flex-shrink:0;display:flex;align-items:center;">→</div>
       <div style="background:rgba(38,192,255,0.06);border:2px solid rgba(38,192,255,0.4);border-radius:12px;padding:28px 36px;text-align:center;width:240px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;">
         <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Control Layer</div>
         <div style="font-family:'Righteous',cursive;font-size:26px;color:var(--text);margin-bottom:12px;"><span style="color:var(--blue);">Surfit</span><span style="color:var(--muted);font-size:16px;">.</span><span style="color:var(--orange);">AI</span></div>
@@ -962,7 +942,7 @@ footer {
           <div style="font-size:12px;color:var(--text);font-weight:500;">Execution control</div>
         </div>
       </div>
-      <div style="color:var(--blue);font-size:26px;padding:0 16px;flex-shrink:0;display:flex;align-items:center;opacity:0.8;">→</div>
+      <div style="color:var(--border);font-size:22px;padding:0 16px;flex-shrink:0;display:flex;align-items:center;">→</div>
       <div style="display:flex;flex-direction:column;gap:6px;width:260px;flex-shrink:0;">
         <div style="display:flex;padding:0 14px;margin-bottom:2px;">
           <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);font-weight:600;flex:1;">Systems</span>
@@ -970,230 +950,216 @@ footer {
           <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text);font-weight:600;width:80px;text-align:right;">Action</span>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;display:flex;align-items:center;width:100%;">
-          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">Slack</span><span style="font-size:10px;color:#22c55e;font-weight:600;width:36px;text-align:center;">1</span><span style="font-size:10px;color:#22c55e;width:80px;text-align:right;">Automatic</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">Slack</span><span style="font-size:10px;color:#38bdf8;font-weight:600;width:36px;text-align:center;">2</span><span style="font-size:10px;color:#22c55e;width:80px;text-align:right;">Automatic</span>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;display:flex;align-items:center;width:100%;">
-          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">Notion</span><span style="font-size:10px;color:#38bdf8;font-weight:600;width:36px;text-align:center;">2</span><span style="font-size:10px;color:#38bdf8;width:80px;text-align:right;">Automatic</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">GitHub</span><span style="font-size:10px;color:#ef4444;font-weight:600;width:36px;text-align:center;">5</span><span style="font-size:10px;color:#ef4444;width:80px;text-align:right;">Approval</span>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;display:flex;align-items:center;width:100%;">
-          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">X</span><span style="font-size:10px;color:#eab308;font-weight:600;width:36px;text-align:center;">3</span><span style="font-size:10px;color:#eab308;width:80px;text-align:right;">Automatic</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">X</span><span style="font-size:10px;color:#eab308;font-weight:600;width:36px;text-align:center;">3</span><span style="font-size:10px;color:#eab308;width:80px;text-align:right;">Check</span>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;display:flex;align-items:center;width:100%;">
-          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">GitHub</span><span style="font-size:10px;color:#f97316;font-weight:600;width:36px;text-align:center;">4</span><span style="font-size:10px;color:#f97316;width:80px;text-align:right;">Approval</span>
+          <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">Notion</span><span style="font-size:10px;color:#eab308;font-weight:600;width:36px;text-align:center;">3</span><span style="font-size:10px;color:#eab308;width:80px;text-align:right;">Check</span>
         </div>
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;display:flex;align-items:center;width:100%;">
           <span style="font-size:13px;font-weight:500;color:var(--text);flex:1;">AWS</span><span style="font-size:10px;color:#ef4444;font-weight:600;width:36px;text-align:center;">5</span><span style="font-size:10px;color:#ef4444;width:80px;text-align:right;">Approval</span>
         </div>
       </div>
     </div>
-    <p style="text-align:center;margin-top:32px;font-size:14px;color:var(--text);max-width:700px;margin-left:auto;margin-right:auto;line-height:1.7;">Frameworks decide <span style="color:var(--orange);font-weight:500;">what</span> to do. Sandboxes control <span style="color:#a78bfa;font-weight:500;">where</span> agents run. Surfit controls <span style="color:var(--blue);font-weight:500;">whether the action is correct.</span> Surfit doesn't just decide — it enforces.</p>
   </div>
 </section>
 
-
-<!-- THE GAP DIAGRAM -->
-<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
-  <div class="container" style="max-width:940px;">
-    <div style="text-align:center;margin-bottom:40px;">
-      <div class="section-label">The Gap</div>
-      <div class="section-title brand-heading" style="">The agent has credentials.<br>Who decides what it does with them?</div>
-    </div>
-
-    <!-- FLOW 1: WITHOUT SURFIT -->
-    <div style="margin-bottom:48px;">
-      <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--red);font-weight:600;margin-bottom:16px;">Without Surfit — The agent holds the keys</div>
-
-      <div style="display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;">
-
-        <!-- Agent with key -->
-        <div style="flex:0.8;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:18px;margin-bottom:4px;">🤖🔑</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text);">Agent</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Holds credentials directly</div>
-        </div>
-
-        <div style="color:var(--muted);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
-
-        <!-- Babysitters -->
-        <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(249,115,22,0.3);border-radius:8px;padding:10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:9px;color:var(--orange);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Output Validation</div>
-          <div style="font-size:10px;color:var(--text);opacity:0.8;">Guardrails AI · CTGT</div>
-          <div style="font-size:10px;color:var(--green);margin-top:4px;">✓ "Text looks safe"</div>
-          <div style="font-size:9px;color:var(--text);margin-top:2px;font-style:italic;opacity:0.7;">Checks words, not actions</div>
-        </div>
-
-        <div style="color:var(--muted);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
-
-        <!-- Guards -->
-        <div style="flex:1;background:rgba(255,255,255,0.02);border:1px solid rgba(249,115,22,0.3);border-radius:8px;padding:10px 12px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:9px;color:var(--orange);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;font-weight:600;">Sandbox &amp; Access</div>
-          <div style="font-size:10px;color:var(--text);opacity:0.8;">IronClaw · NemoClaw</div>
-          <div style="font-size:10px;color:var(--green);margin-top:4px;">✓ "Access permitted"</div>
-          <div style="font-size:9px;color:var(--text);margin-top:2px;font-style:italic;opacity:0.7;">Checks the door, not the decision</div>
-        </div>
-
-        <div style="color:var(--muted);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
-
-        <!-- NO EVALUATION ZONE -->
-        <div style="flex:0.4;display:flex;align-items:center;justify-content:center;">
-          <div style="border:2px dashed rgba(239,68,68,0.3);border-radius:8px;padding:10px 8px;text-align:center;width:100%;">
-            <div style="font-size:10px;color:var(--red);font-weight:600;">NO LAYER HERE</div>
-            <div style="font-size:9px;color:var(--muted);margin-top:2px;">Nobody controls whether<br>the action happens</div>
-          </div>
-        </div>
-
-        <div style="color:var(--red);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
-
-        <!-- CATASTROPHE -->
-        <div style="flex:1.2;background:rgba(239,68,68,0.06);border:2px solid rgba(239,68,68,0.4);border-radius:8px;padding:14px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:28px;font-weight:900;color:var(--red);margin-bottom:4px;">✕</div>
-          <div style="font-size:10px;color:var(--red);font-weight:700;margin-bottom:4px;letter-spacing:.1em;">CATASTROPHE</div>
-          <div style="font-size:10px;color:var(--text);line-height:1.4;">Agent deploys untested payment code.</div>
-          <div style="font-size:10px;color:var(--red);margin-top:4px;line-height:1.4;font-weight:500;">14,000 transactions fail.<br>$2.3M in failed charges.<br>Legal review initiated.</div>
-        </div>
-
-      </div>
-
-      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--red);font-weight:500;">Guardrails AI and CTGT never saw the action — they only check the model's words, not what the agent does with them. IronClaw granted access because the agent needed it — but access control ends at the door. Once the agent was inside with live credentials, it merged directly to production. No layer evaluated whether it should. No one was in the path.</div>
-      <div style="text-align:center;margin-top:14px;font-size:14px;font-weight:600;color:var(--red);">Everything passed checks. It still went through.</div>
-    </div>
-
-    <!-- FLOW 2: WITH SURFIT -->
-    <div>
-      <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);font-weight:600;margin-bottom:16px;">With Surfit — Surfit holds the keys</div>
-
-      <div style="display:flex;align-items:stretch;gap:0;flex-wrap:nowrap;">
-
-        <!-- Agent WITHOUT key -->
-        <div style="flex:0.7;background:rgba(38,192,255,0.03);border:1px solid rgba(38,192,255,0.3);border-radius:8px;padding:14px;text-align:center;display:flex;flex-direction:column;justify-content:center;">
-          <div style="font-size:18px;margin-bottom:4px;">🤖</div>
-          <div style="font-size:11px;font-weight:600;color:var(--text);">Agent</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px;">Proposes action</div>
-          <div style="font-size:9px;color:var(--blue);margin-top:2px;font-style:italic;">No credentials</div>
-        </div>
-
-        <div style="color:var(--blue);padding:0 5px;font-size:14px;display:flex;align-items:center;">→</div>
-
-        <!-- SURFIT — DOMINANT -->
-        <div style="flex:2.5;background:rgba(38,192,255,0.06);border:2px solid rgba(38,192,255,0.4);border-radius:10px;padding:16px 20px;position:relative;box-shadow:0 0 30px rgba(38,192,255,0.08);">
-          <div style="position:absolute;top:-10px;left:20px;background:var(--blue);color:#000;font-size:9px;font-weight:700;padding:2px 12px;border-radius:10px;letter-spacing:.12em;">SURFIT</div>
-          <div style="position:absolute;top:-10px;right:20px;font-size:10px;color:var(--blue);font-weight:600;">🔑 Holds all credentials</div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;margin-bottom:12px;">
-            <div style="background:rgba(38,192,255,0.08);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-size:9px;color:var(--blue);font-weight:600;margin-bottom:2px;">EVALUATE</div>
-              <div style="font-size:9px;color:var(--muted);">Business context, risk, destination, content</div>
-            </div>
-            <div style="background:rgba(38,192,255,0.08);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-size:9px;color:var(--blue);font-weight:600;margin-bottom:2px;">CLASSIFY</div>
-              <div style="font-size:9px;color:var(--muted);">Wave 1-5 risk scoring per action</div>
-            </div>
-            <div style="background:rgba(38,192,255,0.08);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-size:9px;color:var(--blue);font-weight:600;margin-bottom:2px;">ENFORCE</div>
-              <div style="font-size:9px;color:var(--muted);">Credential vault, audit trail, routing</div>
-            </div>
-          </div>
-
-          <!-- Dual output paths -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.2);border-radius:6px;padding:10px;text-align:center;">
-              <div style="font-size:9px;color:var(--green);font-weight:600;letter-spacing:.1em;margin-bottom:6px;">WAVE 1-3 · AUTO-EXECUTE</div>
-              <div style="font-size:10px;color:var(--muted);line-height:1.5;">Slack update to #eng → ✓<br>Notion log entry → ✓<br>PR to dev branch → ✓<br>Gmail internal reply → ✓<br>AWS CloudWatch read → ✓</div>
-              <div style="font-size:9px;color:var(--green);margin-top:6px;font-weight:500;">5 actions executed instantly. Full audit trail.</div>
-            </div>
-            <div style="background:rgba(38,192,255,0.06);border:1px solid rgba(38,192,255,0.2);border-radius:6px;padding:10px;text-align:center;">
-              <div style="font-size:9px;color:var(--blue);font-weight:600;letter-spacing:.1em;margin-bottom:6px;">WAVE 4-5 · HELD</div>
-              <div style="font-size:10px;color:var(--muted);line-height:1.5;">PR merge to main → ⏸<br><span style="font-size:9px;">Production system. Financial implications.</span><br><br>Post to company X → ⏸<br><span style="font-size:9px;">External-facing. Unapproved content.</span></div>
-              <div style="font-size:9px;color:var(--blue);margin-top:6px;font-weight:500;">2 actions held. Business protected.</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--blue);font-weight:500;">The agent never held the credentials. Surfit evaluated every action in business context.<br><br>Routine actions flowed instantly across five systems. Pre-defined high-risk actions were caught. The business stayed protected.</div>
-    </div>
-
-  </div>
-</section>
 
 <!-- COMPARISON TABLE -->
 <section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
   <div class="container">
-    <div style="text-align:center;margin-bottom:36px;">
+    <div style="text-align:center;margin-bottom:48px;">
       <div class="section-label">Landscape</div>
-      <div class="section-title brand-heading" style="">Every tool solves a different problem.<br>None of them solve this one.</div>
+      <div class="section-title brand-heading" style="">Where Surfit fits.</div>
     </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;max-width:920px;margin:0 auto;">
-
-      <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;">
-        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text);margin-bottom:6px;font-weight:600;"><span style="color:var(--orange);margin-right:6px;">01</span>Output Validation</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">Guardrails AI · NeMo Guardrails</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Validates LLM text outputs — toxicity, PII, hallucinations, schema compliance.</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "Is this output safe?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Runs inside the agent — agent can bypass, remove, or reconfigure</div>
-      </div>
-
-      <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;">
-        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text);margin-bottom:6px;font-weight:600;"><span style="color:var(--orange);margin-right:6px;">02</span>Model Behavior Control</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">CTGT · Mentat</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Modifies model behavior at the representation level. Deterministic output control without retraining.</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "Is this model compliant?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Does not sit at the execution boundary of real systems</div>
-      </div>
-
-      <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;">
-        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text);margin-bottom:6px;font-weight:600;"><span style="color:var(--orange);margin-right:6px;">03</span>Sandbox &amp; Environment Security</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">IronClaw · NemoClaw · OpenShell</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Container-level isolation. Controls network egress and what the agent can access.</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "Can this agent access this?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Once access is granted, no business-level decision control</div>
-      </div>
-
-      <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;">
-        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text);margin-bottom:6px;font-weight:600;"><span style="color:var(--orange);margin-right:6px;">04</span>Infrastructure &amp; Endpoint Security</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">CrowdStrike · Palo Alto · Okta</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Protects endpoints, networks, and identity. Operates below the application layer.</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "Is this process allowed to run?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ No concept of business context or action correctness</div>
-      </div>
-
-      <div class="runtime-card" style="border-color:rgba(255,255,255,0.08);padding:16px 18px;grid-column:2/4;">
-        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text);margin-bottom:6px;font-weight:600;"><span style="color:var(--orange);margin-right:6px;">05</span>Agent Runtimes</div>
-        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;">OpenClaw · LangChain · CrewAI · AutoGen</div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;margin-bottom:8px;">Frameworks that plan, reason, and select tools. Internal governance is controlled by the same system it constrains.</div>
-        <div style="font-size:11px;color:var(--orange);font-weight:600;margin-bottom:4px;">Answers: "What should the agent do?"</div>
-        <div style="font-size:11px;color:var(--blue);font-weight:500;">✗ Self-regulation is not enforcement — internal controls are optional and framework-bound</div>
-      </div>
-
-    </div>
-
-    <div style="max-width:920px;margin:14px auto 0;">
-      <div class="runtime-card" style="border-color:rgba(38,192,255,0.4);border-width:2px;background:rgba(38,192,255,0.04);padding:20px 24px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div>
-            <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);margin-bottom:4px;">Execution Boundary — Decision Infrastructure</div>
-            <div style="font-size:18px;font-weight:700;color:var(--blue);">Surfit</div>
-          </div>
-          <div style="background:var(--blue);color:#000;font-size:9px;font-weight:700;padding:3px 12px;border-radius:10px;letter-spacing:.1em;">DIFFERENT LAYER</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+      <!-- Automation Tools -->
+      <div style="background:var(--surface);padding:28px 22px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Automation Tools</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text);">Zapier, Make, n8n</div>
         </div>
-        <div style="font-size:12px;color:var(--text);line-height:1.7;margin-bottom:12px;">Surfit sits at the execution boundary — between the agent and every system it touches. Every action is intercepted, evaluated in business context, and either auto-executed or routed to the right team. The agent proposes. Surfit decides whether it should happen.</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-          <div style="font-size:11px;color:var(--text);padding:6px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Holds credentials — agent cannot bypass</div>
-          <div style="font-size:11px;color:var(--text);padding:6px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Cross-system consistency — one decision model</div>
-          <div style="font-size:11px;color:var(--text);padding:6px 10px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Routes decisions to the right team</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">Trigger → Transform → Action</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">Predefined logic. No uncertainty.</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(122,154,184,0.06);border-radius:6px;border-left:2px solid var(--muted);">No governance. No audit.</div>
         </div>
-        <div style="font-size:12px;font-weight:600;color:var(--blue);">Answers: "Is this the right action for the business right now — and does the right person know?"</div>
+      </div>
+      <!-- Agent Frameworks -->
+      <div style="background:var(--surface);padding:28px 22px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;">Agent Frameworks</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text);">OpenClaw, LangChain, AutoGen</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">Goal → LLM reasoning → Tool calls</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">Dynamic reasoning. Open-ended behavior.</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(255,115,30,0.06);border-radius:6px;border-left:2px solid var(--orange);">No business-level write controls.</div>
+        </div>
+      </div>
+      <!-- Sandbox Runtimes -->
+      <div style="background:var(--surface);padding:28px 22px;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#a78bfa;margin-bottom:8px;">Sandbox Runtimes</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text);">NemoClaw, OpenShell</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(167,139,250,0.06);border-radius:6px;border-left:2px solid #a78bfa;">Isolated execution environment.</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(167,139,250,0.06);border-radius:6px;border-left:2px solid #a78bfa;">Network egress control. Operator approval for access.</div>
+          <div style="font-size:11px;font-weight:300;color:var(--muted);padding:8px 12px;background:rgba(167,139,250,0.06);border-radius:6px;border-left:2px solid #a78bfa;">Controls what agents access — not whether actions are correct.</div>
+        </div>
+      </div>
+      <!-- Surfit -->
+      <div style="background:#0d1a2e;padding:28px 22px;display:flex;flex-direction:column;gap:16px;border-left:1px solid rgba(38,192,255,0.2);">
+        <div>
+          <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;">Surfit</div>
+          <div style="font-size:15px;font-weight:500;color:var(--text);">Business Correctness</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;font-weight:300;color:var(--text);padding:8px 12px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Action → Risk classification → Decision → Execute or gate</div>
+          <div style="font-size:11px;font-weight:300;color:var(--text);padding:8px 12px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Policy-driven. Risk-aware. Business-aligned.</div>
+          <div style="font-size:11px;font-weight:300;color:var(--text);padding:8px 12px;background:rgba(38,192,255,0.07);border-radius:6px;border-left:2px solid var(--blue);">Every action receipted. Verifiable audit by default.</div>
+        </div>
+        <div style="font-size:10px;letter-spacing:0.06em;color:var(--blue);font-weight:500;margin-top:4px;">Surfit doesn't replace frameworks or sandboxes. It ensures the actions they produce are correct.</div>
       </div>
     </div>
-
   </div>
 </section>
 
+<!-- METRICS -->
+<section class="metrics-section" id="metrics">
+  <div class="container">
+    <div class="metrics-header">
+      <div class="section-label">Operational Signal</div>
+      <div class="section-title brand-heading" style="">Every Wave run is measurable.</div>
+      <p class="section-body">Every Wave produces structural governance metrics. Not post-hoc analytics — intrinsic measurements of bounded execution.</p>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-val">0.09<span style="font-size:18px"> ms</span></div>
+        <div class="metric-lbl">Autonomous Execution Duration</div>
+        <div class="metric-desc">Total autonomous execution time across all governed nodes within a Wave.</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val orange">∞</div>
+        <div class="metric-lbl">Agent Persistence</div>
+        <div class="metric-desc">Agents run continuously. Surfit bounds their execution into discrete, governed Waves — not their existence.</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val white">SHA256</div>
+        <div class="metric-lbl">Policy Hash</div>
+        <div class="metric-desc">Canonical fingerprint of the policy bundle governing every run. Immutable at run start.</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val">✓</div>
+        <div class="metric-lbl">Integrity Status</div>
+        <div class="metric-desc">Programmatic verification that no execution record was altered post-run. Valid or flagged — no ambiguity.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- FLOW DIAGRAM -->
+<section class="flow-section" id="saw">
+  <div class="container">
+    <div class="flow-header">
+      <div class="section-label">Execution Boundary Model</div>
+      <div class="section-title brand-heading" style="">Every action is assigned a risk level.</div>
+      <p class="section-body">Low → runs automatically. Medium → runs with logging. High → requires checks. Critical → escalated. Execution is controlled dynamically — not blocked by default.</p>
+    </div>
 
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <div class="flow-node-icon icon-blue">🤖</div>
+        <div class="flow-node-label">Agent</div>
+        <div class="flow-node-sub">Persistent</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-node-icon icon-blue">🌊</div>
+        <div class="flow-node-label">Wave (Action Mission)</div>
+        <div class="flow-node-sub">Initiated</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-node-icon icon-blue">⚡</div>
+        <div class="flow-node-label">Decision</div>
+        <div class="flow-node-sub">Risk-evaluated</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-node-icon icon-green">✓</div>
+        <div class="flow-node-label">Commit</div>
+        <div class="flow-node-sub">Policy-bound</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        <div class="flow-node-icon icon-blue">🔒</div>
+        <div class="flow-node-label">Execution Receipt</div>
+        <div class="flow-node-sub">Integrity-checked</div>
+      </div>
+    </div>
+  </div>
+</section>
 
+<!-- ARCHITECTURE -->
+<section class="arch-section" id="architecture">
+  <div class="container">
+    <div class="section-label">Architecture</div>
+    <div class="section-title brand-heading" style="">Built in layers.<br>Enforced at runtime.</div>
+    <p style="font-size:14px;font-weight:300;color:var(--muted);margin-top:12px;max-width:680px;">Surfit enforces policy checks before tool invocation, isolates workspace per Wave, anchors policy lineage with hashes, gates mutation paths with wave tokens, and exposes audit verification endpoints.</p>
+
+    <div class="arch-grid">
+      <div class="arch-card">
+        <div class="arch-card-num">01</div>
+        <div class="arch-card-tag tag-blue">Execution</div>
+        <div class="arch-card-title">Policy-Governed Graph Executor</div>
+        <div class="arch-card-body">Graph-based Wave execution with policy check before every tool invocation. Each node is evaluated at runtime. The execution structure is governed — the reasoning inside tool nodes is not constrained.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-num">02</div>
+        <div class="arch-card-tag tag-orange">Governance</div>
+        <div class="arch-card-title">Policy Lineage Anchoring</div>
+        <div class="arch-card-body">Canonical SHA256 policy hash computed at Wave initiation. Policy snapshot is persisted per Wave with lineage traceability. Run status and governance provenance are written to DB.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-num">03</div>
+        <div class="arch-card-tag tag-blue">Intelligence</div>
+        <div class="arch-card-title">Governed LLM Integration</div>
+        <div class="arch-card-body">LLM treated as a tool node — not a privileged actor. Provider, model, prompt boundary, raw input, sanitized input, and output all logged. Write actions are policy-evaluated, not manually reviewed.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-num">04</div>
+        <div class="arch-card-tag tag-orange">Integrity</div>
+        <div class="arch-card-title">Verifiable Log Chain</div>
+        <div class="arch-card-body">Hash-chained execution log with prev_hash → event_hash. Dedicated LLM invocations table with payload hashes. Programmatic integrity verification detects first mismatch and flags post-run mutation.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-num">05</div>
+        <div class="arch-card-tag tag-muted">Validation</div>
+        <div class="arch-card-title">Automated Tamper Testing</div>
+        <div class="arch-card-body">CLI tamper simulation with automated pytest validation. Demonstrates integrity failure on mutated rows. DB-backed, cryptographically anchored execution lineage — not UI-level logging.</div>
+      </div>
+      <div class="arch-card">
+        <div class="arch-card-num">06</div>
+        <div class="arch-card-tag tag-blue">Runtime</div>
+        <div class="arch-card-title">Cross-Agent Interface</div>
+        <div class="arch-card-body">OpenClaw and proprietary internal agents initiate Waves through Surfit’s governed runtime interface. Surfit enforces policy, mutation boundaries, and verification semantics consistently across frameworks.</div>
+      </div>
+      <div class="arch-card" style="grid-column: 1 / -1; background: rgba(38,192,255,0.02);">
+        <div class="arch-card-num">07</div>
+        <div class="arch-card-tag tag-blue">Library</div>
+        <div class="arch-card-title">Wave Atlas</div>
+        <div class="arch-card-body" style="max-width:680px;">The Wave Atlas is Surfit's registry of versioned, governed execution patterns. Each entry defines policy version, tool allowlist, write constraints, and lifecycle scope. Agents request Waves from the Atlas before acting — the Atlas defines what execution is permitted, not how agents think.</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- WHO NEEDS SURFIT -->
 <section id="for-teams" style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
@@ -1232,7 +1198,7 @@ footer {
           </span>
           <h4>CISOs and Security Leaders</h4>
         </div>
-        <p>Security teams expanding AI capabilities face a tradeoff between innovation and operational risk. Surfit enforces deterministic boundaries at the execution layer — every agent action is policy-evaluated, risk-classified, and either auto-executed or held for approval before reaching any system.</p>
+        <p>Security teams expanding AI capabilities face a tradeoff between innovation and operational risk. Surfit enforces deterministic boundaries using scoped mutation tokens, policy manifests, and runtime validation before actions are executed.</p>
         <div class="runtime-outcome">Outcome: Agents gain controlled authority. Security teams retain enforcement guarantees.</div>
       </div>
 
@@ -1243,7 +1209,7 @@ footer {
           </span>
           <h4>Enterprise Architecture Teams</h4>
         </div>
-        <p>Large organizations often run heterogeneous AI stacks across multiple frameworks and vendors. Surfit provides a neutral decision layer that sits at the execution boundary — evaluating every agent action in business context regardless of which framework produced it.</p>
+        <p>Large organizations often run heterogeneous AI stacks across multiple frameworks and vendors. Surfit provides a neutral governance runtime that sits in the execution path without requiring framework lock-in.</p>
         <div class="runtime-outcome">Outcome: Unified execution governance across agent ecosystems. Neutral integration layer for multiple frameworks.</div>
       </div>
 
@@ -1265,68 +1231,57 @@ footer {
 <section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
   <div class="container">
     <div class="section-label">Platform Capabilities</div>
-    <div class="section-title brand-heading" style="">What Surfit does today.</div>
-    <p style="color:var(--muted);font-size:14px;font-weight:300;margin-top:12px;max-width:720px;">Current capabilities and roadmap.</p>
+    <div class="section-title brand-heading" style="">Core runtime enforcement capabilities currently implemented in Surfit.</div>
 
-    <div style="margin-top:26px;">
+    <div class="runtime-grid" style="margin-top:26px;">
+      <div class="runtime-card"><h4>Runtime Execution Enforcement</h4><p>AI agent actions pass through deterministic runtime boundaries before interacting with enterprise systems.</p></div>
+      <div class="runtime-card"><h4>Policy Manifest Integrity</h4><p>Each Wave execution pins a policy manifest whose SHA256 hash is recorded and verified.</p></div>
+      <div class="runtime-card"><h4>Scoped Mutation Tokens</h4><p>Short-lived tokens restrict agent authority to specific actions within defined policy scope.</p></div>
+      <div class="runtime-card"><h4>Tool Allowlist Enforcement</h4><p>Agents may only invoke tools explicitly allowed by the policy manifest.</p></div>
+      <div class="runtime-card"><h4>Tenant Isolation</h4><p>Surfit enforces tenant-scoped governance boundaries across execution runs and audit records.</p></div>
+      <div class="runtime-card"><h4>Tamper-Evident Audit Logs</h4><p>Every decision produces verifiable governance artifacts with integrity checks.</p></div>
+      <div class="runtime-card"><h4>Offline Governance Proof Verification</h4><p>Exported Wave bundles can be verified independently without the Surfit runtime.</p></div>
+      <div class="runtime-card"><h4>Adapter SDK</h4><p>Neutral integration layer enabling governance enforcement across multiple agent frameworks.</p></div>
+      <div class="runtime-card"><h4>Ocean Proxy Deployment Mode</h4><p>Optional proxy enforcement layer that intercepts and validates agent execution requests.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PLATFORM PROGRESS -->
+<section style="background:var(--dark);border-top:1px solid var(--border);padding:80px 48px;">
+  <div class="container">
+    <div class="section-label">Platform Progress</div>
+    <div class="section-title brand-heading" style="">Current capabilities and roadmap focus.</div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:26px;">
       <div class="runtime-card" style="border-color:rgba(38,192,255,0.25);">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;">✓ Live</div>
-        <p style="color:var(--text);line-height:2.2;font-size:13px;">• Wave runtime enforcement across Slack, GitHub, X, Notion, Gmail, Outlook, AWS<br>• Deterministic risk classification (Wave 1–5) with context-aware scoring<br>• Real-time execution gating with approve/reject/block<br>• Cross-system action evaluation from single governance engine<br>• Cloud-hosted dashboard with live action polling (client + admin views)<br>• Customer isolation — tenant-scoped data, actions, and pending queues<br>• Client-facing dashboard with SSL and authentication (client.surfit.ai)<br>• Internal admin view with cross-customer visibility and pending queue<br>• Always-on cloud deployment (systemd managed, Hetzner)<br>• SQLite-backed persistence across server restarts<br>• Hash-chained execution receipts with integrity verification<br>• Context-aware content risk scoring (keyword, destination, sensitivity)<br>• Role-based approver mapping with per-system access control<br>• Slack DM notifications on held actions<br>• Deterministic action normalization across heterogeneous APIs<br>• Unified pending queue with cross-system operator control<br>• Product demo and architecture visualization live on website</p>
+        <p style="color:var(--text);line-height:2.2;font-size:13px;">• Wave runtime enforcement across Slack, GitHub, X, Notion<br>• Deterministic risk classification (Wave 1–5)<br>• Real-time execution gating with approve/reject/block<br>• Policy manifest verification (SHA256)<br>• Cross-system action evaluation from single engine<br>• Cloud-hosted dashboard with live action polling<br>• Always-on cloud deployment (systemd managed)<br>• SQLite-backed persistence across server restarts<br>• Tamper-evident execution receipts with cryptographic proof<br>• Context-aware content risk scoring (keyword, length, destination)<br>• Deterministic action normalization across heterogeneous APIs<br>• Unified pending queue with cross-system operator control<br>• Product demo and architecture visualization live on website<br>• Adapter SDK for external agent frameworks</p>
       </div>
       <div class="runtime-card" style="border-color:rgba(255,115,30,0.25);">
         <div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--orange);margin-bottom:14px;">◐ In Progress</div>
-        <p><div style="margin-bottom:14px;">• <strong style="color:var(--text);">Predictive Risk Scoring</strong><br><span style="color:var(--muted);">ML-augmented wave classification that learns from approval patterns to auto-calibrate risk thresholds per organization</span></div><div style="margin-bottom:14px;">• <strong style="color:var(--text);">Cross-System Policy Chaining</strong><br><span style="color:var(--muted);">Actions in one system trigger policy evaluation in dependent systems (e.g., GitHub merge → Slack announcement → Notion update)</span></div><div style="margin-bottom:14px;">• <strong style="color:var(--text);">Real-Time Policy Simulation</strong><br><span style="color:var(--muted);">Test policy changes against historical action data before deploying, with impact analysis</span></div><div style="margin-bottom:14px;">• <strong style="color:var(--text);">Autonomous Escalation Routing</strong><br><span style="color:var(--muted);">Dynamic approver selection based on action context, organizational hierarchy, and availability</span></div><div style="margin-bottom:14px;">• <strong style="color:var(--text);">Execution Replay &amp; Forensics</strong><br><span style="color:var(--muted);">Full action replay with counterfactual analysis: "What would have happened under different policies?"</span></div><div style="margin-bottom:0;">• <strong style="color:var(--text);">SOC 2 Type II Compliance</strong><br><span style="color:var(--muted);">Audit-ready governance artifacts, access controls, and tamper-evident logging</span></div></p>
+        <p>• <strong style="color:var(--text);">Predictive Risk Scoring</strong> — ML-augmented wave classification that learns from approval patterns to auto-calibrate risk thresholds per organization<br><br>• <strong style="color:var(--text);">Cross-System Policy Chaining</strong> — Actions in one system trigger policy evaluation in dependent systems (e.g., GitHub merge → Slack announcement → Notion update, all governed as one chain)<br><br>• <strong style="color:var(--text);">Real-Time Policy Simulation</strong> — Test policy changes against historical action data before deploying, with impact analysis showing which past actions would have been reclassified<br><br>• <strong style="color:var(--text);">Autonomous Escalation Routing</strong> — Dynamic approver selection based on action context, organizational hierarchy, and availability — not static hardcoded approvers<br><br>• <strong style="color:var(--text);">Execution Replay &amp; Forensics</strong> — Full action replay with counterfactual analysis: "What would have happened under different policies?"<br><br>• <strong style="color:var(--text);">SOC 2 Type II Compliance</strong> — Audit-ready governance artifacts, access controls, and tamper-evident logging aligned with SOC 2 trust service criteria</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WHERE AGENTS FAIL -->
-<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:60px 48px;">
-  <div class="container" style="max-width:800px;text-align:center;">
-    <div class="section-label">Where agents fail</div>
-    <div style="max-width:820px;margin:24px auto 28px;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:6px;padding:0 18px;">
-        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#22c55e;font-weight:600;text-align:center;">What the agent did</div>
-        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#ef4444;font-weight:600;text-align:center;">What actually happened</div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Posted a message to #general in Slack</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Shared confidential revenue data with 500 employees</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Merged a passing PR to main on GitHub</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Broke the billing pipeline for 3 hours</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Published a post to the company X account</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Released an unapproved product announcement publicly</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Updated a Notion database entry</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Overwrote pricing data with incorrect values before a board meeting</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Provisioned a new EC2 instance on AWS</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Spun up a public-facing server with no security group in production</div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 30px 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent a Slack DM to a team lead</div>
-          <div style="background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;">→</div>
-          <div style="padding:14px 18px;background:var(--surface);font-size:13px;color:var(--text);text-align:left;">Sent an internal performance review to the wrong person</div>
-        </div>
-      </div>
+<!-- TECHNICAL FAQ -->
+<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
+  <div class="container" style="max-width:980px;">
+    <div class="section-label">Technical FAQ</div>
+    <div class="faq-grid" style="margin-top:24px;">
+      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agent actions that evaluates every action against your business rules before execution — routing actions across Slack, GitHub, X, and more based on risk.</p></div>
+      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
+      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a bounded execution container carrying a pinned policy manifest, execution constraints, and audit lineage for a specific action.</p></div>
+      <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
+      
+      <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
+      <div class="faq-item"><h4>Why can’t agents bypass Surfit?</h4><p>Enterprise systems are configured to require Surfit-mediated tokens, connectors, and policy validation for sensitive operations. Agents do not “choose” whether to obey Surfit — Surfit sits at the execution boundary.</p></div>
+      <div class="faq-item"><h4>Why would an agent “listen” to Surfit?</h4><p>Agents do not voluntarily comply with Surfit. Surfit governs the execution path by controlling the credentials, tokens, and connector interfaces through which enterprise actions are performed.</p></div>
+      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes in its framework. Surfit governs the execution boundary when that agent attempts enterprise actions.</p></div>
+      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the rejection reason.</p></div>
     </div>
-    <p style="font-size:14px;color:var(--muted);margin-bottom:8px;">Every action above was technically valid — but operationally wrong.</p>
-    <p style="font-size:16px;color:var(--blue);font-weight:600;">Surfit prevents this.</p>
   </div>
 </section>
 
@@ -1356,10 +1311,10 @@ footer {
   <div class="container" style="max-width:920px;">
     <div class="section-label">Product Demo</div>
     <div class="section-title brand-heading" style="">See Surfit in Action</div>
-    <p class="section-body" style="max-width:640px;">Surfit evaluates and controls every agent action across your systems... before it executes.<br>Lower-risk actions flow automatically... higher-risk actions are held for approval.<br>Every decision is logged, traceable, and enforced in real time.</p>
+    <p class="section-body" style="max-width:640px;">Surfit controls how agent actions are handled across your systems — before they execute.</p>
     <div style="margin-top:40px;position:relative;padding-bottom:56.25%;height:0;border-radius:12px;overflow:hidden;border:1px solid var(--border);box-shadow:0 16px 48px rgba(0,0,0,0.4);">
       <iframe
-        src="https://www.loom.com/embed/13572a5d0d754e9fa0162d51dbc07064"
+        src="https://www.loom.com/embed/fc96615026364af89a84a15667dc25f3"
         frameborder="0"
         webkitallowfullscreen
         mozallowfullscreen
@@ -1370,81 +1325,13 @@ footer {
   </div>
 </section>
 
-<!-- DOMINANCE / OBJECTION KILLER -->
-<section style="background:var(--darker);border-top:1px solid var(--border);padding:80px 48px;">
-  <div class="container" style="max-width:980px;">
-    <div class="section-label">Why a Dedicated Layer</div>
-    <div class="section-title brand-heading" style="">Agent control requires a dedicated layer.</div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:32px;">
-
-      <div class="runtime-card" style="border-color:rgba(38,192,255,0.25);">
-        <h4 style="color:var(--blue);font-size:16px;margin-bottom:16px;">Why This Requires a Dedicated Layer</h4>
-        <div style="color:var(--text);font-size:14px;line-height:2.2;">
-          • <strong style="color:var(--blue);">Credential separation is architectural, not optional.</strong> If the agent holds the credentials, governance is advisory. If an external layer holds them, governance is enforceable.<br>
-          • <strong style="color:var(--blue);">Business context cannot live inside the agent.</strong> The agent knows what it wants to do. It does not know whether this is the right action for the organization right now.<br>
-          • <strong style="color:var(--blue);">Cross-system consistency requires a neutral layer.</strong> Slack, GitHub, AWS, Gmail — each has different APIs, risk profiles, and decision owners. Only an external layer can enforce one decision model across all of them.<br>
-          • <strong style="color:var(--blue);">Self-regulation is not enforcement.</strong> When governance lives inside the agent framework, it is controlled by the same system it is supposed to constrain. Independent control requires architectural separation.<br>
-          • <strong style="color:var(--blue);">Every action needs a verifiable record.</strong> Not just logging — a hash-chained audit trail that proves every action was evaluated against policy before execution, independent of the agent's own reporting.
-        </div>
-      </div>
-
-      <div class="runtime-card" style="border-color:rgba(255,115,30,0.25);">
-        <h4 style="color:var(--orange);font-size:14px;margin-bottom:16px;">What Happens Without a Dedicated Layer</h4>
-
-        <div style="margin-bottom:16px;">
-          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;font-weight:600;">Pre-built Agent Logic</div>
-          <div style="color:var(--text);font-size:13px;line-height:2;">
-            • Hardcoded rules break when context changes — a safe action in staging is dangerous in production<br>
-            • Cannot evaluate business context — doesn't know if it's Monday morning or earnings week<br>
-            • Logic is embedded inside the agent — a model update or prompt change can silently alter what's "allowed"
-          </div>
-        </div>
-
-        <div>
-          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--orange);margin-bottom:8px;font-weight:600;">Internal Builds</div>
-          <div style="color:var(--text);font-size:13px;line-height:2;">
-            • Every new system requires new decision logic — Slack rules don't apply to GitHub, GitHub rules don't apply to AWS<br>
-            • The team that builds the agent is the team that builds the governance — that's self-regulation, not enforcement<br>
-            • Credentials stay inside the agent — governance is advisory, not architectural<br>
-            • Breaks the moment you add a second agent, a new framework, or a third-party system<br>
-            • No cross-system consistency — every integration is a one-off
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<!-- TECHNICAL FAQ -->
-<section style="background:var(--darker);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:80px 48px;">
-  <div class="container" style="max-width:980px;">
-    <div class="section-label">Technical FAQ</div>
-    <div class="faq-grid" style="margin-top:24px;">
-      <div class="faq-item"><h4>What is Surfit?</h4><p>Surfit is a control layer for AI agents that evaluates every action against your business rules before execution — governing actions across Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more based on risk.</p></div>
-      <div class="faq-item"><h4>Does Surfit replace agent frameworks?</h4><p>No. Agents run in any framework; Surfit governs what those agents are allowed to execute at runtime.</p></div>
-      <div class="faq-item"><h4>What is a Wave?</h4><p>A Wave is a risk level assigned to each agent action. Lower-risk Waves execute automatically with logging. Higher-risk Waves are held for approval before execution. Every Wave produces an auditable record of what happened and why.</p></div>
-      <div class="faq-item"><h4>Is Surfit tied to a specific model or framework?</h4><p>No. Surfit is agent-agnostic and designed to work with multiple frameworks and proprietary agent systems.</p></div>
-      
-      <div class="faq-item"><h4>Why can't orchestrators provide the same guarantees?</h4><p>Orchestrators coordinate workflows inside the agent runtime. Surfit operates at the execution boundary between agents and enterprise systems, enforcing policy regardless of the framework or orchestration layer.</p></div>
-      <div class="faq-item"><h4>Why can’t agents bypass Surfit?</h4><p>Enterprise systems are configured to require Surfit-mediated tokens, connectors, and policy validation for sensitive operations. Agents do not “choose” whether to obey Surfit — Surfit sits at the execution boundary.</p></div>
-      <div class="faq-item"><h4>Why would an agent “listen” to Surfit?</h4><p>Agents do not voluntarily comply with Surfit. Surfit governs the execution path by controlling the credentials, tokens, and connector interfaces through which enterprise actions are performed.</p></div>
-      <div class="faq-item"><h4>Does Surfit execute the AI agent?</h4><p>No. The agent executes in its framework. Surfit governs the execution boundary when that agent attempts enterprise actions.</p></div>
-      <div class="faq-item"><h4>What happens when a policy violation occurs?</h4><p>Surfit denies the action and records a tamper-evident governance artifact explaining the rejection reason.</p></div>
-      <div class="faq-item"><h4>How is Surfit different from security tools like CrowdStrike?</h4><p>Security platforms decide what is allowed — they enforce access policies, protect endpoints, and block threats at the infrastructure layer. Surfit decides what should happen — it evaluates agent actions in business context and routes decisions to the right teams. Security says "this process can run." Surfit says "this action is correct for the business." Different layer, different purpose. They work together, not in competition.</p></div>
-      <div class="faq-item"><h4>How is Surfit different from agent runtime governance (like OpenClaw)?</h4><p>Agent runtimes decide what to do — they plan, reason, and select tools. Some runtimes add internal governance features like approvals or sandboxing. But when governance lives inside the agent runtime, it's controlled by the same system it's supposed to constrain. Surfit sits outside the agent entirely — at the execution boundary. It's framework-agnostic, vendor-neutral, and architecturally independent. The agent can't override Surfit because Surfit holds the execution credentials, not the agent.</p></div>
-    </div>
-  </div>
-</section>
-
 <!-- CTA -->
 <section class="cta-section">
   <div class="cta-glow"></div>
   <div style="position:relative;z-index:1;">
     <div class="section-label">Built for Enterprise AI</div>
     <div class="section-title brand-heading" style="">Decide what gets executed —<br>before it happens.</div>
-    <p class="section-body">As agents gain autonomy, a control layer becomes required — not optional. Every action evaluated, every decision explained, every outcome recorded — across every system your agents touch.</p>
+    <p class="section-body">Surfit is the control layer for agent actions. Every action evaluated, every decision explained, every outcome recorded — across every system your agents touch.</p>
     <p style="margin-top:40px;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);">Works with any agent framework &nbsp;·&nbsp; Governed by Surfit</p>
   </div>
 </section>

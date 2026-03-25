@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiteLLM Got Compromised. Here's Why Your Agent's Credentials Shouldn't Live Where They Can Be Stolen.</title>
+<meta name="description" content="A malicious version of LiteLLM was pushed to PyPI on March 24, 2026. It stole every credential on the machine. This is why credentials shouldn't live in the agent's environment.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #0a0f1a;
+  --darker: #060b14;
+  --surface: #111827;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --red: #ef4444;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+a { color:var(--blue); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  background:var(--darker);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-wordmark { font-family:'Righteous',cursive; font-size:18px; }
+.nav-wordmark .s { color:#26c0ff; }
+.nav-wordmark .d { color:#7a9ab8; font-size:12px; margin:0 1px; }
+.nav-wordmark .a { color:#ff731e; }
+.nav-links { list-style:none; display:flex; gap:24px; align-items:center; }
+.nav-links a { color:var(--muted); font-size:13px; font-weight:500; text-decoration:none; }
+.nav-links a:hover { color:var(--text); }
+
+.container { max-width:720px; margin:0 auto; padding:0 24px; }
+
+.post-header {
+  padding:60px 24px 40px;
+  border-bottom:1px solid var(--border);
+  max-width:720px; margin:0 auto;
+}
+.post-tag {
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:3px 10px; border-radius:3px; font-weight:700;
+  display:inline-block; margin-bottom:16px;
+}
+.post-tag.incident { background:rgba(239,68,68,0.1); color:var(--red); }
+.post-tag.landscape { background:rgba(38,192,255,0.1); color:var(--blue); }
+.post-date { font-size:12px; color:var(--muted); margin-bottom:16px; }
+.post-header h1 {
+  font-family:'Righteous',cursive; font-size:32px; line-height:1.2;
+  color:var(--text); margin-bottom:16px;
+}
+.post-header .subtitle { font-size:16px; color:var(--muted); line-height:1.6; font-weight:300; }
+
+.post-body { padding:40px 0 60px; }
+.post-body h2 {
+  font-size:22px; font-weight:700; color:var(--text);
+  margin:40px 0 16px; padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.post-body h2:first-child { border-top:none; margin-top:0; padding-top:0; }
+.post-body p {
+  font-size:15px; line-height:1.8; color:var(--muted);
+  margin-bottom:16px; font-weight:300;
+}
+.post-body strong { color:var(--text); font-weight:600; }
+.post-body .highlight {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+.post-body .highlight p { margin-bottom:8px; }
+.post-body .highlight p:last-child { margin-bottom:0; }
+.post-body .blue { color:var(--blue); }
+.post-body .red { color:var(--red); }
+.post-body .orange { color:var(--orange); }
+
+.post-body .incident-box {
+  background:rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.25);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+
+.post-cta {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:28px; text-align:center; margin:40px 0;
+}
+.post-cta p { font-size:15px; color:var(--text); margin-bottom:16px; }
+.post-cta a {
+  display:inline-block; background:var(--blue); color:#000;
+  padding:10px 24px; border-radius:6px; font-weight:600;
+  font-size:13px; text-decoration:none;
+}
+.post-cta a:hover { opacity:0.9; text-decoration:none; }
+
+.back-link { display:block; padding:20px 0; font-size:13px; color:var(--muted); }
+
+footer {
+  border-top:1px solid var(--border); padding:32px 48px;
+  text-align:center;
+}
+.footer-logo { font-family:'Righteous',cursive; font-size:14px; }
+.footer-logo .s { color:#26c0ff; }
+.footer-logo .d { color:#7a9ab8; font-size:10px; }
+.footer-logo .a { color:#ff731e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <div class="nav-wordmark">
+      <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="post-header">
+    <span class="post-tag incident">Incident</span>
+    <div class="post-date">March 25, 2026</div>
+    <h1>LiteLLM Got Compromised. Here's Why Your Agent's Credentials Shouldn't Live Where They Can Be Stolen.</h1>
+    <p class="subtitle">On March 24, 2026, a malicious version of one of the most widely-used Python LLM libraries was pushed to PyPI. It stole every credential on the machine. This incident validates a simple architectural principle: credentials should not live in the agent's environment.</p>
+  </div>
+
+  <div class="post-body">
+
+    <h2>What Happened</h2>
+
+    <p>LiteLLM is one of the most popular Python libraries for interacting with large language models. Over 40,000 GitHub stars. A single unified interface for OpenAI, Anthropic, Google, and dozens of other providers. It's a dependency in a huge number of AI agent frameworks, MCP servers, and LLM orchestration tools.</p>
+
+    <p>On March 24, 2026, version 1.82.8 of LiteLLM was pushed to PyPI containing a malicious <code>.pth</code> file. This file executes on <strong>every Python process</strong> on the machine — not just processes that import LiteLLM.</p>
+
+    <div class="incident-box">
+      <p><strong class="red">What was stolen:</strong></p>
+      <p>SSH keys. Cloud provider tokens (AWS, GCP, Azure). Database passwords. API keys. Git credentials. Docker configurations. Kubernetes tokens. Cryptocurrency wallets. Every credential accessible from the compromised machine.</p>
+    </div>
+
+    <p>The attacker compromised a maintainer's account — the same threat actor (TeamPCP) behind the Trivy vulnerability scanner compromise on March 19 and the Checkmarx KICS GitHub Action compromise on March 23. A coordinated, multi-target campaign hitting the tools developers trust most.</p>
+
+    <p>One developer discovered the compromise only because their Cursor IDE pulled LiteLLM in through an MCP plugin. They never ran <code>pip install litellm</code> themselves. It was a transitive dependency — invisible until it was too late.</p>
+
+    <h2>Why This Matters for AI Agents</h2>
+
+    <p>Here's the part that should concern anyone deploying AI agents in production:</p>
+
+    <p><strong>AI agents run in environments full of credentials.</strong> The agent needs a Slack token to post messages. A GitHub PAT to manage PRs. AWS keys to provision infrastructure. Gmail OAuth tokens to send emails. These credentials live in the same environment where the agent runs — alongside every pip package, every npm module, every transitive dependency.</p>
+
+    <p>When one of those dependencies is compromised, every credential in the environment is compromised. The agent's Slack token, GitHub PAT, AWS keys — all of them.</p>
+
+    <p>And then the attacker doesn't just have access to the agent's environment. <strong>They have the ability to act as the agent — on every system the agent can reach.</strong></p>
+
+    <div class="highlight">
+      <p><strong>The attack chain:</strong></p>
+      <p>1. Malicious package is installed (directly or as transitive dependency)</p>
+      <p>2. Credentials are exfiltrated — every token, key, and secret on the machine</p>
+      <p>3. Attacker now has the same access as the agent: Slack, GitHub, AWS, email, databases</p>
+      <p>4. <strong class="red">Every action the agent could take, the attacker can now take</strong></p>
+    </div>
+
+    <h2>The Credential Architecture Problem</h2>
+
+    <p>This isn't a LiteLLM problem. It's a credential architecture problem.</p>
+
+    <p>The question isn't "how do we prevent supply chain attacks?" — that's an arms race with no end. The question is: <strong>why do agents hold live credentials to production systems in an environment that can be compromised?</strong></p>
+
+    <p>The current standard architecture:</p>
+
+    <div class="highlight">
+      <p><strong class="red">Agent environment</strong> contains: agent code + dependencies + credentials</p>
+      <p>If environment is compromised → credentials are compromised → all systems are exposed</p>
+    </div>
+
+    <p>The alternative architecture:</p>
+
+    <div class="highlight">
+      <p><strong class="blue">Agent environment</strong> contains: agent code + dependencies (no credentials)</p>
+      <p><strong class="blue">External decision layer</strong> contains: credentials + policy evaluation + execution authority</p>
+      <p>If agent environment is compromised → attacker gets code, not credentials → systems are protected</p>
+    </div>
+
+    <p>When credentials live outside the agent's environment — in a separate, hardened infrastructure layer — compromising the agent gets you nothing. You can steal the code, the model weights, the prompts. But you can't act on any system because you don't hold the keys.</p>
+
+    <h2>One Hardened Layer vs. Scattered Credentials</h2>
+
+    <p>The counterargument is obvious: "Aren't you just moving the target? If someone compromises the credential layer, it's the same problem."</p>
+
+    <p>Yes — if someone compromises the credential layer, that's catastrophic. Same as compromising your database, your secrets manager, or your IAM provider.</p>
+
+    <p>But there's a fundamental difference in attack surface:</p>
+
+    <div class="highlight">
+      <p><strong class="red">Credentials in the agent environment:</strong> Exposed to every pip package, every npm module, every transitive dependency, every VS Code extension, every dev tool. The LiteLLM compromise affected machines simply because the package was installed. Attack surface: enormous.</p>
+      <p><strong class="blue">Credentials in a dedicated layer:</strong> A single-purpose infrastructure component. No agent code. No development dependencies. No arbitrary packages. Hardened like a database server. Attack surface: minimal.</p>
+    </div>
+
+    <p>You don't install random pip packages on your production database server. The same principle applies to your credential infrastructure.</p>
+
+    <h2>What Surfit Does Differently</h2>
+
+    <p>Surfit is built on this exact architectural principle. It's a control layer that sits between AI agents and the systems they act on. <strong>Surfit holds the credentials. The agent doesn't.</strong></p>
+
+    <p>When an agent wants to post to Slack, merge a PR, or provision AWS infrastructure, it doesn't call those systems directly. It calls Surfit's API. Surfit evaluates the action in business context, and if approved, executes it using credentials only Surfit holds.</p>
+
+    <p>If the agent's environment is compromised — by a malicious pip package, a supply chain attack, a compromised dependency — the attacker gets the agent's code but not the credentials. They cannot act on any system because the execution path goes through Surfit, and Surfit holds the keys.</p>
+
+    <p>This isn't about preventing supply chain attacks. It's about ensuring that when they inevitably happen, the blast radius doesn't include every production system your agent touches.</p>
+
+    <div class="post-cta">
+      <p>See how Surfit separates credential authority from agent execution — with a live demo showing real actions being evaluated and enforced.</p>
+      <a href="https://www.surfit.ai/#demo">Watch the Demo</a>
+    </div>
+
+    <p style="font-size:14px;font-style:italic;color:var(--muted);border-left:3px solid var(--blue);padding-left:14px;">The moment an agent has credentials, every action becomes a business decision. The question is whether those credentials live where they can be stolen — or where they're architecturally protected.</p>
+
+    <a href="/blog/" class="back-link">← Back to Blog</a>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+  </div>
+</footer>
+
+</body>
+</html>
