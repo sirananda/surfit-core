@@ -179,7 +179,7 @@ footer {
 
     <p>But they all share one characteristic: <strong class="orange">the agent still executes on its own.</strong></p>
 
-    <p>Every tool in this landscape operates on the agent's inputs, outputs, model behavior, access permissions, or runtime environment. None of them sit in the execution path between the agent and the business systems it touches. None of them hold the credentials. None of them evaluate whether a specific action should happen for the business right now.</p>
+    <p>Every tool in this landscape operates on the agent's inputs, outputs, model behavior, access permissions, or runtime environment. None of them sit in the execution path between the agent and the business systems it touches. None of them sit in the execution path. None of them evaluate whether a specific action should happen for the business right now.</p>
 
     <p>This post maps every major player, the layer they occupy, and <strong>the gap that remains.</strong></p>
 
@@ -342,7 +342,7 @@ footer {
 
       <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">Surfit sits between the agent and every system it touches — Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and more. The agent proposes an action. Surfit evaluates it in business context. Low-risk actions execute instantly. High-risk actions are held and routed. Everything produces a receipt.</p>
 
-      <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">The architectural distinction: <strong class="blue">Surfit holds the credentials. The agent doesn't.</strong> The agent calls Surfit's API, not the external system's API. Surfit evaluates the action and executes using credentials only Surfit holds. The agent never touches the external system directly.</p>
+      <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">The architectural distinction: <strong class="blue">Surfit controls the execution path. The agent doesn't execute directly.</strong> The agent calls Surfit's API, not the external system's API. Surfit evaluates the action in business context and executes on behalf of the agent — using credentials the agent never touches.</p>
 
       <p style="font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:16px;">This is not another guardrail, another validator, or another sandbox. This is the layer where business decisions about agent actions are actually made and enforced — architecturally, not advisorily.</p>
 
@@ -365,7 +365,7 @@ footer {
     <p>CrowdStrike secures the infrastructure. <strong class="orange">The agent still executes on its own.</strong></p>
     <p>OpenClaw decides what to do. <strong class="orange">The agent still executes on its own.</strong></p>
 
-    <p><strong class="blue">Surfit is where that changes.</strong> The agent proposes. Surfit evaluates, decides, and executes. The agent never holds the credentials. The agent never touches the system directly. This is not a feature that can be bolted onto any of the tools above — it's an architectural decision that changes how agents interact with every external system.</p>
+    <p><strong class="blue">Surfit is where that changes.</strong> The agent proposes. Surfit evaluates, decides, and executes. The agent never executes directly. The agent never touches the system without Surfit in the path. This is not a feature that can be bolted onto any of the tools above — it's an architectural decision that changes how agents interact with every external system.</p>
 
     <p>Every tool makes agents capable. <strong class="blue">Surfit is where capable agents execute.</strong></p>
 

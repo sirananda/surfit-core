@@ -214,9 +214,9 @@ footer {
 
     <h2>What Surfit Does Differently</h2>
 
-    <p>Surfit is built on this exact architectural principle. It's a control layer that sits between AI agents and the systems they act on. <strong>Surfit holds the credentials. The agent doesn't.</strong></p>
+    <p>Surfit is built on this exact architectural principle. It's a control layer that sits between AI agents and the systems they act on. <strong>Surfit controls the execution path. The agent doesn't execute directly.</strong></p>
 
-    <p>When an agent wants to post to Slack, merge a PR, or provision AWS infrastructure, it doesn't call those systems directly. It calls Surfit's API. Surfit evaluates the action in business context, and if approved, executes it using credentials only Surfit holds.</p>
+    <p>When an agent wants to post to Slack, merge a PR, or provision AWS infrastructure, it doesn't call those systems directly. It calls Surfit's API. Surfit evaluates the action in business context, and if approved, executes it using credentials the agent never touches — whether managed by Surfit directly or integrated with the customer's own credential vault.</p>
 
     <p>If the agent's environment is compromised — by a malicious pip package, a supply chain attack, a compromised dependency — the attacker gets the agent's code but not the credentials. They cannot act on any system because the execution path goes through Surfit, and Surfit holds the keys.</p>
 

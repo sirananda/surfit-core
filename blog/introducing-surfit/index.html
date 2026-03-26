@@ -187,24 +187,24 @@ footer {
 
     <p>There's one thing that separates Surfit from every other tool in this space, and it's not a feature — it's an architectural decision:</p>
 
-    <p><strong class="blue">Surfit holds the credentials. The agent doesn't.</strong></p>
+    <p><strong class="blue">Surfit controls the execution path. The agent doesn't execute directly.</strong></p>
 
     <p>In every current agent framework — LangChain, CrewAI, OpenClaw, custom builds — the agent has access to the credentials it needs to operate. It holds the Slack token, the GitHub PAT, the AWS keys. When it decides to act, it acts.</p>
 
-    <p>Surfit inverts this. The agent calls Surfit's API instead of calling the external system directly. Surfit evaluates the action, and if approved, executes it using credentials only Surfit holds. The agent never touches the external system's credentials.</p>
+    <p>Surfit inverts this. The agent calls Surfit's API instead of calling the external system directly. Surfit evaluates the action in business context, and if approved, executes it — using credentials the agent never touches, whether managed by Surfit or integrated with the customer's own vault.</p>
 
     <div class="comparison">
       <div class="comp-card">
         <div class="comp-label red">Evals (Inside the Agent)</div>
-        <p style="font-size:13px;line-height:1.7;color:var(--muted);">Evals run inside the agent pipeline. They can flag, warn, or suggest. But the agent still holds the credentials. It can bypass, remove, or reconfigure the eval. <strong>Governance is advisory.</strong></p>
+        <p style="font-size:13px;line-height:1.7;color:var(--muted);">Evals run inside the agent pipeline. They can flag, warn, or suggest. But the agent still controls execution. It can bypass, remove, or reconfigure the eval. <strong>Governance is advisory.</strong></p>
       </div>
       <div class="comp-card surfit">
         <div class="comp-label blue">Surfit (Outside the Agent)</div>
-        <p style="font-size:13px;line-height:1.7;color:var(--muted);">The agent does not hold credentials. Every action must pass through Surfit. Surfit evaluates in business context and executes using its own credentials. <strong class="blue">Governance is enforceable.</strong></p>
+        <p style="font-size:13px;line-height:1.7;color:var(--muted);">The agent does not execute directly. Every action must pass through Surfit. Surfit evaluates in business context and controls execution. <strong class="blue">Governance is enforceable.</strong></p>
       </div>
     </div>
 
-    <p>This is the core distinction: <strong>if the agent holds the credentials, governance is advisory. If an external layer holds them, governance is enforceable.</strong></p>
+    <p>This is the core distinction: <strong>if the agent controls execution, governance is advisory. If an external layer controls execution, governance is enforceable.</strong></p>
 
     <h2>A Concrete Example</h2>
 
@@ -246,11 +246,11 @@ footer {
 
     <p>The most common question we hear: "Why can't Guardrails / CTGT / OpenClaw just add this?"</p>
 
-    <p>They could build basic approval workflows. What they can't easily do: <strong>rearchitect their entire product so the agent no longer holds credentials.</strong></p>
+    <p>They could build basic approval workflows. What they can't easily do: <strong>rearchitect their entire product to sit in the execution path and evaluate business context for every action.</strong></p>
 
     <p>Guardrails AI is a Python library that wraps around the agent's pipeline. Asking it to hold credentials and sit at the execution boundary means becoming a different product. CTGT operates at model inference — moving from model internals to system-level execution proxy is a company pivot. OpenClaw's entire architecture assumes the agent authenticates directly to systems.</p>
 
-    <p>Surfit was designed from the ground up for this layer. Credential separation isn't a feature — it's the foundation the entire product is built on.</p>
+    <p>Surfit was designed from the ground up for this layer. Execution authority isn't a feature — it's the foundation the entire product is built on.</p>
 
     <h2>What's Live Today</h2>
 
