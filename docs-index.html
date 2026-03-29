@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation — Surfit.AI</title>
+<meta name="description" content="Technical documentation for Surfit — how it works, security architecture, integrations, wave classification, shadow mode, and API reference.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--dark:#0a0f1a;--darker:#060b14;--surface:#111827;--border:#1e293b;--text:#e2e8f0;--muted:#64748b;--blue:#26c0ff;--orange:#ff731e;--red:#ef4444;--green:#22c55e;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--dark);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
+a{color:var(--blue);text-decoration:none;}a:hover{text-decoration:underline;}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 48px;border-bottom:1px solid var(--border);background:var(--darker);}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-wordmark{font-family:'Righteous',cursive;font-size:18px;}
+.nav-wordmark .s{color:#26c0ff;}.nav-wordmark .d{color:#7a9ab8;font-size:12px;margin:0 1px;}.nav-wordmark .a{color:#ff731e;}
+.nav-links{list-style:none;display:flex;gap:24px;align-items:center;}
+.nav-links a{color:var(--text);font-size:13px;font-weight:500;text-decoration:none;}.nav-links a:hover{color:var(--blue);}
+
+.docs-layout{display:flex;min-height:calc(100vh - 60px);}
+.docs-sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);padding:24px 0;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--darker);}
+.docs-sidebar a{display:block;padding:8px 24px;font-size:13px;color:var(--muted);text-decoration:none;border-left:2px solid transparent;transition:all 0.15s;}
+.docs-sidebar a:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.docs-sidebar a.active{color:var(--blue);border-left-color:var(--blue);background:rgba(38,192,255,0.05);}
+.docs-sidebar .sidebar-label{padding:20px 24px 6px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);font-weight:600;}
+
+.docs-content{flex:1;max-width:760px;padding:40px 48px 80px;margin:0 auto;}
+.docs-content h1{font-size:28px;font-weight:700;margin-bottom:8px;}
+.docs-content .subtitle{font-size:15px;color:rgba(226,232,240,0.65);margin-bottom:32px;font-weight:300;}
+.docs-content h2{font-size:20px;font-weight:700;margin:36px 0 12px;padding-top:24px;border-top:1px solid var(--border);}
+.docs-content h2:first-of-type{border-top:none;padding-top:0;}
+.docs-content h3{font-size:15px;font-weight:600;margin:24px 0 8px;color:var(--text);}
+.docs-content p{font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);margin-bottom:14px;}
+.docs-content strong{color:var(--text);font-weight:600;}
+.docs-content ul,.docs-content ol{margin:0 0 14px 20px;font-size:14px;line-height:1.8;color:rgba(226,232,240,0.75);}
+.docs-content li{margin-bottom:4px;}
+
+code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;color:var(--text);}
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:14px 0;overflow-x:auto;}
+.code-block code{background:none;padding:0;font-size:12px;line-height:1.7;display:block;white-space:pre;}
+.code-label{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600;}
+
+.info-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:16px 0;}
+.info-box.blue{border-left:3px solid var(--blue);}
+.info-box.orange{border-left:3px solid var(--orange);}
+.info-box p{margin-bottom:6px;}
+.info-box p:last-child{margin-bottom:0;}
+
+.wave-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px;}
+.wave-table th{text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;}
+.wave-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);color:rgba(226,232,240,0.75);}
+.wave-table .wave-num{font-weight:700;width:60px;}
+.wave-table .w1{color:var(--green);}.wave-table .w2{color:var(--green);}
+.wave-table .w3{color:var(--orange);}.wave-table .w4{color:var(--red);}.wave-table .w5{color:var(--red);}
+
+.int-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin:10px 0;}
+.int-card h4{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.int-card p{font-size:13px;margin-bottom:4px;}
+.int-card code{font-size:11px;}
+
+.flow-svg{margin:20px 0;border:1px solid var(--border);border-radius:10px;padding:12px;background:rgba(10,10,15,0.6);}
+
+.section{display:none;}.section.active{display:block;}
+
+footer{border-top:1px solid var(--border);padding:32px 48px;text-align:center;}
+.footer-logo{font-family:'Righteous',cursive;font-size:14px;}
+.footer-logo .s{color:#26c0ff;}.footer-logo .d{color:#7a9ab8;font-size:10px;}.footer-logo .a{color:#ff731e;}
+
+@media(max-width:768px){.docs-sidebar{display:none;}.docs-content{padding:24px;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none"><path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/><path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/><path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/></svg>
+    <div class="nav-wordmark"><span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span></div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="/docs/" style="color:var(--blue);font-weight:600;">Docs</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="docs-layout">
+  <div class="docs-sidebar">
+    <div class="sidebar-label">Documentation</div>
+    <a href="#overview" class="active" onclick="showSection('overview',this)">Overview</a>
+    <a href="#how-it-works" onclick="showSection('how-it-works',this)">How It Works</a>
+    <a href="#security" onclick="showSection('security',this)">Security</a>
+    <a href="#integrations" onclick="showSection('integrations',this)">Integrations</a>
+    <a href="#waves" onclick="showSection('waves',this)">Wave Classification</a>
+    <a href="#shadow" onclick="showSection('shadow',this)">Shadow Mode</a>
+    <a href="#api" onclick="showSection('api',this)">API Reference</a>
+  </div>
+
+  <div class="docs-content">
+
+    <!-- ═══════════ OVERVIEW ═══════════ -->
+    <div id="overview" class="section active">
+      <h1>Technical Documentation</h1>
+      <p class="subtitle">Everything you need to understand how Surfit works, how your credentials are protected, and how to connect your systems.</p>
+
+      <p>Surfit is the decision layer for AI agent actions. It sits between your agents and the systems they act on — evaluating every action in business context before it reaches any system.</p>
+
+      <p>Your agent proposes an action. Surfit evaluates it. Low-risk actions execute automatically. High-risk actions are held for review. Everything gets a tamper-evident receipt.</p>
+
+      <p>Surfit is not an orchestrator (it doesn't decide what agents should do), not a guardrail (it doesn't filter model outputs), and not a permissions layer (it doesn't manage who can access what). Surfit decides whether a specific action should happen right now, in this context, with these consequences.</p>
+
+      <div class="info-box blue">
+        <p><strong>The stack:</strong></p>
+        <p><span style="color:var(--orange);">Layer 1: Model</span> — make agents smart (Guardrails AI, CTGT, NeMo)</p>
+        <p><span style="color:var(--orange);">Layer 2: Runtime</span> — make agents safe (IronCurtain, Cisco, CrowdStrike)</p>
+        <p><span style="color:var(--blue);">Layer 3: Decision</span> — make agents correct (<strong>Surfit</strong>)</p>
+        <p>Layer 4: Systems — where agents act (Slack, GitHub, AWS, X, etc.)</p>
+      </div>
+    </div>
+
+    <!-- ═══════════ HOW IT WORKS ═══════════ -->
+    <div id="how-it-works" class="section">
+      <h1>How Surfit Works</h1>
+      <p class="subtitle">From agent action to execution in seconds.</p>
+
+      <div class="flow-svg">
+        <svg width="100%" viewBox="0 0 660 420" xmlns="http://www.w3.org/2000/svg" style="font-family:'Inter',sans-serif;">
+          <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <rect x="230" y="10" width="200" height="40" rx="8" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.15)"/>
+          <text x="330" y="35" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="600">Agent proposes action</text>
+          <line x1="330" y1="50" x2="330" y2="75" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <rect x="230" y="80" width="200" height="40" rx="8" fill="rgba(38,192,255,0.08)" stroke="rgba(38,192,255,0.3)"/>
+          <text x="330" y="105" text-anchor="middle" fill="var(--blue)" font-size="13" font-weight="600">Surfit API (ingest)</text>
+          <line x1="330" y1="120" x2="330" y2="145" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <rect x="190" y="150" width="280" height="80" rx="8" fill="rgba(38,192,255,0.05)" stroke="rgba(38,192,255,0.2)"/>
+          <text x="330" y="175" text-anchor="middle" fill="var(--blue)" font-size="12" font-weight="600">Wave Engine evaluates</text>
+          <text x="330" y="195" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">System risk · Action type · Destination · Context</text>
+          <text x="330" y="215" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">→ Wave Score (1-5)</text>
+          <line x1="230" y1="230" x2="150" y2="270" stroke="rgba(34,197,94,0.4)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <line x1="430" y1="230" x2="510" y2="270" stroke="rgba(239,68,68,0.4)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <rect x="40" y="275" width="220" height="60" rx="8" fill="rgba(34,197,94,0.06)" stroke="rgba(34,197,94,0.25)"/>
+          <text x="150" y="300" text-anchor="middle" fill="var(--green)" font-size="12" font-weight="600">Wave 1-3: Auto-execute</text>
+          <text x="150" y="318" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">Logged + receipt</text>
+          <rect x="400" y="275" width="220" height="60" rx="8" fill="rgba(38,192,255,0.06)" stroke="rgba(38,192,255,0.25)"/>
+          <text x="510" y="300" text-anchor="middle" fill="var(--blue)" font-size="12" font-weight="600">Wave 4-5: Hold</text>
+          <text x="510" y="318" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">Dashboard notification → Review</text>
+          <line x1="150" y1="335" x2="150" y2="365" stroke="rgba(34,197,94,0.3)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <line x1="510" y1="335" x2="510" y2="365" stroke="rgba(38,192,255,0.3)" stroke-width="1.5" marker-end="url(#fa)"/>
+          <rect x="40" y="370" width="220" height="36" rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)"/>
+          <text x="150" y="393" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">→ System (Slack, GitHub, etc.)</text>
+          <rect x="400" y="370" width="220" height="36" rx="8" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)"/>
+          <text x="510" y="393" text-anchor="middle" fill="rgba(226,232,240,0.5)" font-size="11">Approve → Execute | Reject → Block</text>
+        </svg>
+      </div>
+
+      <p>Every action follows the same path:</p>
+
+      <ol>
+        <li><strong>Your agent calls Surfit's API</strong> instead of calling the target system directly. One line change — replace the system API URL with Surfit's ingest endpoint.</li>
+        <li><strong>Surfit's Wave engine evaluates the action.</strong> Risk is computed from four factors: the system being targeted, the action type, the destination sensitivity, and the current context.</li>
+        <li><strong>Low-risk actions (Wave 1-3) execute automatically.</strong> Your agent doesn't slow down. The action is logged with a tamper-evident receipt.</li>
+        <li><strong>High-risk actions (Wave 4-5) are held.</strong> The designated reviewer gets notified. They review the action in the dashboard and approve or reject. On approval, Surfit executes the action.</li>
+        <li><strong>Every action gets a hash-chained receipt</strong> with full context: what happened, why, when, who authorized it, and cryptographic proof of integrity.</li>
+      </ol>
+
+      <div class="info-box blue">
+        <p><strong>Key point:</strong> The agent never controls execution directly. Surfit controls the execution path. The agent cannot bypass Surfit because it doesn't have direct access to system credentials.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════ SECURITY ═══════════ -->
+    <div id="security" class="section">
+      <h1>Security Architecture</h1>
+      <p class="subtitle">How Surfit protects your credentials and your systems.</p>
+
+      <h2>Credential Management</h2>
+      <p>Surfit uses a split-authority model. Your credentials are encrypted and managed by Surfit — whether stored in Surfit's credential store or integrated with your own vault. The agent never has access to them.</p>
+      <ul>
+        <li><strong>AES-256 encryption</strong> with per-tenant derived keys</li>
+        <li><strong>Master encryption key</strong> stored as an environment variable, never in code or database</li>
+        <li><strong>Per-tenant key derivation via HKDF</strong> — compromising one tenant's data does not expose another's credentials</li>
+        <li><strong>Credentials decrypted ONLY at execution time</strong>, inside the function that makes the API call, and immediately discarded after use</li>
+        <li><strong>Credentials never appear</strong> in logs, dashboards, API responses, or error messages</li>
+      </ul>
+
+      <h2>Audit Trail</h2>
+      <p>Every credential access and every action execution is recorded in a hash-chained, append-only audit log.</p>
+      <ul>
+        <li>Each log entry contains the hash of the previous entry</li>
+        <li>Any modification to the log breaks the chain and is cryptographically detectable</li>
+        <li>Log entries record: which credential, which tenant, which action, what time, what outcome</li>
+        <li>Audit chain integrity can be verified at any time</li>
+      </ul>
+
+      <h2>Access Control</h2>
+      <ul>
+        <li><strong>Operator 2FA (TOTP)</strong> required for all administrative write operations</li>
+        <li><strong>Per-tenant isolation</strong> — customers can only access their own data</li>
+        <li>Customers can view credential metadata (connected systems, last used, access count) but never the credential values</li>
+      </ul>
+
+      <h2>Revocation</h2>
+      <ul>
+        <li><strong>Instant credential revocation</strong> — hard delete, not soft delete</li>
+        <li>When a customer disconnects a system, the encrypted credential is permanently removed</li>
+        <li>Credential rotation tracking with 90-day warnings</li>
+      </ul>
+
+      <h2>Emergency Controls</h2>
+      <div class="info-box orange">
+        <p><strong>Global Kill Switch:</strong> Halts all execution across all tenants immediately. One command stops everything. No new actions execute until manually re-enabled.</p>
+        <p><strong>Shadow Mode:</strong> Per-tenant evaluate-only mode. Surfit processes every action but executes nothing. Full visibility, zero risk. <a href="#shadow" onclick="showSection('shadow',this)">Learn more →</a></p>
+      </div>
+
+      <h2>Incident Response</h2>
+      <ul>
+        <li>Documented incident response plan with severity levels</li>
+        <li><strong>P1 (credential exposure):</strong> Kill switch activated, affected credentials revoked, customers notified within 4 hours</li>
+        <li>Forensic audit via hash-chained logs to determine scope of any incident</li>
+      </ul>
+
+      <h2>Compliance Direction</h2>
+      <p>Surfit's architecture is designed toward SOC 2 Type II compliance:</p>
+      <ul>
+        <li>Encryption at rest (CC6.1)</li>
+        <li>Access controls (CC6.2, CC6.3)</li>
+        <li>Audit logging (CC7.1, CC7.2)</li>
+        <li>Incident response (CC7.3, CC7.4)</li>
+      </ul>
+      <p style="font-size:13px;color:var(--muted);">We are not SOC 2 certified yet. Our architecture follows its control requirements.</p>
+    </div>
+
+    <!-- ═══════════ INTEGRATIONS ═══════════ -->
+    <div id="integrations" class="section">
+      <h1>Supported Integrations</h1>
+      <p class="subtitle">Connect your agents to the systems they already use.</p>
+
+      <div class="int-card">
+        <h4>Slack <span style="color:var(--green);font-size:11px;font-weight:400;">— Full execution</span></h4>
+        <p>Slash commands, channel monitoring, bot posting. Classification by channel type, sensitivity, visibility. Auto-execute for routine team posts, hold for announcements.</p>
+        <p><code>POST /api/v1/ingest/slack</code></p>
+      </div>
+
+      <div class="int-card">
+        <h4>GitHub <span style="color:var(--blue);font-size:11px;font-weight:400;">— Evaluation + classification</span></h4>
+        <p>Webhook integration for PR events. Classification by target branch and repo sensitivity. PRs to main/production held. Feature branch PRs auto-logged.</p>
+        <p><code>POST /api/v1/ingest/github</code> (webhook)</p>
+      </div>
+
+      <div class="int-card">
+        <h4>X <span style="color:var(--green);font-size:11px;font-weight:400;">— Full execution</span></h4>
+        <p>OAuth 1.0a posting via encrypted credentials. Classification by content risk (keywords, URLs, length). Trusted agent sources score lower for routine posts.</p>
+        <p><code>POST /api/v1/ingest/x</code></p>
+      </div>
+
+      <div class="int-card">
+        <h4>Notion <span style="color:var(--blue);font-size:11px;font-weight:400;">— Evaluation + classification</span></h4>
+        <p>Page and database action governance. Classification by action type and target sensitivity. Creates auto-execute, deletes on sensitive pages held.</p>
+        <p><code>POST /api/v1/ingest/notion</code></p>
+      </div>
+
+      <div class="int-card">
+        <h4>Gmail <span style="color:var(--blue);font-size:11px;font-weight:400;">— Evaluation + classification</span></h4>
+        <p>Email governance by recipient and content sensitivity. Internal emails auto-send, external with sensitive content held.</p>
+        <p><code>POST /api/v1/ingest/gmail</code></p>
+      </div>
+
+      <div class="int-card">
+        <h4>Outlook <span style="color:var(--blue);font-size:11px;font-weight:400;">— Evaluation + classification</span></h4>
+        <p>Same classification as Gmail plus calendar governance. Meeting scheduling, email sending, forwarding.</p>
+        <p><code>POST /api/v1/ingest/outlook</code></p>
+      </div>
+
+      <div class="int-card">
+        <h4>AWS <span style="color:var(--blue);font-size:11px;font-weight:400;">— Evaluation + classification</span></h4>
+        <p>Infrastructure action governance. IAM modifications and resource deletions always held. Lambda deploys and S3 updates auto-logged. Production region detection.</p>
+        <p><code>POST /api/v1/ingest/aws</code></p>
+      </div>
+    </div>
+
+    <!-- ═══════════ WAVE CLASSIFICATION ═══════════ -->
+    <div id="waves" class="section">
+      <h1>Wave Classification System</h1>
+      <p class="subtitle">How Surfit scores risk and makes decisions.</p>
+
+      <p>Every action receives a Wave score from 1 to 5. The score determines whether the action executes automatically or requires review.</p>
+
+      <table class="wave-table">
+        <tr><th>Wave</th><th>Level</th><th>Handling</th><th>Example</th></tr>
+        <tr><td class="wave-num w1">1</td><td>Autonomous</td><td>Execute immediately, logged</td><td>Agent posts status update to #eng-platform</td></tr>
+        <tr><td class="wave-num w2">2</td><td>Logged</td><td>Execute with enhanced logging</td><td>Agent creates a Notion page for sprint planning</td></tr>
+        <tr><td class="wave-num w3">3</td><td>Checked</td><td>Execute after context evaluation</td><td>Agent deploys Lambda function to staging</td></tr>
+        <tr><td class="wave-num w4">4</td><td>Review Required</td><td>Held for review</td><td>Agent opens PR targeting main on payments repo</td></tr>
+        <tr><td class="wave-num w5">5</td><td>Critical</td><td>Escalated review</td><td>Agent attempts to modify IAM permissions in production</td></tr>
+      </table>
+
+      <h2>How Risk Is Computed</h2>
+
+      <div class="code-block"><code>Wave = System Baseline + Action Modifier + Destination Modifier + Context Modifiers</code></div>
+
+      <h3>1. System Baseline</h3>
+      <p>Each system has a base risk level: Slack = 1, GitHub = 2, X = 2, Gmail = 2, AWS = 3</p>
+
+      <h3>2. Action Modifier</h3>
+      <p>Specific actions add or subtract risk: <code>post_message = +0</code>, <code>merge_pr = +1</code>, <code>modify_iam = +2</code>, <code>draft_email = -1</code></p>
+
+      <h3>3. Destination Modifier</h3>
+      <p>Where the action targets matters: team channel = +0, company announcement = +2, production branch = +2</p>
+
+      <h3>4. Context Modifiers</h3>
+      <p>Environmental factors: external visibility = +2, sensitive data = +1, irreversible = +1, financial impact = +2</p>
+
+      <p>The final score is clamped to 1-5. Every decision is deterministic and explainable. Every receipt includes the full breakdown of factors.</p>
+    </div>
+
+    <!-- ═══════════ SHADOW MODE ═══════════ -->
+    <div id="shadow" class="section">
+      <h1>Shadow Mode</h1>
+      <p class="subtitle">Full evaluation, zero execution. See every decision before going live.</p>
+
+      <p>Shadow mode lets you connect a system to Surfit and watch it evaluate your agent's actions — without Surfit executing anything.</p>
+
+      <h2>How It Works</h2>
+      <ol>
+        <li>Connect your system normally (provide credentials, configure agent)</li>
+        <li>Shadow mode is enabled for your tenant</li>
+        <li>Your agent sends actions to Surfit as usual</li>
+        <li>Surfit evaluates every action through the full Wave engine</li>
+        <li>Instead of executing, Surfit logs what it <strong>would have done</strong></li>
+        <li>You see in your dashboard: "Wave 2 — would have auto-executed" or "Wave 5 — would have held"</li>
+      </ol>
+
+      <h2>What You See</h2>
+      <ul>
+        <li>Every action your agent takes, classified and scored</li>
+        <li>The exact wave level and decision Surfit would make</li>
+        <li>Full context: why this wave, what factors contributed</li>
+        <li>Zero impact on your systems — nothing executes</li>
+      </ul>
+
+      <h2>Going Live</h2>
+      <p>When you're comfortable with Surfit's decisions, shadow mode is disabled. Same architecture, same evaluation, same policies — now Surfit executes. No configuration change needed. Just flip the switch.</p>
+
+      <div class="info-box blue">
+        <p><strong>Why this matters:</strong> Shadow mode eliminates the trust leap. You don't have to believe us — you watch the product make decisions on your real workflow, verify it's correct, and then go live when you're ready.</p>
+      </div>
+    </div>
+
+    <!-- ═══════════ API REFERENCE ═══════════ -->
+    <div id="api" class="section">
+      <h1>API Reference</h1>
+      <p class="subtitle">Integrate your agent in minutes.</p>
+
+      <h2>Authentication</h2>
+      <p>All requests include a customer ID header:</p>
+      <div class="code-block"><code>X-Customer-ID: your-customer-id</code></div>
+
+      <h2>Base URL</h2>
+      <div class="code-block"><code>https://your-tenant.surfit.ai/api/v1</code></div>
+
+      <h2>Core Endpoints</h2>
+
+      <h3>Health Check</h3>
+      <div class="code-block"><div class="code-label">Request</div><code>GET /api/v1/health</code></div>
+      <div class="code-block"><div class="code-label">Response</div><code>{"status": "healthy", "version": "3.1.1", "customer_id": "..."}</code></div>
+
+      <h3>Ingest Action (per system)</h3>
+      <div class="code-block"><code>POST /api/v1/ingest/slack
+POST /api/v1/ingest/github
+POST /api/v1/ingest/x
+POST /api/v1/ingest/notion
+POST /api/v1/ingest/gmail
+POST /api/v1/ingest/outlook
+POST /api/v1/ingest/aws</code></div>
+
+      <h3>Example: Slack</h3>
+      <div class="code-block"><div class="code-label">Request</div><code>POST /api/v1/ingest/slack
+Content-Type: application/json
+X-Customer-ID: acme
+
+{
+  "channel": "eng-platform",
+  "action": "post_message",
+  "content": "Deployment v3.1 rolled out to staging",
+  "user": "deploy-bot"
+}</code></div>
+      <div class="code-block"><div class="code-label">Response</div><code>{
+  "id": "slack-a1b2c3d4",
+  "wave": 2,
+  "decision": "log",
+  "action": "post_message",
+  "system": "slack"
+}</code></div>
+
+      <h3>Example: X</h3>
+      <div class="code-block"><div class="code-label">Request</div><code>POST /api/v1/ingest/x
+Content-Type: application/json
+X-Customer-ID: acme
+
+{
+  "content": "Post text here",
+  "actor_id": "marketing-agent",
+  "source": "openclaw_agent"
+}</code></div>
+
+      <h3>Governance Evaluate</h3>
+      <div class="code-block"><div class="code-label">Request</div><code>POST /api/v1/governance/evaluate
+
+{
+  "system": "github",
+  "action": "merge_pr",
+  "destination": "main",
+  "content": "Merge payments refactor",
+  "context": {"visibility": "company_wide"}
+}</code></div>
+
+      <h3>Pending Actions</h3>
+      <div class="code-block"><code>GET  /api/v1/pending                        — List pending actions
+POST /api/v1/pending/{action_id}/approve   — Approve action
+POST /api/v1/pending/{action_id}/reject    — Reject action</code></div>
+
+      <h3>Status & Credentials</h3>
+      <div class="code-block"><code>GET /api/v1/actions                    — List recent actions
+GET /api/v1/execution-status           — Execution state (live/shadow/killed)
+GET /api/v1/credentials                — Connected systems (metadata only)
+GET /api/v1/credentials/rotation-warnings  — Credentials older than 90 days
+POST /api/v1/credentials/revoke        — Revoke system credentials</code></div>
+
+      <h2>Integration Examples</h2>
+
+      <div class="code-block"><div class="code-label">Python</div><code>import requests
+
+SURFIT = "https://acme.surfit.ai/api/v1"
+HEADERS = {"Content-Type": "application/json", "X-Customer-ID": "acme"}
+
+def surfit_action(system, payload):
+    resp = requests.post(f"{SURFIT}/ingest/{system}", headers=HEADERS, json=payload)
+    result = resp.json()
+    if result["decision"] == "approve":
+        return {"status": "held", "wave": result["wave"]}
+    return {"status": "executed", "wave": result["wave"]}</code></div>
+
+      <div class="code-block"><div class="code-label">JavaScript</div><code>const SURFIT = "https://acme.surfit.ai/api/v1";
+const HEADERS = {"Content-Type": "application/json", "X-Customer-ID": "acme"};
+
+async function surfitAction(system, payload) {
+  const res = await fetch(`${SURFIT}/ingest/${system}`, {
+    method: "POST", headers: HEADERS, body: JSON.stringify(payload)
+  });
+  return await res.json();
+}</code></div>
+
+      <div class="code-block"><div class="code-label">curl</div><code>curl -X POST https://acme.surfit.ai/api/v1/ingest/slack \
+  -H "Content-Type: application/json" \
+  -H "X-Customer-ID: acme" \
+  -d '{"channel": "general", "action": "post_message", "content": "Hello"}'</code></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo"><span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span></div>
+</footer>
+
+<script>
+function showSection(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.docs-sidebar a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (el) el.classList.add('active');
+  window.scrollTo(0, 0);
+}
+if (window.location.hash) {
+  const id = window.location.hash.slice(1);
+  const el = document.querySelector(`.docs-sidebar a[href="#${id}"]`);
+  if (el) showSection(id, el);
+}
+</script>
+
+</body>
+</html>
