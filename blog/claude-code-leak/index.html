@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code's Source Got Leaked Through a Build Pipeline. The Agent Was Governed. The Pipeline Wasn't.</title>
+<meta name="description" content="Anthropic built Undercover Mode to stop their AI from leaking internal information. A source map in an npm package leaked everything. The action that published it was never evaluated.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link href="https://fonts.googleapis.com/css2?family=Righteous&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --dark: #0a0f1a;
+  --darker: #060b14;
+  --surface: #111827;
+  --border: #1e293b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --blue: #26c0ff;
+  --orange: #ff731e;
+  --red: #ef4444;
+  --green: #22c55e;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--dark); color:var(--text); font-family:'Inter',sans-serif; min-height:100vh; }
+a { color:var(--text); text-decoration:underline; text-decoration-color:rgba(226,232,240,0.3); }
+a:hover { text-decoration-color:var(--text); }
+
+nav {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 48px; border-bottom:1px solid var(--border);
+  background:var(--darker);
+}
+.nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.nav-wordmark { font-family:'Righteous',cursive; font-size:18px; }
+.nav-wordmark .s { color:#26c0ff; }
+.nav-wordmark .d { color:#7a9ab8; font-size:12px; margin:0 1px; }
+.nav-wordmark .a { color:#ff731e; }
+.nav-links { list-style:none; display:flex; gap:24px; align-items:center; }
+.nav-links a { color:var(--text); font-size:13px; font-weight:500; text-decoration:none; }
+.nav-links a:hover { color:var(--blue); }
+
+.container { max-width:720px; margin:0 auto; padding:0 24px; }
+
+.post-header {
+  padding:60px 24px 40px;
+  border-bottom:1px solid var(--border);
+  max-width:720px; margin:0 auto;
+}
+.post-tag {
+  font-size:9px; letter-spacing:0.1em; text-transform:uppercase;
+  padding:3px 10px; border-radius:3px; font-weight:700;
+  display:inline-block; margin-bottom:16px;
+}
+.post-tag.incident { background:rgba(239,68,68,0.1); color:var(--red); }
+.post-date { font-size:12px; color:var(--muted); margin-bottom:16px; }
+.post-header h1 {
+  font-size:30px; line-height:1.2; font-weight:700;
+  color:var(--text); margin-bottom:16px;
+}
+.post-header .subtitle { font-size:16px; color:rgba(226,232,240,0.75); line-height:1.6; font-weight:300; }
+
+.post-body { padding:40px 0 60px; }
+.post-body h2 {
+  font-size:22px; font-weight:700; color:var(--text);
+  margin:40px 0 16px; padding-top:20px;
+  border-top:1px solid var(--border);
+}
+.post-body h2:first-child { border-top:none; margin-top:0; padding-top:0; }
+.post-body p {
+  font-size:15px; line-height:1.8; color:rgba(226,232,240,0.75);
+  margin-bottom:16px; font-weight:300;
+}
+.post-body strong { color:var(--text); font-weight:600; }
+.post-body .blue { color:var(--blue); }
+.post-body .red { color:var(--red); }
+.post-body .orange { color:var(--orange); }
+
+.post-body .highlight {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+.post-body .highlight p { margin-bottom:8px; }
+.post-body .highlight p:last-child { margin-bottom:0; }
+
+.post-body .incident-box {
+  background:rgba(239,68,68,0.04); border:1px solid rgba(239,68,68,0.25);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+
+.post-body .gap-box {
+  background:rgba(38,192,255,0.04); border:1px solid rgba(38,192,255,0.25);
+  border-radius:10px; padding:20px 24px; margin:24px 0;
+}
+
+.post-cta {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; padding:28px; text-align:center; margin:40px 0;
+}
+.post-cta p { font-size:15px; color:var(--text); margin-bottom:16px; }
+.post-cta a.btn {
+  display:inline-block; background:var(--blue); color:#000;
+  padding:10px 24px; border-radius:6px; font-weight:600;
+  font-size:13px; text-decoration:none;
+}
+.post-cta a.btn:hover { opacity:0.9; text-decoration:none; }
+
+.back-link { display:block; padding:20px 0; font-size:13px; color:var(--muted); text-decoration:none; }
+
+footer {
+  border-top:1px solid var(--border); padding:32px 48px;
+  text-align:center;
+}
+.footer-logo { font-family:'Righteous',cursive; font-size:14px; }
+.footer-logo .s { color:#26c0ff; }
+.footer-logo .d { color:#7a9ab8; font-size:10px; }
+.footer-logo .a { color:#ff731e; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <svg width="36" height="20" viewBox="0 0 120 68" fill="none">
+      <path d="M0 16 C22 4,44 0,60 6 C76 12,98 22,120 10 L120 20 C98 32,76 22,60 16 C44 10,22 14,0 26 Z" fill="#26c0ff"/>
+      <path d="M0 32 C22 20,44 16,60 22 C76 28,98 38,120 26 L120 36 C98 48,76 38,60 32 C44 26,22 30,0 42 Z" fill="#26c0ff"/>
+      <path d="M0 48 C22 36,44 32,60 38 C76 44,98 54,120 42 L120 52 C98 64,76 54,60 48 C44 42,22 46,0 58 Z" fill="#26c0ff"/>
+    </svg>
+    <div class="nav-wordmark">
+      <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="/blog/">Blog</a></li>
+    <li><a href="/docs/">Docs</a></li>
+    <li><a href="/#how-it-works">How It Works</a></li>
+    <li><a href="/#demo">Product Demo</a></li>
+  </ul>
+</nav>
+
+<div class="container">
+  <div class="post-header">
+    <span class="post-tag incident">Incident</span>
+    <div class="post-date">March 31, 2026</div>
+    <h1>Claude Code's Source Got Leaked Through a Build Pipeline. The Agent Was Governed. The Pipeline Wasn't.</h1>
+    <p class="subtitle">Anthropic built Undercover Mode to stop their AI from leaking internal information. A source map in an npm package leaked everything. The action that published it was never evaluated.</p>
+  </div>
+
+  <div class="post-body">
+
+    <h2>What Happened</h2>
+
+    <p>On March 31, 2026, the entire source code of Anthropic's Claude Code CLI — their flagship AI coding agent — was found sitting in plain sight on the npm registry. A source map file bundled into the published package exposed 512,000 lines of TypeScript, complete with system prompts, feature flags, internal model codenames, and unreleased capabilities. Within hours, the code was mirrored across GitHub and analyzed by thousands.</p>
+
+    <p>The irony: Anthropic had built an entire subsystem called "Undercover Mode" specifically designed to prevent their AI from leaking internal information. <strong>They governed the agent's words. Nobody governed the action that leaked everything.</strong></p>
+
+    <p>Claude Code is Anthropic's official CLI tool for AI-assisted development — editing files, running commands, managing git workflows from the terminal. When you build a JavaScript/TypeScript package, the build toolchain can generate source map files that bridge minified production code back to the original source. These exist for debugging. They should never ship to production.</p>
+
+    <p>Version 2.1.88 of <code style="background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;font-family:monospace;font-size:13px;">@anthropic-ai/claude-code</code> was published to npm with the source map included. The file was 59.8 MB.</p>
+
+    <div class="incident-box">
+      <p><strong class="red">What was exposed:</strong></p>
+      <p>Complete agent logic, tool-calling system, and permission guardrails. Full system prompts governing Claude's behavior. 44 feature flags for unreleased capabilities. Internal model codenames ("Capybara," "Tengu"). Telemetry that tracks user frustration signals. The "Undercover Mode" system preventing AI attribution in public commits. Permission bypass and approval flows. An unreleased autonomous agent system called "KAIROS." A planning mode called "ULTRAPLAN" that offloads to remote containers.</p>
+    </div>
+
+    <p>This is not the model weights or training data. It's the orchestration layer — how Claude Code decides what to do, what it's allowed to do, and how it executes. For competitors, it's a blueprint. For attackers, it's a map.</p>
+
+    <h2>The Pattern</h2>
+
+    <p>This is the second supply chain incident we've covered. The first was the LiteLLM PyPI compromise on March 24 — a malicious package version that stole every credential on the machine. Different attack, same structural failure.</p>
+
+    <div class="highlight">
+      <p><strong class="red">LiteLLM:</strong> An agent's environment was compromised through a dependency. Credentials were stolen because they lived in the same environment as untrusted code.</p>
+      <p><strong class="red">Claude Code:</strong> A build pipeline published sensitive internal code to a public registry. The action executed without business context evaluation.</p>
+    </div>
+
+    <p>In both cases, the action that caused the damage was technically valid. The build passed. The package was well-formed. npm accepted it. Every automated check said yes.</p>
+
+    <p><strong>Nobody asked: "Should this specific package, with this specific content, be published to a public registry right now?"</strong></p>
+
+    <p>That's a business decision. Not a CI check.</p>
+
+    <h2>What a Control Layer Would Have Caught</h2>
+
+    <p>If the npm publish action had flowed through a control layer like Surfit, the sequence looks different:</p>
+
+    <div class="gap-box">
+      <p><strong class="blue">1. Action classification.</strong> Publishing to a public package registry is an external-facing, irreversible action. A publish to npm with a 59.8 MB source map touching internal systems would classify as Wave 4 or 5 — held for review.</p>
+      <p><strong class="blue">2. Content evaluation.</strong> Surfit evaluates context. A package containing system prompts, internal codenames, feature flags, and debug artifacts would trigger content sensitivity modifiers. The wave score goes up before anyone looks at it.</p>
+      <p><strong class="blue">3. Credential separation.</strong> If the npm publish token lived in Surfit instead of the build pipeline, the pipeline couldn't publish without Surfit in the path. The pipeline proposes. Surfit decides. The token never leaves the control layer.</p>
+      <p><strong class="blue">4. Cross-system correlation.</strong> Code build in one system followed by external publish in another is a detectable pattern. Surfit's correlation engine watches for exactly these sequences — internal changes followed by external-facing actions.</p>
+    </div>
+
+    <p>None of this requires AI. It requires architecture. The publish action needed to flow through a layer that evaluates business context before execution. That layer didn't exist.</p>
+
+    <h2>The Undercover Mode Paradox</h2>
+
+    <p>This is the part worth sitting with.</p>
+
+    <p>Anthropic built "Undercover Mode" — a system that injects instructions into Claude's prompt to prevent the AI from revealing internal information in public commits. No model codenames. No internal project names. No AI attribution. The system works. Claude follows the rules.</p>
+
+    <p>But the system prompt itself — including the Undercover Mode instructions — shipped in the package that was published without governance. <strong>The agent was governed. The pipeline that published the agent wasn't.</strong></p>
+
+    <p>They built controls for what the AI says. They didn't build controls for what the pipeline does.</p>
+
+    <p>This is the gap. Every team building AI agents will hit it. You can govern model outputs. You can sandbox execution environments. You can separate credentials. But if the actions that move code, publish packages, deploy infrastructure, and touch production systems don't flow through a decision layer — the governance is incomplete.</p>
+
+    <div class="highlight">
+      <p><strong class="orange">Output validation answers:</strong> "Is this text safe?"</p>
+      <p><strong class="orange">Sandboxes answer:</strong> "Can this process run here?"</p>
+      <p><strong class="orange">CI/CD answers:</strong> "Does this build pass?"</p>
+      <p><strong class="blue">Nobody answers:</strong> "Should this action happen right now — given what's at stake for the business?"</p>
+    </div>
+
+    <h2>What This Means</h2>
+
+    <p>The Claude Code leak didn't compromise user data. No model weights were exposed. Anthropic pulled the package quickly. But the source is permanently available — mirrored across GitHub, analyzed by competitors, studied by security researchers.</p>
+
+    <p>The damage isn't the code. The damage is the precedent. If a company with Anthropic's resources, security focus, and safety reputation can't prevent a build pipeline from publishing internal source code to a public registry, <strong>the problem isn't process discipline. The problem is architecture.</strong></p>
+
+    <p>Every team deploying AI agents has build pipelines, publish workflows, and deployment automation that touch production systems. Every one of those actions is a business decision executing without business context.</p>
+
+    <p style="font-size:14px;font-style:italic;color:var(--text);border-left:3px solid var(--blue);padding-left:14px;margin:24px 0;">The question isn't whether your build pipeline will make a mistake. It's whether anything in the execution path will catch it before the action is irreversible.</p>
+
+    <div class="post-cta">
+      <p>Surfit is the control layer for AI agent actions. Every action is classified, evaluated in business context, and either auto-executed or held. The agent proposes. Surfit decides.</p>
+      <a href="https://www.surfit.ai/#demo" class="btn">Watch the Demo</a>
+    </div>
+
+    <a href="/blog/" class="back-link">← Back to Blog</a>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-logo">
+    <span class="s">SURFIT</span><span class="d">.</span><span class="a">AI</span>
+  </div>
+</footer>
+
+</body>
+</html>
