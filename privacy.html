@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Surfit.AI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080B0F;color:#E6EDF3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7}
+a{color:#38BDF8;text-decoration:none}
+a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 60px;border-bottom:1px solid #1E2530}
+.logo span:first-child{color:#38BDF8;font-weight:800;font-size:20px}
+.logo span:last-child{color:#F97316;font-weight:800;font-size:20px}
+.nav-links{display:flex;gap:24px}
+.nav-links a{color:#8B949E;font-size:14px}
+.container{max-width:800px;margin:0 auto;padding:60px 24px 100px}
+h1{font-size:32px;font-weight:700;margin-bottom:8px;color:#E6EDF3}
+.subtitle{color:#8B949E;font-size:14px;margin-bottom:40px}
+h2{font-size:18px;font-weight:600;margin-top:36px;margin-bottom:12px;color:#38BDF8}
+h3{font-size:15px;font-weight:600;margin-top:20px;margin-bottom:8px;color:#E6EDF3}
+p,li{color:#D1D5DB;font-size:14px;margin-bottom:12px}
+ul{padding-left:20px;margin-bottom:16px}
+li{margin-bottom:6px}
+.effective{color:#8B949E;font-size:13px;margin-bottom:32px;padding:12px 16px;background:#0F1318;border:1px solid #1E2530;border-radius:8px}
+.data-table{width:100%;border-collapse:collapse;margin:16px 0}
+.data-table th{text-align:left;padding:10px 12px;font-size:12px;color:#8B949E;border-bottom:1px solid #1E2530;font-weight:600;letter-spacing:0.05em}
+.data-table td{padding:10px 12px;font-size:13px;color:#D1D5DB;border-bottom:1px solid #1E2530}
+.footer{text-align:center;padding:40px;border-top:1px solid #1E2530;color:#8B949E;font-size:13px}
+</style>
+</head>
+<body>
+<div class="nav">
+<div class="logo"><a href="https://www.surfit.ai/"><span>Surfit</span><span>AI</span></a></div>
+<div class="nav-links">
+<a href="https://www.surfit.ai/blog/">Blog</a>
+<a href="https://www.surfit.ai/docs/">Docs</a>
+<a href="https://www.surfit.ai/#how-it-works">How It Works</a>
+<a href="https://www.surfit.ai/#demo">Product Demo</a>
+</div>
+</div>
+
+<div class="container">
+<h1>Privacy Policy</h1>
+<div class="subtitle">Surfit.AI — Control Layer for AI Agents</div>
+<div class="effective">Effective Date: April 3, 2026 · Last Updated: April 3, 2026<br>Operating Entity: [Entity Name] ("Company"), operating as Surfit · Contact: support@surfit.ai</div>
+
+<h2>1. Overview</h2>
+<p>Surfit ("we," "our," "us") provides a decision layer for AI agent actions. This Privacy Policy explains what data we collect, how we use it, how we protect it, and your rights regarding that data. We are committed to protecting the privacy and security of our customers and their data.</p>
+
+<h2>2. Data We Collect</h2>
+
+<h3>2.1 Customer Account Data</h3>
+<p>When you create a Surfit account, we collect:</p>
+<ul>
+<li>Organization name and contact information</li>
+<li>Email address for account administration and notifications</li>
+<li>Dashboard login credentials (stored as salted hashes, never in plaintext)</li>
+</ul>
+
+<h3>2.2 System Credentials</h3>
+<p>To execute governed actions on your behalf, Surfit stores credentials for your connected systems (Slack, GitHub, X, Notion, Gmail, Outlook, AWS, and others).</p>
+<ul>
+<li>Credentials are encrypted using AES-256 with per-tenant derived keys (HKDF)</li>
+<li>The master encryption key is stored as a restricted environment variable, never in code or database</li>
+<li>Credentials are decrypted only at execution time, inside the function that makes the API call, and immediately discarded</li>
+<li>Credentials never appear in logs, dashboards, API responses, or error messages</li>
+<li>You can revoke any credential at any time — revocation is immediate and permanent</li>
+</ul>
+
+<h3>2.3 Action Data</h3>
+<p>When your agents send actions through Surfit, we process and store:</p>
+<table class="data-table">
+<thead><tr><th>DATA TYPE</th><th>PURPOSE</th><th>RETENTION</th></tr></thead>
+<tbody>
+<tr><td>Action metadata (system, action type, wave score, decision)</td><td>Core service delivery — evaluation, routing, receipts</td><td>12 months</td></tr>
+<tr><td>Action content (message text, PR descriptions, email content)</td><td>Wave classification and context evaluation</td><td>12 months</td></tr>
+<tr><td>Agent identifiers and trust scores</td><td>Agent Intelligence — trust scoring, budget gates</td><td>12 months</td></tr>
+<tr><td>Execution receipts and audit logs</td><td>Compliance, audit trail, integrity verification</td><td>12 months</td></tr>
+<tr><td>Credential access logs</td><td>Security audit — who accessed what, when</td><td>12 months</td></tr>
+<tr><td>Correlation events and threat incidents</td><td>Cross-system threat detection</td><td>12 months</td></tr>
+</tbody>
+</table>
+
+<h3>2.4 Technical Data</h3>
+<p>We collect standard technical data for service operation: IP addresses in server logs, API request metadata, and error logs. This data is used for debugging, security monitoring, and rate limiting. Server logs are retained for 30 days.</p>
+
+<h2>3. How We Use Your Data</h2>
+<ul>
+<li><strong>Service delivery:</strong> Evaluating agent actions, executing approved actions, generating receipts and compliance reports</li>
+<li><strong>Security:</strong> Credential access auditing, threat detection, anomaly detection, rate limiting</li>
+<li><strong>Service improvement:</strong> Aggregate, anonymized usage patterns to improve Wave classification accuracy</li>
+</ul>
+<p>We do <strong>not</strong>:</p>
+<ul>
+<li>Sell, rent, or share your data with third parties</li>
+<li>Use your data to train machine learning models</li>
+<li>Access your system credentials for any purpose beyond executing governed actions</li>
+<li>Display credential values in any dashboard, log, API response, or report</li>
+</ul>
+
+<h2>4. Data Isolation</h2>
+<p>Surfit uses per-tenant data isolation:</p>
+<ul>
+<li>Each customer's data is stored in tenant-scoped database records</li>
+<li>Encryption keys are derived per-tenant — compromising one tenant's key does not expose another's credentials</li>
+<li>API endpoints enforce tenant scoping via authenticated customer identifiers</li>
+<li>The operator (Surfit) has cross-tenant visibility for administrative purposes only</li>
+</ul>
+
+<h2>5. Data Security</h2>
+<ul>
+<li><strong>Encryption in transit:</strong> All connections use TLS 1.2 or higher. HTTP requests are redirected to HTTPS.</li>
+<li><strong>Encryption at rest:</strong> System credentials are AES-256 encrypted with per-tenant derived keys.</li>
+<li><strong>Access control:</strong> Administrative operations require two-factor authentication (TOTP). API endpoints require API key authentication.</li>
+<li><strong>Audit logging:</strong> Every credential access and administrative action is recorded in a hash-chained, tamper-evident audit log. Any modification to the log breaks the chain and is cryptographically detectable.</li>
+<li><strong>Rate limiting:</strong> API endpoints are rate-limited to prevent abuse (100 requests per minute per tenant).</li>
+<li><strong>Emergency controls:</strong> Global kill switch halts all execution immediately. Per-tenant Lagoon mode enables evaluation without execution.</li>
+</ul>
+
+<h2>6. Data Retention and Deletion</h2>
+<ul>
+<li>Action records, audit logs, and agent intelligence data are retained for 12 months from creation.</li>
+<li>System credentials are retained until revoked by the customer. Revocation is immediate and permanent (hard delete, not soft delete).</li>
+<li>Upon account termination, all customer data (actions, credentials, agent data, audit logs) is deleted within 30 days upon written request to support@surfit.ai.</li>
+<li>Backup copies are retained for 14 days after deletion and then permanently removed.</li>
+</ul>
+
+<h2>7. Third-Party Services</h2>
+<p>Surfit interacts with third-party systems (Slack, GitHub, X, Notion, Gmail, Outlook, AWS) solely to execute governed actions on behalf of the customer using customer-provided credentials. Surfit does not share customer data with these services beyond the action being executed. Each third-party service is subject to its own privacy policy and terms.</p>
+
+<h2>8. International Data Transfers</h2>
+<p>Surfit's infrastructure is hosted in the European Union (Germany). Customer data is processed and stored within the EU. If you are located outside the EU, your data is transferred to and processed in the EU.</p>
+
+<h2>9. Your Rights</h2>
+<p>You have the right to:</p>
+<ul>
+<li><strong>Access:</strong> Request a copy of your data at any time via compliance report export or by contacting support@surfit.ai</li>
+<li><strong>Rectification:</strong> Request correction of inaccurate data</li>
+<li><strong>Deletion:</strong> Request deletion of your data (subject to retention requirements)</li>
+<li><strong>Portability:</strong> Export your action data and compliance reports</li>
+<li><strong>Revocation:</strong> Revoke any or all system credentials immediately</li>
+<li><strong>Restriction:</strong> Request that Surfit limit processing of your data</li>
+</ul>
+<p>To exercise any of these rights, contact <a href="mailto:support@surfit.ai">support@surfit.ai</a>.</p>
+
+<h2>10. GDPR Compliance</h2>
+<p>For customers subject to the General Data Protection Regulation (GDPR):</p>
+<ul>
+<li><strong>Legal basis:</strong> We process your data based on the contractual necessity of providing the Service (Article 6(1)(b)).</li>
+<li><strong>Data controller:</strong> The customer is the data controller for action content processed through Surfit. Surfit acts as a data processor.</li>
+<li><strong>Data Processing Agreement:</strong> Available upon request for enterprise customers.</li>
+<li><strong>Data Protection Officer:</strong> Contact support@surfit.ai for data protection inquiries.</li>
+</ul>
+
+<h2>11. Children's Privacy</h2>
+<p>Surfit is a business-to-business service and is not intended for use by individuals under 18 years of age. We do not knowingly collect data from children.</p>
+
+<h2>12. Incident Notification</h2>
+<p>In the event of a data breach affecting customer data:</p>
+<ul>
+<li>Affected customers will be notified within 72 hours of discovery</li>
+<li>For credential exposure incidents (P1), the kill switch is activated immediately, affected credentials are revoked, and customers are notified within 4 hours</li>
+<li>Forensic analysis is conducted via hash-chained audit logs to determine scope</li>
+<li>Applicable regulatory authorities will be notified as required by law</li>
+</ul>
+
+<h2>13. Changes to This Policy</h2>
+<p>We may update this Privacy Policy with 30 days notice to active customers. Material changes will be communicated via email or dashboard notification. The "Last Updated" date at the top reflects the most recent revision.</p>
+
+<h2>14. Contact</h2>
+<p>For privacy-related questions, data requests, or concerns:<br>
+Email: <a href="mailto:support@surfit.ai">support@surfit.ai</a><br>
+Website: <a href="https://www.surfit.ai">surfit.ai</a></p>
+</div>
+
+<div class="footer">SURFIT.AI</div>
+</body>
+</html>

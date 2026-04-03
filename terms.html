@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terms of Service — Surfit.AI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#080B0F;color:#E6EDF3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;line-height:1.7}
+a{color:#38BDF8;text-decoration:none}
+a:hover{text-decoration:underline}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 60px;border-bottom:1px solid #1E2530}
+.logo span:first-child{color:#38BDF8;font-weight:800;font-size:20px}
+.logo span:last-child{color:#F97316;font-weight:800;font-size:20px}
+.nav-links{display:flex;gap:24px}
+.nav-links a{color:#8B949E;font-size:14px}
+.container{max-width:800px;margin:0 auto;padding:60px 24px 100px}
+h1{font-size:32px;font-weight:700;margin-bottom:8px;color:#E6EDF3}
+.subtitle{color:#8B949E;font-size:14px;margin-bottom:40px}
+h2{font-size:18px;font-weight:600;margin-top:36px;margin-bottom:12px;color:#38BDF8}
+p,li{color:#D1D5DB;font-size:14px;margin-bottom:12px}
+ul{padding-left:20px;margin-bottom:16px}
+li{margin-bottom:6px}
+.effective{color:#8B949E;font-size:13px;margin-bottom:32px;padding:12px 16px;background:#0F1318;border:1px solid #1E2530;border-radius:8px}
+.footer{text-align:center;padding:40px;border-top:1px solid #1E2530;color:#8B949E;font-size:13px}
+</style>
+</head>
+<body>
+<div class="nav">
+<div class="logo"><a href="https://www.surfit.ai/"><span>Surfit</span><span>AI</span></a></div>
+<div class="nav-links">
+<a href="https://www.surfit.ai/blog/">Blog</a>
+<a href="https://www.surfit.ai/docs/">Docs</a>
+<a href="https://www.surfit.ai/#how-it-works">How It Works</a>
+<a href="https://www.surfit.ai/#demo">Product Demo</a>
+</div>
+</div>
+
+<div class="container">
+<h1>Terms of Service</h1>
+<div class="subtitle">Surfit.AI — Control Layer for AI Agents</div>
+<div class="effective">Effective Date: April 3, 2026 · Last Updated: April 3, 2026<br>Operating Entity: [Entity Name] ("Company"), operating as Surfit · Contact: support@surfit.ai</div>
+
+<h2>1. Service Description</h2>
+<p>Surfit provides a decision layer for AI agent actions ("Service"). The Service evaluates agent-proposed actions in business context, classifies risk using a Wave scoring system (1-5), and either executes actions automatically or holds them for human review. The Service includes credential management, audit logging, compliance reporting, and related dashboards.</p>
+
+<h2>2. Acceptance of Terms</h2>
+<p>By accessing or using Surfit, you ("Customer") agree to be bound by these Terms of Service. If you are using the Service on behalf of an organization, you represent that you have the authority to bind that organization to these terms.</p>
+
+<h2>3. Account and Access</h2>
+<ul>
+<li>Each Customer receives a unique tenant identifier and API credentials.</li>
+<li>Customer is responsible for safeguarding their API keys, dashboard credentials, and any authentication tokens.</li>
+<li>Customer must notify Surfit immediately of any unauthorized access or security breach.</li>
+<li>Surfit reserves the right to suspend access if security concerns are identified.</li>
+</ul>
+
+<h2>4. Credential Management</h2>
+<ul>
+<li>Surfit stores Customer-provided system credentials (API keys, OAuth tokens, etc.) using AES-256 encryption with per-tenant derived keys.</li>
+<li>Credentials are decrypted only at execution time and are never stored in logs, dashboards, or API responses.</li>
+<li>Customer may revoke credentials at any time through the dashboard or API. Revocation is immediate and permanent (hard delete).</li>
+<li>Surfit does not access Customer credentials for any purpose other than executing governed actions as directed by the Customer's configuration.</li>
+</ul>
+
+<h2>5. Data Processing</h2>
+<ul>
+<li>Surfit processes action metadata (system, action type, content, timestamps, wave scores) to provide the Service.</li>
+<li>Action data is stored in per-tenant isolated databases.</li>
+<li>Surfit does not sell, share, or transfer Customer data to third parties.</li>
+<li>Surfit does not use Customer data to train models or for any purpose beyond providing the Service.</li>
+</ul>
+
+<h2>6. Data Retention</h2>
+<ul>
+<li>Action records and audit logs are retained for 12 months from creation.</li>
+<li>Credentials are retained until revoked by the Customer.</li>
+<li>Upon account termination, Customer data is deleted within 30 days upon written request.</li>
+<li>Compliance reports and audit trails may be retained for regulatory purposes as required by applicable law.</li>
+</ul>
+
+<h2>7. Service Availability</h2>
+<ul>
+<li>Surfit aims for high availability but does not guarantee uninterrupted service.</li>
+<li>Planned maintenance will be communicated in advance when possible.</li>
+<li>The Kill Switch feature may halt execution across tenants for security purposes. Customers will be notified when this occurs.</li>
+<li>Lagoon (shadow) mode is available for evaluation without execution risk.</li>
+</ul>
+
+<h2>8. Security</h2>
+<ul>
+<li>All data is encrypted in transit (TLS 1.2+) and at rest (AES-256).</li>
+<li>Administrative operations require two-factor authentication (TOTP).</li>
+<li>All credential access is logged in a hash-chained, tamper-evident audit trail.</li>
+<li>API endpoints are protected by rate limiting (100 requests per minute per tenant).</li>
+<li>Surfit maintains an incident response plan. In the event of a credential exposure (P1 incident), the kill switch is activated, affected credentials are revoked, and customers are notified within 4 hours.</li>
+</ul>
+
+<h2>9. Customer Responsibilities</h2>
+<ul>
+<li>Customer is responsible for the actions their agents propose to Surfit.</li>
+<li>Customer must ensure their agent configurations comply with their own organizational policies and applicable laws.</li>
+<li>Customer is responsible for configuring appropriate Wave policies and approver assignments.</li>
+<li>Customer must rotate credentials in accordance with their security policies. Surfit provides rotation warnings at 60, 80, and 90+ days.</li>
+</ul>
+
+<h2>10. Limitation of Liability</h2>
+<p>Surfit provides governance tooling for AI agent actions. Surfit is not liable for the content, intent, or consequences of actions proposed by Customer's agents. Surfit's liability is limited to the fees paid by Customer in the 12 months preceding the claim. Surfit is not liable for indirect, incidental, consequential, or punitive damages.</p>
+
+<h2>11. Intellectual Property</h2>
+<p>Surfit retains all rights to the Service, including the Wave engine, dashboard, APIs, and related technology. Customer retains all rights to their data, credentials, and agent configurations. Neither party acquires rights to the other party's intellectual property through use of the Service.</p>
+
+<h2>12. Pricing and Payment</h2>
+<ul>
+<li>Pricing is based on governed actions per month, as described on the pricing page.</li>
+<li>Usage resets monthly. No long-term commitments unless an annual plan is selected.</li>
+<li>Overages are billed at the per-action rate specified in the Customer's plan.</li>
+<li>Surfit reserves the right to modify pricing with 30 days written notice.</li>
+</ul>
+
+<h2>13. Termination</h2>
+<ul>
+<li>Either party may terminate with 30 days written notice.</li>
+<li>Surfit may terminate immediately for violation of these terms or non-payment.</li>
+<li>Upon termination, Customer's credentials are revoked and data is deleted within 30 days upon request.</li>
+<li>Sections 5, 6, 10, and 11 survive termination.</li>
+</ul>
+
+<h2>14. Changes to Terms</h2>
+<p>Surfit may update these Terms with 30 days notice to active customers. Continued use after the effective date constitutes acceptance. Material changes will be communicated via email or dashboard notification.</p>
+
+<h2>15. Governing Law</h2>
+<p>These Terms are governed by the laws of the State of Delaware, United States, without regard to conflict of law provisions. Any disputes shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association.</p>
+
+<h2>16. Contact</h2>
+<p>For questions about these Terms, contact: <a href="mailto:support@surfit.ai">support@surfit.ai</a></p>
+</div>
+
+<div class="footer">SURFIT.AI</div>
+</body>
+</html>
