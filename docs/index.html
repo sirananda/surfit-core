@@ -96,6 +96,10 @@ footer{border-top:1px solid var(--border);padding:32px 48px;text-align:center;}
     <a href="#waves" onclick="showSection('waves',this)">Wave Classification</a>
     <a href="#shadow" onclick="showSection('shadow',this)">Shadow Mode</a>
     <a href="#api" onclick="showSection('api',this)">API Reference</a>
+    <div class="sidebar-label">Architecture</div>
+    <a href="#credential-portability" onclick="showSection('credential-portability',this)">Credential Portability</a>
+    <a href="#scoring-independence" onclick="showSection('scoring-independence',this)">Scoring Independence</a>
+    <a href="#detection-hierarchy" onclick="showSection('detection-hierarchy',this)">Detection Hierarchy</a>
   </div>
 
   <div class="docs-content">
@@ -456,6 +460,88 @@ async function surfitAction(system, payload) {
   -H "Content-Type: application/json" \
   -H "X-Customer-ID: acme" \
   -d '{"channel": "general", "action": "post_message", "content": "Hello"}'</code></div>
+    </div>
+
+    <div id="credential-portability" class="section">
+      <h1>Credential Portability</h1>
+      <p class="subtitle">How to migrate on or off Surfit</p>
+
+      <h2>No Vendor Lock-in</h2>
+      <p>Surfit holds your system credentials in an AES-256 encrypted store with per-tenant key derivation. However, Surfit is designed so that migrating off is straightforward.</p>
+
+      <h3>Moving Off Surfit</h3>
+      <p>If you decide to stop using Surfit, the migration path is simple:</p>
+      <ul>
+        <li><strong>Agent code change:</strong> Replace the Surfit ingest endpoint URL with the target system's native API URL. This is one line per system in your agent code.</li>
+        <li><strong>Credentials:</strong> Re-enter your system credentials directly in your agent or secret manager. Surfit does not export credentials (by design), so you rotate or re-enter them.</li>
+        <li><strong>Data export:</strong> Download your compliance reports and audit trails before termination. These are available via the compliance report API endpoint.</li>
+      </ul>
+      <p>Your agents construct native API payloads — Surfit does not abstract or normalize the payload format. The agent's integration logic remains the same whether Surfit is in the path or not.</p>
+
+      <h3>Credential Revocation</h3>
+      <p>You can revoke any credential at any time through the dashboard or API. Revocation is immediate and permanent — hard delete, not soft delete. The encrypted data is purged from the database, not flagged as inactive.</p>
+
+      <div class="info-box blue">
+        <p><strong>Key point:</strong> Surfit is an execution boundary, not an abstraction layer. Your agent code speaks native system APIs. Surfit evaluates and executes — removing Surfit means your agent calls the system directly instead of through Surfit. The integration logic doesn't change.</p>
+      </div>
+    </div>
+
+    <div id="scoring-independence" class="section">
+      <h1>Scoring Independence</h1>
+      <p class="subtitle">How Wave scoring, trust scores, and anomaly detection relate</p>
+
+      <h2>Wave Scoring is Deterministic and Independent</h2>
+      <p>The Wave engine scores every action using a deterministic formula:</p>
+      <div class="code-block"><code>Wave = System Baseline + Action Modifier + Destination Modifier + Context Modifiers (clamped 1-5)</code></div>
+      <p>This score is computed from the action's metadata — system, action type, destination, and context. It does not use an LLM, does not call an external API, and does not perform inference. The scoring is pure arithmetic.</p>
+
+      <h3>Trust Scores Do Not Influence Wave Classification</h3>
+      <p>Agent trust scores track an agent's historical behavior — approval rate, longevity, action volume, rejection rate. A high trust score means the agent has been reliable over time.</p>
+      <p><strong>However, trust scores never lower the Wave classification of an action.</strong> A trusted agent with a score of 95 still receives Wave 5 on <code>modify_iam</code> in production. Wave 5 is Wave 5 regardless of who the agent is.</p>
+      <p>Trust scores affect:</p>
+      <ul>
+        <li><strong>Budget gates:</strong> Higher trust may allow higher daily action limits</li>
+        <li><strong>Session thresholds:</strong> Trusted agents may have more lenient rate limits</li>
+      </ul>
+      <p>Trust scores do <strong>not</strong> affect:</p>
+      <ul>
+        <li>Wave score calculation</li>
+        <li>Whether an action is held for approval</li>
+        <li>The handling decision (auto/log/check/approve)</li>
+      </ul>
+
+      <div class="info-box orange">
+        <p><strong>Why this matters:</strong> This prevents "long con" attacks where an agent builds trust over time and then uses that trust to bypass governance on a high-risk action. The deterministic boundary is never softened by behavioral history.</p>
+      </div>
+    </div>
+
+    <div id="detection-hierarchy" class="section">
+      <h1>Detection Hierarchy</h1>
+      <p class="subtitle">How individual scoring, anomaly detection, and correlation rules work together</p>
+
+      <h2>Three Layers of Evaluation</h2>
+      <p>Surfit evaluates agent behavior at three levels. These layers are hierarchical — they escalate, they do not compete.</p>
+
+      <h3>Layer 1: Wave Scoring (Per Action)</h3>
+      <p>Every individual action receives a deterministic Wave score. This is the primary evaluation. Actions scoring Wave 1-3 auto-execute. Wave 4-5 actions are held for operator review.</p>
+
+      <h3>Layer 2: Anomaly Detection (Per Agent)</h3>
+      <p>Surfit monitors agent behavior patterns over time. Anomaly detection flags:</p>
+      <ul>
+        <li><strong>Burst activity:</strong> Agent performing significantly more actions than its baseline</li>
+        <li><strong>Unusual hours:</strong> Agent active outside its normal operating window</li>
+        <li><strong>Cross-system spread:</strong> Agent suddenly touching systems it hasn't used before</li>
+        <li><strong>High rejection rate:</strong> Agent repeatedly proposing actions that get rejected</li>
+      </ul>
+      <p>When an anomaly is detected, it surfaces as an alert to the operator. It does <strong>not</strong> automatically block actions. The Wave engine continues to score normally — the anomaly detection provides additional context for the operator's decision.</p>
+
+      <h3>Layer 3: Cross-System Correlation (Pattern Detection)</h3>
+      <p>Correlation rules detect patterns that span multiple systems. Individual actions may each look safe, but the pattern reveals intent. For example: an agent merges a PR (GitHub), then modifies IAM permissions (AWS), then sends an external email (Gmail) — each action may be Wave 2-3 individually, but the cross-system pattern triggers an escalation.</p>
+      <p>When a correlation rule fires, the involved actions are escalated to the rule's configured Wave level regardless of their individual scores.</p>
+
+      <div class="info-box blue">
+        <p><strong>No governance deadlock:</strong> These layers do not compete. Wave scoring evaluates individual actions. Anomaly detection surfaces patterns to the operator. Correlation rules escalate specific cross-system sequences. The operator always has final authority — Surfit surfaces information, operators make decisions.</p>
+      </div>
     </div>
 
   </div>
