@@ -13,60 +13,60 @@
   const H = canvas.height;
 
   const scenes = [
-    { dur: 22, title: 'Segment 1 — The Shift' },
-    { dur: 22, title: 'Segment 2 — The Missing Layer' },
-    { dur: 26, title: 'Segment 3 — Runtime Action Evaluation' },
-    { dur: 24, title: 'Segment 4 — Governance Evidence' },
-    { dur: 24, title: 'Segment 5 — Multi-Stage Governance' },
-    { dur: 24, title: 'Segment 6 — Cross-Agent Governance' },
-    { dur: 20, title: 'Segment 7 — Category Definition' },
+    { dur: 20, title: 'The Shift' },
+    { dur: 24, title: 'Layers 1 & 2 — Then Failure' },
+    { dur: 22, title: 'Layer 3 — The Execution Boundary' },
+    { dur: 24, title: 'Wave Classification' },
+    { dur: 22, title: 'Ripple Workflows' },
+    { dur: 22, title: 'Agent Intelligence' },
+    { dur: 22, title: 'Cross-System Threat Detection' },
+    { dur: 20, title: 'Governance Evidence' },
+    { dur: 24, title: 'Category Definition' },
   ];
 
   const totalSeconds = scenes.reduce((a, s) => a + s.dur, 0);
   const cumulative = [];
-  scenes.reduce((acc, s) => {
-    cumulative.push(acc);
-    return acc + s.dur;
-  }, 0);
+  scenes.reduce((acc, s) => { cumulative.push(acc); return acc + s.dur; }, 0);
 
-  const agents = [
-    { name: 'OpenClaw', x: 165, y: 180, c: '#27c2ff' },
-    { name: 'LangGraph', x: 165, y: 360, c: '#27c2ff' },
-    { name: 'Internal Automation', x: 165, y: 540, c: '#27c2ff' },
-  ];
-
-  const systems = [
-    { name: 'GitHub', x: 1120, y: 150 },
-    { name: 'AWS', x: 1120, y: 290 },
-    { name: 'Databases', x: 1120, y: 430 },
-    { name: 'Internal APIs', x: 1120, y: 570 },
-  ];
-
-  const surfit = { x: 640, y: 360, w: 340, h: 250 };
-
-  const colors = {
-    bgA: '#071227',
-    bgB: '#081831',
-    grid: 'rgba(62,97,140,0.26)',
-    line: '#2a6da5',
-    lineHot: '#27c2ff',
-    lineDeny: '#ff6e6e',
-    panel: '#0f2543',
-    panelBorder: '#2d5a86',
-    text: '#cfe4f8',
-    muted: '#8cb0d1',
-    orange: '#ff7c2c',
-    green: '#39d48f',
+  const C = {
+    bgA: '#071227', bgB: '#081831',
+    grid: 'rgba(62,97,140,0.18)',
+    panel: '#0f2543', panelBorder: '#2d5a86',
+    text: '#cfe4f8', muted: '#8cb0d1',
+    blue: '#27c2ff', orange: '#ff7c2c',
+    green: '#39d48f', red: '#ff6e6e',
+    purple: '#a78bfa', yellow: '#eab308',
+    w1: '#22c55e', w2: '#38bdf8', w3: '#eab308', w4: '#f97316', w5: '#ef4444',
+    surfitGlow: 'rgba(38,194,255,0.06)',
   };
 
   let running = true;
-  let loop = true;
   let startMs = performance.now();
   let pauseMs = 0;
   let pausedAt = 0;
   let rafId = null;
 
-  function roundedRect(x, y, w, h, r = 10) {
+  // ── Drawing Primitives ──
+
+  function drawBg(t) {
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, C.bgA);
+    grad.addColorStop(1, C.bgB);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    const step = 48;
+    const drift = (t * 12) % step;
+    ctx.strokeStyle = C.grid;
+    ctx.lineWidth = 0.5;
+    for (let x = -step + drift; x < W + step; x += step) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += step) {
+      ctx.beginPath(); ctx.moveTo(0, y + drift * 0.15); ctx.lineTo(W, y + drift * 0.15); ctx.stroke();
+    }
+  }
+
+  function roundedRect(x, y, w, h, r) {
     ctx.beginPath();
     ctx.moveTo(x + r, y);
     ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -76,157 +76,192 @@
     ctx.closePath();
   }
 
-  function drawBg(t) {
-    const grad = ctx.createLinearGradient(0, 0, W, H);
-    grad.addColorStop(0, colors.bgA);
-    grad.addColorStop(1, colors.bgB);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
+  function drawNode(x, y, label, borderColor, w, h) {
+    w = w || 180; h = h || 50;
+    const nx = x - w / 2, ny = y - h / 2;
+    roundedRect(nx, ny, w, h, 8);
+    ctx.fillStyle = C.panel;
+    ctx.fill();
+    ctx.strokeStyle = borderColor || C.panelBorder;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = C.text;
+    ctx.font = '600 15px "DM Sans", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, x, y);
+  }
 
-    const step = 42;
-    const drift = (t * 18) % step;
-    ctx.strokeStyle = colors.grid;
+  function drawSurfitNode(x, y, w, h, t, showCredentials) {
+    w = w || 280; h = h || 200;
+    const nx = x - w / 2, ny = y - h / 2;
+    // Glow
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, w * 0.8);
+    glow.addColorStop(0, 'rgba(38,194,255,0.08)');
+    glow.addColorStop(1, 'rgba(38,194,255,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(nx - 60, ny - 60, w + 120, h + 120);
+    // Border
+    roundedRect(nx, ny, w, h, 12);
+    ctx.fillStyle = 'rgba(10,30,55,0.95)';
+    ctx.fill();
+    ctx.strokeStyle = C.blue;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // Title
+    ctx.font = '700 22px "Righteous", cursive';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = C.blue;
+    ctx.fillText('SURFIT', x - 12, ny + 32);
+    ctx.fillStyle = C.orange;
+    ctx.fillText('.AI', x + 52, ny + 32);
+    // Wave lines inside
+    ctx.strokeStyle = 'rgba(38,194,255,0.15)';
     ctx.lineWidth = 1;
-    for (let x = -step + drift; x < W + step; x += step) {
+    for (let i = 0; i < 4; i++) {
+      const wy = ny + 50 + i * 22;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, H);
+      for (let px = nx + 20; px < nx + w - 20; px += 2) {
+        const wave = Math.sin((px + t * 60 + i * 40) * 0.03) * 6;
+        if (px === nx + 20) ctx.moveTo(px, wy + wave);
+        else ctx.lineTo(px, wy + wave);
+      }
       ctx.stroke();
     }
-    for (let y = 0; y < H; y += step) {
-      ctx.beginPath();
-      ctx.moveTo(0, y + drift * 0.2);
-      ctx.lineTo(W, y + drift * 0.2);
-      ctx.stroke();
+    // Credential lock icon
+    if (showCredentials) {
+      ctx.font = '500 11px "DM Sans", sans-serif';
+      ctx.fillStyle = C.green;
+      ctx.textAlign = 'center';
+      ctx.fillText('🔑 Holds all credentials', x, ny + h - 18);
     }
   }
 
-  function drawNode(x, y, label, color = colors.panelBorder, fill = colors.panel) {
-    const w = 210;
-    const h = 72;
-    roundedRect(x - w / 2, y - h / 2, w, h, 11);
-    ctx.fillStyle = fill;
+  function drawPill(x, y, text, color, size) {
+    size = size || 'normal';
+    ctx.font = size === 'small' ? '600 10px "DM Sans", sans-serif' : '600 12px "DM Sans", sans-serif';
+    const tw = ctx.measureText(text).width;
+    const pw = tw + 16, ph = size === 'small' ? 20 : 24;
+    roundedRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2);
+    ctx.fillStyle = color + '25';
     ctx.fill();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-
-    ctx.fillStyle = colors.text;
-    ctx.font = '600 18px DM Sans, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x, y + 6);
-  }
-
-  function drawSmallPill(x, y, txt, tone) {
-    ctx.font = '600 13px DM Sans, sans-serif';
-    const padX = 12;
-    const w = ctx.measureText(txt).width + padX * 2;
-    const h = 30;
-    roundedRect(x - w / 2, y - h / 2, w, h, 15);
-    ctx.fillStyle = tone === 'allow' ? 'rgba(57,212,143,0.14)' : 'rgba(255,110,110,0.14)';
-    ctx.fill();
-    ctx.strokeStyle = tone === 'allow' ? '#39d48f' : '#ff6e6e';
+    ctx.strokeStyle = color + '80';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = tone === 'allow' ? '#39d48f' : '#ff6e6e';
+    ctx.fillStyle = color;
     ctx.textAlign = 'center';
-    ctx.fillText(txt, x, y + 5);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
   }
 
-  function drawLink(x1, y1, x2, y2, mode = 'normal', pulse = 0) {
-    const cp = (x2 - x1) * 0.45;
+  function drawArrow(x1, y1, x2, y2, color, pulse, dashed) {
+    ctx.strokeStyle = color || C.blue;
+    ctx.lineWidth = 2;
+    if (dashed) ctx.setLineDash([6, 4]);
+    else ctx.setLineDash([]);
     ctx.beginPath();
     ctx.moveTo(x1, y1);
-    ctx.bezierCurveTo(x1 + cp, y1, x2 - cp, y2, x2, y2);
-    ctx.lineWidth = mode === 'active' ? 2.4 : 1.4;
-    ctx.strokeStyle = mode === 'deny' ? colors.lineDeny : mode === 'active' ? colors.lineHot : colors.line;
-    ctx.globalAlpha = mode === 'active' ? 0.95 : 0.72;
+    // Bezier curve for smooth lines
+    const mx = (x1 + x2) / 2;
+    ctx.bezierCurveTo(mx, y1, mx, y2, x2, y2);
     ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    if (mode === 'active' || mode === 'deny') {
-      const tx = x1 + (x2 - x1) * pulse;
-      const ty = y1 + (y2 - y1) * pulse;
+    ctx.setLineDash([]);
+    // Pulse dot
+    if (pulse !== undefined) {
+      const t = pulse % 1;
+      const px = x1 + (x2 - x1) * t;
+      const py = y1 + (y2 - y1) * t;
+      // Better bezier interpolation
+      const bx = (1-t)*(1-t)*(1-t)*x1 + 3*(1-t)*(1-t)*t*mx + 3*(1-t)*t*t*mx + t*t*t*x2;
+      const by = (1-t)*(1-t)*(1-t)*y1 + 3*(1-t)*(1-t)*t*y1 + 3*(1-t)*t*t*y2 + t*t*t*y2;
       ctx.beginPath();
-      ctx.arc(tx, ty, 4.5, 0, Math.PI * 2);
-      ctx.fillStyle = mode === 'deny' ? '#ff6e6e' : '#27c2ff';
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 12;
+      ctx.arc(bx, by, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color || C.blue;
       ctx.fill();
-      ctx.shadowBlur = 0;
     }
   }
 
-  function drawSurfitBoundary(t, alpha = 1, showLayers = false) {
-    const x = surfit.x - surfit.w / 2;
-    const y = surfit.y - surfit.h / 2;
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-
-    roundedRect(x, y, surfit.w, surfit.h, 16);
-    ctx.fillStyle = 'rgba(10,33,58,0.95)';
-    ctx.fill();
-    ctx.strokeStyle = '#2a7cbd';
-    ctx.lineWidth = 1.8;
+  function drawStraightArrow(x1, y1, x2, y2, color, pulse) {
+    ctx.strokeStyle = color || C.blue;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
     ctx.stroke();
-
-    // Ocean/wave pulse rings
-    const pulse = ((t * 0.8) % 1);
-    for (let i = 0; i < 3; i++) {
-      const p = (pulse + i * 0.28) % 1;
+    if (pulse !== undefined) {
+      const t = pulse % 1;
+      const px = x1 + (x2 - x1) * t;
+      const py = y1 + (y2 - y1) * t;
       ctx.beginPath();
-      ctx.ellipse(surfit.x, surfit.y, 140 + p * 110, 85 + p * 56, 0, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(39,194,255,${0.22 * (1 - p)})`;
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      ctx.arc(px, py, 4, 0, Math.PI * 2);
+      ctx.fillStyle = color || C.blue;
+      ctx.fill();
     }
-
-    ctx.fillStyle = colors.text;
-    ctx.textAlign = 'center';
-    ctx.font = '700 24px DM Sans, sans-serif';
-    ctx.fillText('SURFIT', surfit.x, y + 44);
-    drawSurfitWaveFlow(t, x, y);
-
-    if (showLayers) {
-      const layers = [
-        { label: 'token_scope', y: y + 104 },
-        { label: 'policy_manifest', y: y + 146 },
-        { label: 'runtime_rules', y: y + 188 },
-      ];
-      layers.forEach((layer, idx) => {
-        const pulseGate = ((t * 1.2) - idx * 0.18) % 1;
-        roundedRect(x + 34, layer.y - 16, surfit.w - 68, 30, 8);
-        ctx.fillStyle = `rgba(39,194,255,${0.08 + 0.10 * Math.max(0, pulseGate)})`;
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(74,166,226,0.8)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-      });
-    }
-
-    ctx.restore();
   }
 
-  function drawSurfitWaveFlow(t, x, y) {
-    const left = x + 24;
-    const right = x + surfit.w - 24;
-    const width = right - left;
-    const baseYs = [y + 96, y + 124, y + 152, y + 180, y + 208];
-    baseYs.forEach((baseY, idx) => {
-      ctx.beginPath();
-      for (let i = 0; i <= 72; i++) {
-        const px = left + (i / 72) * width;
-        const phase = ((t * 1.8) + idx * 0.55 + i * 0.08);
-        const py = baseY + Math.sin(phase) * (3 + idx * 0.3);
-        if (i === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-      }
-      ctx.strokeStyle = `rgba(39,194,255,${0.2 + idx * 0.06})`;
-      ctx.lineWidth = 1.1;
-      ctx.stroke();
+  function drawStopX(x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 10, 0, Math.PI * 2);
+    ctx.fillStyle = C.red + '30';
+    ctx.fill();
+    ctx.strokeStyle = C.red;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x - 5, y - 5); ctx.lineTo(x + 5, y + 5);
+    ctx.moveTo(x + 5, y - 5); ctx.lineTo(x - 5, y + 5);
+    ctx.stroke();
+  }
+
+  function drawText(x, y, text, size, color, align, font) {
+    ctx.font = (font || '500') + ' ' + (size || 14) + 'px "DM Sans", sans-serif';
+    ctx.fillStyle = color || C.text;
+    ctx.textAlign = align || 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x, y);
+  }
+
+  function drawHeading(x, y, text, subtitle) {
+    roundedRect(x, y, 520, subtitle ? 58 : 42, 8);
+    ctx.fillStyle = 'rgba(15,37,67,0.92)';
+    ctx.fill();
+    ctx.strokeStyle = C.panelBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.font = '700 18px "DM Sans", sans-serif';
+    ctx.fillStyle = C.text;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, x + 16, y + 10);
+    if (subtitle) {
+      ctx.font = '400 13px "DM Sans", sans-serif';
+      ctx.fillStyle = C.muted;
+      ctx.fillText(subtitle, x + 16, y + 34);
+    }
+  }
+
+  function drawInfoBox(x, y, w, h, lines, borderColor) {
+    roundedRect(x, y, w, h, 8);
+    ctx.fillStyle = 'rgba(15,37,67,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = borderColor || C.panelBorder;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.font = '400 12px "DM Sans", sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    lines.forEach((line, i) => {
+      ctx.fillStyle = line.color || C.muted;
+      ctx.font = (line.bold ? '600' : '400') + ' ' + (line.size || 12) + 'px "DM Sans", sans-serif';
+      ctx.fillText(line.text, x + 14, y + 12 + i * 18);
     });
+  }
+
+  function fadeIn(p, start, dur) {
+    if (p < start) return 0;
+    if (p > start + dur) return 1;
+    return (p - start) / dur;
   }
 
   function sceneAt(seconds) {
@@ -240,364 +275,635 @@
     return { i: scenes.length - 1, start: cumulative[scenes.length - 1], end: totalSeconds, p: 1, scene: scenes[scenes.length - 1] };
   }
 
-  function drawOverlay(title, subtitle) {
-    roundedRect(36, 28, 690, 96, 10);
-    ctx.fillStyle = 'rgba(8,24,45,0.86)';
+  // ── Agent & System positions ──
+  const agents = [
+    { name: 'OpenClaw', y: 200 },
+    { name: 'LangGraph', y: 360 },
+    { name: 'Internal Agent', y: 520 },
+  ];
+  const agentX = 150;
+
+  const systems = [
+    { name: 'GitHub', y: 170 },
+    { name: 'AWS', y: 300 },
+    { name: 'Slack', y: 430 },
+    { name: 'Gmail', y: 560 },
+  ];
+  const sysX = 1130;
+  const surfitX = 640, surfitY = 360;
+
+  // ── SCENE RENDERERS ──
+
+  function drawScene0(t, p, pulse) {
+    // The Shift — agents directly hitting systems, no governance
+    drawHeading(40, 30, 'The Shift', 'Agents are acting directly on production systems.');
+
+    agents.forEach(a => drawNode(agentX, a.y, a.name, C.blue));
+    systems.forEach(s => drawNode(sysX, s.y, s.name, C.panelBorder));
+
+    // Direct connections — no governance
+    drawArrow(agentX + 90, agents[0].y, sysX - 90, systems[0].y, C.blue, (pulse + 0.1) % 1);
+    drawArrow(agentX + 90, agents[1].y, sysX - 90, systems[1].y, C.blue, (pulse + 0.3) % 1);
+    drawArrow(agentX + 90, agents[1].y + 10, sysX - 90, systems[2].y, C.blue, (pulse + 0.5) % 1);
+    drawArrow(agentX + 90, agents[2].y, sysX - 90, systems[3].y, C.blue, (pulse + 0.7) % 1);
+
+    // Action labels
+    drawPill(400, 175, 'merge_pr', C.blue, 'small');
+    drawPill(420, 310, 'modify_iam', C.blue, 'small');
+    drawPill(440, 450, 'post_message', C.blue, 'small');
+    drawPill(400, 540, 'send_email', C.blue, 'small');
+
+    // Problem badges appear over time
+    if (p > 0.4) {
+      drawPill(sysX + 10, systems[0].y - 40, 'unreviewed merge', C.red, 'small');
+    }
+    if (p > 0.6) {
+      drawPill(sysX + 10, systems[1].y - 40, 'unauthorized IAM change', C.red, 'small');
+    }
+    if (p > 0.8) {
+      drawPill(sysX + 10, systems[3].y - 40, 'external email — wrong attachment', C.red, 'small');
+    }
+
+    // Bottom text
+    if (p > 0.5) {
+      drawText(640, 670, 'No governance layer. Every agent holds credentials and executes directly.', 14, C.red, 'center');
+    }
+  }
+
+  function drawScene1(t, p, pulse) {
+    // Layer 1 + 2 combined, then failure
+    drawHeading(40, 30, 'Layers 1 & 2 — Then Failure', 'Every check passes. The agent still executes on its own.');
+
+    // Agent
+    drawNode(130, 360, 'AI Agent', C.blue);
+    drawPill(130, 310, '🔑 holds credentials', C.orange, 'small');
+
+    // Layer 1 box
+    const l1x = 340, l1y = 200;
+    roundedRect(l1x - 80, l1y - 60, 160, 120, 10);
+    ctx.fillStyle = 'rgba(34,197,94,0.08)';
     ctx.fill();
-    ctx.strokeStyle = '#2a5078';
+    ctx.strokeStyle = C.green + '60';
     ctx.lineWidth = 1;
     ctx.stroke();
+    drawText(l1x, l1y - 40, 'LAYER 1', 10, C.green, 'center', '700');
+    drawText(l1x, l1y - 18, 'Guardrails AI', 11, C.text, 'center', '500');
+    drawText(l1x, l1y, 'NeMo Guardrails', 11, C.text, 'center', '500');
+    drawText(l1x, l1y + 18, 'CTGT / Mentat', 11, C.text, 'center', '500');
+    if (p > 0.15) drawPill(l1x, l1y + 48, '✓ output safe', C.green, 'small');
 
-    ctx.fillStyle = '#cde7ff';
-    ctx.textAlign = 'left';
-    ctx.font = '700 20px DM Sans, sans-serif';
-    ctx.fillText(title, 58, 66);
-    ctx.fillStyle = '#9ec3e2';
-    ctx.font = '500 16px DM Sans, sans-serif';
-    ctx.fillText(subtitle, 58, 98);
-  }
-
-  function drawActionTag(x, y, label, color) {
-    ctx.font = '600 13px DM Sans, sans-serif';
-    const w = ctx.measureText(label).width + 18;
-    roundedRect(x - w / 2, y - 14, w, 28, 14);
-    ctx.fillStyle = color === 'deny' ? 'rgba(255,110,110,0.15)' : 'rgba(39,194,255,0.15)';
+    // Layer 2 box
+    const l2x = 560, l2y = 200;
+    roundedRect(l2x - 90, l2y - 60, 180, 120, 10);
+    ctx.fillStyle = 'rgba(167,139,250,0.08)';
     ctx.fill();
-    ctx.strokeStyle = color === 'deny' ? '#ff6e6e' : '#27c2ff';
+    ctx.strokeStyle = C.purple + '60';
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.fillStyle = color === 'deny' ? '#ff9f9f' : '#bce8ff';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x, y + 5);
-  }
+    drawText(l2x, l2y - 40, 'LAYER 2', 10, C.purple, 'center', '700');
+    drawText(l2x, l2y - 18, 'IronCurtain', 11, C.text, 'center', '500');
+    drawText(l2x, l2y, 'NemoClaw / OpenShell', 11, C.text, 'center', '500');
+    drawText(l2x, l2y + 18, 'Cisco DefenseClaw', 11, C.text, 'center', '500');
+    if (p > 0.3) drawPill(l2x, l2y + 48, '✓ access permitted', C.purple, 'small');
 
-  function drawStopMarker(x, y) {
-    ctx.beginPath();
-    ctx.arc(x, y, 9, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,110,110,0.2)';
+    // Empty Layer 3
+    const l3x = 790, l3y = 200;
+    roundedRect(l3x - 70, l3y - 40, 140, 80, 10);
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
     ctx.fill();
-    ctx.strokeStyle = '#ff6e6e';
-    ctx.lineWidth = 1.3;
+    ctx.strokeStyle = C.red + '40';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
     ctx.stroke();
+    ctx.setLineDash([]);
+    drawText(l3x, l3y - 14, 'LAYER 3', 10, C.red, 'center', '700');
+    drawText(l3x, l3y + 6, 'NO LAYER HERE', 12, C.red, 'center', '600');
 
-    ctx.beginPath();
-    ctx.moveTo(x - 4, y - 4);
-    ctx.lineTo(x + 4, y + 4);
-    ctx.moveTo(x + 4, y - 4);
-    ctx.lineTo(x - 4, y + 4);
-    ctx.strokeStyle = '#ff8e8e';
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
+    // System
+    drawNode(1050, 360, 'Production', C.panelBorder);
+
+    // Flow arrows
+    drawStraightArrow(220, 360, 260, 280, C.blue, p > 0.1 ? (pulse + 0.2) % 1 : undefined);
+    if (p > 0.2) drawStraightArrow(420, 260, 470, 260, C.blue, (pulse + 0.3) % 1);
+    if (p > 0.4) drawStraightArrow(650, 260, 720, 260, C.blue, (pulse + 0.4) % 1);
+    if (p > 0.5) drawStraightArrow(860, 260, 960, 360, C.blue, (pulse + 0.5) % 1);
+
+    // Catastrophe
+    if (p > 0.6) {
+      roundedRect(780, 420, 360, 120, 10);
+      ctx.fillStyle = 'rgba(239,68,68,0.1)';
+      ctx.fill();
+      ctx.strokeStyle = C.red + '60';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(800, 445, 'CATASTROPHE', 14, C.red, 'left', '700');
+      drawText(800, 468, 'Agent merges untested code to production.', 12, C.text, 'left');
+      drawText(800, 488, 'Payments break. 14,000 transactions fail.', 12, C.text, 'left');
+      drawText(800, 508, 'Every layer said yes. Nobody checked business context.', 11, C.muted, 'left');
+    }
+
+    // Bottom repeating line
+    if (p > 0.7) {
+      drawText(640, 660, 'The agent still executes on its own.', 16, C.red, 'center', '600');
+    }
   }
 
-  function drawApprovalFlow(progress) {
-    const y = 642;
+  function drawScene2(t, p, pulse) {
+    // Layer 3 — Surfit appears
+    drawHeading(40, 30, 'Layer 3 — The Execution Boundary', 'The agent proposes. Surfit decides. Surfit executes.');
+
+    // Agent side
+    drawNode(130, 300, 'AI Agent', C.blue);
+    drawPill(130, 255, 'No credentials', C.orange, 'small');
+    drawText(130, 345, 'Proposes action', 11, C.muted, 'center');
+
+    // Surfit
+    drawSurfitNode(550, 360, 300, 240, t, true);
+
+    // Inside Surfit labels
+    const sx = 550, sy = 360;
+    if (p > 0.2) drawText(sx, sy - 40, 'EVALUATE', 11, C.blue, 'center', '700');
+    if (p > 0.3) drawText(sx, sy - 20, 'Business context • Risk • Destination', 10, C.muted, 'center');
+    if (p > 0.4) drawText(sx, sy + 10, 'CLASSIFY', 11, C.orange, 'center', '700');
+    if (p > 0.45) drawText(sx, sy + 28, 'Wave 1-5 deterministic scoring', 10, C.muted, 'center');
+    if (p > 0.55) drawText(sx, sy + 56, 'ENFORCE', 11, C.green, 'center', '700');
+    if (p > 0.6) drawText(sx, sy + 74, 'Execute or hold for approval', 10, C.muted, 'center');
+
+    // Systems
+    drawNode(1000, 200, 'Slack', C.panelBorder, 140, 40);
+    drawNode(1000, 280, 'GitHub', C.panelBorder, 140, 40);
+    drawNode(1000, 360, 'AWS', C.panelBorder, 140, 40);
+    drawNode(1000, 440, 'Gmail', C.panelBorder, 140, 40);
+
+    // Arrows
+    drawArrow(220, 300, 400, 340, C.blue, (pulse + 0.1) % 1);
+    if (p > 0.5) {
+      drawArrow(700, 280, 930, 200, C.green, (pulse + 0.2) % 1);
+      drawPill(850, 190, 'Wave 1 ✓', C.w1, 'small');
+      drawArrow(700, 320, 930, 280, C.green, (pulse + 0.35) % 1);
+      drawPill(850, 270, 'Wave 2 ✓', C.w2, 'small');
+    }
+    if (p > 0.65) {
+      drawArrow(700, 380, 930, 360, C.orange, (pulse + 0.5) % 1);
+      drawPill(850, 350, 'Wave 4 ⏸', C.w4, 'small');
+      drawStopX(820, 380);
+    }
+    if (p > 0.75) {
+      drawArrow(700, 420, 930, 440, C.green, (pulse + 0.65) % 1);
+      drawPill(850, 430, 'Wave 2 ✓', C.w2, 'small');
+    }
+
+    // Bottom text
+    drawText(640, 640, 'The agent cannot reach any system without going through Surfit.', 14, C.blue, 'center', '500');
+    drawText(640, 665, 'Architectural enforcement — not policy.', 13, C.muted, 'center');
+  }
+
+  function drawScene3(t, p, pulse) {
+    // Wave Classification
+    drawHeading(40, 30, 'Wave Classification', 'Deterministic. Explainable. Sub-100ms. No LLM.');
+
+    // Default waves example — X post
+    if (p < 0.55) {
+      drawNode(200, 250, 'X Agent', C.blue, 160, 44);
+      drawSurfitNode(580, 320, 260, 180, t, false);
+      drawNode(1000, 250, 'X (Twitter)', C.panelBorder, 160, 44);
+
+      drawArrow(280, 250, 450, 290, C.blue, (pulse + 0.1) % 1);
+      drawPill(360, 230, 'post_tweet', C.blue, 'small');
+
+      // Inside Surfit — wave calculation
+      drawText(580, 270, 'System: X → base 2', 11, C.text, 'center');
+      drawText(580, 290, 'Action: post_tweet → +0', 11, C.text, 'center');
+      drawText(580, 310, 'Content: neutral → +0', 11, C.text, 'center');
+      drawText(580, 340, 'Final: Wave 2', 14, C.w2, 'center', '700');
+      drawText(580, 362, 'Auto-execute ✓', 12, C.green, 'center', '600');
+
+      if (p > 0.3) {
+        drawArrow(710, 280, 920, 250, C.green, (pulse + 0.3) % 1);
+        drawPill(830, 240, 'Wave 2 — Automatic', C.w2, 'small');
+      }
+
+      // Wave scale at bottom
+      const waveY = 500;
+      const waveColors = [C.w1, C.w2, C.w3, C.w4, C.w5];
+      const waveLabels = ['Auto', 'Auto', 'Auto', 'Approval', 'Approval'];
+      for (let i = 0; i < 5; i++) {
+        const wx = 280 + i * 150;
+        ctx.beginPath();
+        ctx.arc(wx, waveY, 22, 0, Math.PI * 2);
+        ctx.fillStyle = waveColors[i] + '25';
+        ctx.fill();
+        ctx.strokeStyle = waveColors[i];
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        drawText(wx, waveY, String(i + 1), 16, waveColors[i], 'center', '700');
+        drawText(wx, waveY + 34, waveLabels[i], 11, C.muted, 'center');
+      }
+      drawText(640, 560, '80%+ of actions auto-execute at Wave 1-3. Zero human involvement.', 12, C.muted, 'center');
+
+    } else {
+      // Custom policy example via NL parser
+      drawText(640, 150, 'Custom Policy via Natural Language Parser', 16, C.blue, 'center', '600');
+
+      // NL input box
+      roundedRect(140, 190, 540, 60, 8);
+      ctx.fillStyle = 'rgba(15,37,67,0.9)';
+      ctx.fill();
+      ctx.strokeStyle = C.blue + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(160, 210, '"External emails with attachments should require', 12, C.text, 'left');
+      drawText(160, 228, '  approval unless the recipient is at @acme.com"', 12, C.text, 'left');
+
+      // Arrow to parsed result
+      drawStraightArrow(640, 250, 640, 290, C.blue, (pulse + 0.2) % 1);
+      drawPill(740, 270, 'Parse Policy', C.blue, 'small');
+
+      // Parsed rules
+      drawInfoBox(140, 300, 500, 100, [
+        { text: 'PARSED RESULT', size: 10, color: C.green, bold: true },
+        { text: 'Gmail / send_email → Wave 4 (Approval)', color: C.text },
+        { text: 'Destination: NOT @acme.com', color: C.muted },
+        { text: 'Context: has_attachment = true', color: C.muted },
+      ], C.green);
+
+      drawInfoBox(140, 420, 500, 80, [
+        { text: 'EXCEPTION RULE', size: 10, color: C.w2, bold: true },
+        { text: 'Gmail / send_email → Wave 2 (Auto)', color: C.text },
+        { text: 'Destination: @acme.com — trusted partner domain', color: C.muted },
+      ], C.w2);
+
+      // Visual representation
+      drawNode(900, 350, 'Gmail', C.panelBorder, 140, 44);
+      drawArrow(640, 380, 830, 350, C.w4, (pulse + 0.3) % 1);
+      drawPill(750, 340, 'Wave 4 ⏸', C.w4, 'small');
+      drawArrow(640, 440, 830, 370, C.green, (pulse + 0.5) % 1);
+      drawPill(750, 410, 'Wave 2 ✓ @acme.com', C.w2, 'small');
+
+      drawText(640, 560, 'Business rules in plain english → deterministic enforcement.', 13, C.muted, 'center');
+      drawText(640, 585, 'LLM parses the rule. No LLM in the scoring path.', 12, C.blue, 'center');
+    }
+  }
+
+  function drawScene4(t, p, pulse) {
+    // Ripple Workflows
+    drawHeading(40, 30, 'Ripple Workflows', 'Cross-system action chains. Every step governed independently.');
+
+    // Chain: GitHub PR merge → Slack notification → AWS deploy
     const nodes = [
-      'propose_change',
-      'pull_request_created',
-      'approval_artifact_required',
-      'approval_granted',
-      'merge_allowed',
+      { x: 180, y: 300, label: 'GitHub', action: 'PR Merge' },
+      { x: 500, y: 300, label: 'Slack', action: 'Notify #eng' },
+      { x: 820, y: 300, label: 'AWS', action: 'Deploy Lambda' },
     ];
-    const startX = 160;
-    const gap = 235;
 
-    const positions = [];
-    for (let i = 0; i < nodes.length; i++) {
-      const x = startX + i * gap;
-      positions.push(x);
-      const active = progress > i / nodes.length;
-      const isBlocked = i === 2 && progress < 0.62;
-      drawActionTag(x, y, nodes[i], isBlocked ? 'deny' : (active ? 'allow' : 'idle'));
-      if (i < nodes.length - 1) {
-        drawLink(x + 72, y, x + gap - 72, y, isBlocked ? 'deny' : (active ? 'normal' : 'normal'), 0);
+    // Surfit evaluation boxes between each
+    const surfitEvals = [
+      { x: 340, y: 300, wave: 3, result: 'Auto ✓' },
+      { x: 660, y: 300, wave: 1, result: 'Auto ✓' },
+      { x: 980, y: 300, wave: 4, result: 'Held ⏸' },
+    ];
+
+    // Draw chain with progressive reveal
+    nodes.forEach((n, i) => {
+      if (p > i * 0.25) {
+        drawNode(n.x, n.y, n.label, C.panelBorder, 140, 44);
+        drawText(n.x, n.y + 36, n.action, 11, C.muted, 'center');
+      }
+    });
+
+    // Arrows and Surfit eval boxes
+    if (p > 0.15) {
+      drawStraightArrow(250, 300, 300, 300, C.blue, (pulse + 0.1) % 1);
+      // Surfit eval mini-box
+      roundedRect(300, 278, 80, 44, 6);
+      ctx.fillStyle = 'rgba(10,30,55,0.95)';
+      ctx.fill();
+      ctx.strokeStyle = C.blue + '60';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(340, 292, 'Wave 3', 11, C.w3, 'center', '700');
+      drawText(340, 308, 'Auto ✓', 10, C.green, 'center');
+      drawStraightArrow(380, 300, 430, 300, C.green, (pulse + 0.2) % 1);
+    }
+
+    if (p > 0.4) {
+      drawStraightArrow(570, 300, 620, 300, C.blue, (pulse + 0.3) % 1);
+      roundedRect(620, 278, 80, 44, 6);
+      ctx.fillStyle = 'rgba(10,30,55,0.95)';
+      ctx.fill();
+      ctx.strokeStyle = C.blue + '60';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(660, 292, 'Wave 1', 11, C.w1, 'center', '700');
+      drawText(660, 308, 'Auto ✓', 10, C.green, 'center');
+      drawStraightArrow(700, 300, 750, 300, C.green, (pulse + 0.4) % 1);
+    }
+
+    if (p > 0.6) {
+      drawStraightArrow(890, 300, 940, 300, C.blue, (pulse + 0.5) % 1);
+      roundedRect(940, 278, 80, 44, 6);
+      ctx.fillStyle = 'rgba(10,30,55,0.95)';
+      ctx.fill();
+      ctx.strokeStyle = C.w4 + '60';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      drawText(980, 292, 'Wave 4', 11, C.w4, 'center', '700');
+      drawText(980, 308, 'Held ⏸', 10, C.orange, 'center');
+      drawStopX(1040, 300);
+    }
+
+    // Visual flow label
+    if (p > 0.3) {
+      drawText(340, 400, '→ PR merges (Wave 3, auto)', 12, C.green, 'center');
+    }
+    if (p > 0.5) {
+      drawText(660, 400, '→ Slack notifies (Wave 1, auto)', 12, C.green, 'center');
+    }
+    if (p > 0.7) {
+      drawText(980, 400, '→ AWS deploy held (Wave 4)', 12, C.orange, 'center');
+    }
+
+    // Ripple visualization — connecting wave lines
+    if (p > 0.3) {
+      ctx.strokeStyle = C.blue + '20';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 3; i++) {
+        const wy = 470 + i * 20;
+        ctx.beginPath();
+        for (let px = 100; px < 1180; px += 2) {
+          const wave = Math.sin((px + t * 40 + i * 30) * 0.015) * 8;
+          if (px === 100) ctx.moveTo(px, wy + wave);
+          else ctx.lineTo(px, wy + wave);
+        }
+        ctx.stroke();
       }
     }
 
-    // Single progression dot across the chain.
-    const segments = nodes.length - 1;
-    const phase = Math.min(0.999, progress) * segments;
-    const segIdx = Math.floor(phase);
-    const segP = phase - segIdx;
-    const from = positions[segIdx] + 72;
-    const to = positions[Math.min(segIdx + 1, segments)] - 72;
-    const dotX = from + (to - from) * segP;
-    ctx.beginPath();
-    ctx.arc(dotX, y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = progress < 0.62 && segIdx >= 2 ? '#ff6e6e' : '#27c2ff';
-    ctx.shadowColor = ctx.fillStyle;
-    ctx.shadowBlur = 10;
-    ctx.fill();
-    ctx.shadowBlur = 0;
+    drawText(640, 560, 'One trigger. Multiple systems. Each step scored independently.', 13, C.blue, 'center');
+    drawText(640, 585, 'Different risk at every step. Same governance chain.', 12, C.muted, 'center');
   }
 
-  function drawDecisionMatrix() {
-    const x = 812;
-    const y = 500;
-    const w = 420;
-    const h = 172;
-    roundedRect(x, y, w, h, 10);
-    ctx.fillStyle = 'rgba(9,30,52,0.9)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  function drawScene5(t, p, pulse) {
+    // Agent Intelligence
+    drawHeading(40, 30, 'Agent Intelligence', 'Trust scores, budget gates, anomaly detection.');
 
-    ctx.fillStyle = '#cfe6fb';
-    ctx.textAlign = 'left';
-    ctx.font = '700 13px DM Sans, sans-serif';
-    ctx.fillText('Execution outcomes to GitHub', x + 14, y + 24);
-
-    const rows = [
-      { text: 'OpenClaw commit_file -> DENY (PATH_NOT_ALLOWED)', tone: 'deny' },
-      { text: 'LangGraph bounded workflow -> ALLOW (to GitHub)', tone: 'allow' },
-      { text: 'Internal merge w/o approval -> DENY (APPROVAL_REQUIRED)', tone: 'deny' },
-    ];
-    rows.forEach((r, idx) => {
-      const yy = y + 54 + idx * 36;
-      ctx.fillStyle = r.tone === 'allow' ? '#66e7b0' : '#ff9f9f';
-      ctx.font = '600 12px DM Sans, sans-serif';
-      ctx.fillText(r.text, x + 14, yy);
-    });
-  }
-
-  function drawCrossAgentSummary() {
-    const x = 368;
-    const y = 610;
-    const w = 544;
-    const h = 90;
-    roundedRect(x, y, w, h, 12);
-    ctx.fillStyle = 'rgba(9,30,52,0.88)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.fillStyle = '#bfe2ff';
-    ctx.textAlign = 'left';
-    ctx.font = '700 13px DM Sans, sans-serif';
-    ctx.fillText('Single Surfit boundary, same policy semantics across origins', x + 14, y + 22);
-
-    const rows = [
-      { left: 'OpenClaw', right: 'DENY  PATH_NOT_ALLOWED', tone: 'deny' },
-      { left: 'LangGraph', right: 'ALLOW', tone: 'allow' },
-      { left: 'Internal Automation', right: 'DENY  APPROVAL_REQUIRED', tone: 'deny' },
+    // Agent cards
+    const agentData = [
+      { name: 'x-agent', trust: 72, actions: 156, status: 'Building', color: C.blue },
+      { name: 'deploy-bot', trust: 91, actions: 420, status: 'Established', color: C.green },
+      { name: 'email-agent', trust: 34, actions: 18, status: 'New', color: C.yellow },
     ];
 
-    rows.forEach((row, idx) => {
-      const yy = y + 44 + idx * 15;
-      ctx.fillStyle = '#9ec3e2';
-      ctx.font = '600 12px DM Sans, sans-serif';
-      ctx.fillText(row.left, x + 14, yy);
-      ctx.fillStyle = row.tone === 'allow' ? '#66e7b0' : '#ff9f9f';
-      ctx.fillText(row.right, x + 210, yy);
-    });
-  }
+    agentData.forEach((a, i) => {
+      const ax = 200 + i * 320, ay = 200;
+      roundedRect(ax - 130, ay - 50, 260, 160, 10);
+      ctx.fillStyle = C.panel;
+      ctx.fill();
+      ctx.strokeStyle = a.color + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-  function drawDecisionReasonsBottom() {
-    const x = 280;
-    const y = 594;
-    const w = 760;
-    const h = 96;
-    roundedRect(x, y, w, h, 10);
-    ctx.fillStyle = 'rgba(9,30,52,0.86)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.font = '700 12px DM Sans, sans-serif';
-    ctx.fillStyle = '#cfe6fb';
-    ctx.fillText('Decision reasons', x + 14, y + 20);
-    ctx.font = '600 12px DM Sans, sans-serif';
-    ctx.fillStyle = '#ff9f9f';
-    ctx.fillText('OpenClaw DENY: token_scope violation', x + 14, y + 44);
-    ctx.fillText('Internal Automation DENY: runtime_rules + approval requirement', x + 14, y + 66);
-    ctx.fillStyle = '#66e7b0';
-    ctx.fillText('LangGraph ALLOW: policy_manifest + token_scope satisfied', x + 14, y + 86);
-  }
+      drawText(ax, ay - 30, a.name, 14, C.text, 'center', '600');
+      drawText(ax, ay - 8, a.status, 11, a.color, 'center', '600');
 
-  function drawClosingRecapPanel() {
-    const x = 250;
-    const y = 602;
-    const w = 780;
-    const h = 98;
-    roundedRect(x, y, w, h, 10);
-    ctx.fillStyle = 'rgba(9,30,52,0.86)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#cfe6fb';
-    ctx.font = '700 13px DM Sans, sans-serif';
-    ctx.fillText('Surfit: execution governance for enterprise AI', x + 14, y + 24);
-    ctx.font = '600 13px DM Sans, sans-serif';
-    ctx.fillStyle = '#9ec3e2';
-    ctx.fillText('Govern every agent action at runtime across repositories, infrastructure, and internal APIs.', x + 14, y + 50);
-    ctx.fillText('Deterministic ALLOW/DENY + verifiable governance evidence before system mutation.', x + 14, y + 74);
-  }
-
-  function overlayLineForScene(sceneIndex, p) {
-    const lines = [
-      [
-        'AI agents are beginning to interact directly with real systems.',
-        'Repositories • Infrastructure • Internal APIs',
-        'What governs what these agents are allowed to execute?',
-      ],
-      [
-        'Surfit is an execution governance layer.',
-        'The missing layer between agent intent and system mutation.',
-        'Surfit governs execution, not prompts.',
-      ],
-      [
-        'Every attempted action is evaluated at runtime.',
-        'ALLOW or DENY.',
-      ],
-      [
-        'Execution produces governance evidence.',
-        'Export • Verify • Audit',
-      ],
-      [
-        'Sensitive actions require approval.',
-        'Proposal -> Approval -> Execution',
-      ],
-      [
-        'Surfit governs execution across agent frameworks.',
-        'Agent-neutral governance.',
-      ],
-      [
-        'Orchestrators coordinate agents.',
-        'Surfit governs execution.',
-        'The execution governance layer for AI agents.',
-      ],
-    ];
-    const sceneLines = lines[sceneIndex] || [''];
-    const idx = Math.min(sceneLines.length - 1, Math.floor(p * sceneLines.length));
-    return sceneLines[idx];
-  }
-
-  function drawVerticalArchitectureStack() {
-    drawNode(640, 170, 'Agents / Orchestrators', '#2b7fbc', 'rgba(12,34,59,0.95)');
-    drawSurfitBoundary(0.2, 1, false);
-    drawNode(640, 560, 'Enterprise Systems', '#2b7fbc', 'rgba(12,34,59,0.95)');
-    drawLink(640, 208, 640, 230, 'active', 0.5);
-    drawLink(640, 486, 640, 522, 'active', 0.2);
-  }
-
-  function drawHorizontalMissingLayer(pulse) {
-    drawNode(170, 250, 'Agents', '#2b7fbc', 'rgba(12,34,59,0.95)');
-    drawNode(170, 470, 'Orchestrators', '#2b7fbc', 'rgba(12,34,59,0.95)');
-    systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-    drawSurfitBoundary(pulse, 1, false);
-    drawLink(275, 250, surfit.x - surfit.w / 2, 300, 'active', (pulse * 0.8) % 1);
-    drawLink(275, 470, surfit.x - surfit.w / 2, 430, 'active', (pulse * 0.9 + 0.3) % 1);
-    drawLink(surfit.x + surfit.w / 2, 300, 1015, systems[0].y, 'active', (pulse + 0.1) % 1);
-    drawLink(surfit.x + surfit.w / 2, 430, 1015, systems[2].y, 'active', (pulse + 0.45) % 1);
-    drawActionTag(640, 620, 'Missing governance layer resolved', 'allow');
-  }
-
-
-  function drawBoundaryLaneHints() {
-    drawActionTag(536, 214, 'token_scope check', 'info');
-    drawActionTag(548, 360, 'policy_manifest check', 'allow');
-    drawActionTag(548, 506, 'runtime_rules check', 'info');
-  }
-
-  function drawSegment2Narrative() {
-    const x = 330;
-    const y = 566;
-    const w = 620;
-    const h = 90;
-    roundedRect(x, y, w, h, 10);
-    ctx.fillStyle = 'rgba(9,30,52,0.88)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#cfe6fb';
-    ctx.font = '700 12px DM Sans, sans-serif';
-    ctx.fillText('Missing Governance Layer Resolved', x + 14, y + 22);
-    ctx.fillStyle = '#9ec3e2';
-    ctx.font = '600 12px DM Sans, sans-serif';
-    ctx.fillText('Orchestrators coordinate agents; Surfit governs execution to enterprise systems.', x + 14, y + 46);
-    ctx.fillText('Actions cross the Surfit boundary only after runtime policy evaluation.', x + 14, y + 66);
-  }
-
-  function drawSystemProblemBadges(p) {
-    const alerts = [
-      { x: 1060, y: 112, text: 'unreviewed commit' },
-      { x: 1060, y: 252, text: 'unsafe deploy risk' },
-      { x: 1060, y: 392, text: 'schema mutation risk' },
-      { x: 1060, y: 532, text: 'unauthorized API change' },
-    ];
-    alerts.forEach((a, idx) => {
-      if (p > idx * 0.2) drawActionTag(a.x, a.y, a.text, 'deny');
-    });
-  }
-
-  function drawLayerTapLabels() {
-    drawActionTag(745, 525, 'OpenClaw blocked at token_scope', 'deny');
-    drawActionTag(770, 560, 'Internal blocked by runtime_rules', 'deny');
-    drawActionTag(825, 595, 'LangGraph allowed via policy_manifest + scope', 'allow');
-  }
-
-  function drawEvidenceBoard(p) {
-    const x = 820;
-    const y = 292;
-    const w = 390;
-    const h = 190;
-    roundedRect(x, y, w, h, 10);
-    ctx.fillStyle = 'rgba(9,30,52,0.9)';
-    ctx.fill();
-    ctx.strokeStyle = '#2b618f';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = '#cfe6fb';
-    ctx.font = '700 13px DM Sans, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('Governance Evidence', x + 14, y + 22);
-
-    const rows = [
-      { text: 'bundle_export: wave_bundle_*.json', tone: 'allow', gate: 0.15 },
-      { text: 'offline_verify: PASS', tone: 'allow', gate: 0.45 },
-      { text: 'server_audit: VALID', tone: 'allow', gate: 0.75 },
-    ];
-    rows.forEach((r, idx) => {
-      if (p < r.gate) return;
-      const yy = y + 52 + idx * 42;
-      drawActionTag(x + 170, yy, r.text, r.tone);
-    });
-  }
-
-  function drawEvidencePipeline(p) {
-    const nodes = ['Execution Event', 'Export Bundle', 'Offline Verify', 'Server Audit'];
-    const y = 652;
-    const startX = 200;
-    const gap = 285;
-    for (let i = 0; i < nodes.length; i++) {
-      const x = startX + i * gap;
-      const active = p > (i / nodes.length);
-      drawActionTag(x, y, nodes[i], active ? 'allow' : 'idle');
-      if (i < nodes.length - 1) {
-        drawLink(x + 82, y, x + gap - 82, y, active ? 'active' : 'normal', (p * 1.4) % 1);
+      // Trust bar
+      const barW = 200, barH = 8, barX = ax - barW / 2, barY = ay + 16;
+      roundedRect(barX, barY, barW, barH, 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fill();
+      const fillW = Math.min(barW * (a.trust / 100) * fadeIn(p, i * 0.15, 0.3), barW);
+      if (fillW > 0) {
+        roundedRect(barX, barY, fillW, barH, 4);
+        ctx.fillStyle = a.color;
+        ctx.fill();
       }
+      drawText(ax + barW / 2 + 10, barY + 4, String(a.trust), 12, a.color, 'left', '700');
+
+      drawText(ax - 80, ay + 50, a.actions + ' actions', 11, C.muted, 'left');
+    });
+
+    // Key insight box
+    if (p > 0.4) {
+      roundedRect(140, 400, 500, 70, 8);
+      ctx.fillStyle = 'rgba(255,115,30,0.08)';
+      ctx.fill();
+      ctx.strokeStyle = C.orange + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(160, 420, 'CRITICAL: Trust scores DO NOT lower Wave classification.', 12, C.orange, 'left', '600');
+      drawText(160, 440, 'A trusted agent (score 91) still gets Wave 5 on modify_iam.', 12, C.text, 'left');
+      drawText(160, 458, 'Trust affects budget gates and session limits — never risk scoring.', 11, C.muted, 'left');
     }
-    if (p > 0.7) drawSmallPill(1025, 688, 'audit_verify = VALID', 'allow');
+
+    // Anomaly detection
+    if (p > 0.6) {
+      roundedRect(700, 400, 440, 70, 8);
+      ctx.fillStyle = 'rgba(239,68,68,0.08)';
+      ctx.fill();
+      ctx.strokeStyle = C.red + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(720, 420, 'ANOMALY DETECTED', 11, C.red, 'left', '700');
+      drawText(720, 440, 'email-agent: 200 actions in 10 minutes (baseline: 5/hour)', 12, C.text, 'left');
+      drawText(720, 458, 'Burst activity flagged → escalated to operator', 11, C.muted, 'left');
+    }
+
+    drawText(640, 560, 'Behavioral monitoring without compromising deterministic scoring.', 13, C.blue, 'center');
   }
+
+  function drawScene6(t, p, pulse) {
+    // Cross-System Threat Detection
+    drawHeading(40, 30, 'Cross-System Threat Detection', 'Individual actions look safe. The pattern reveals intent.');
+
+    // Show 3 individual actions
+    const actions = [
+      { sys: 'GitHub', action: 'merge_pr', wave: 3, x: 300, y: 200 },
+      { sys: 'AWS', action: 'modify_iam', wave: 3, x: 640, y: 200 },
+      { sys: 'Gmail', action: 'send_email (external)', wave: 3, x: 980, y: 200 },
+    ];
+
+    actions.forEach((a, i) => {
+      if (p > i * 0.12) {
+        drawNode(a.x, a.y, a.sys, C.panelBorder, 160, 44);
+        drawPill(a.x, a.y + 38, a.action, C.w3, 'small');
+        drawPill(a.x, a.y + 62, 'Wave ' + a.wave + ' — looks safe', C.w3, 'small');
+      }
+    });
+
+    // Timeline connection
+    if (p > 0.35) {
+      ctx.strokeStyle = C.red + '30';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(380, 200); ctx.lineTo(900, 200);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      drawText(640, 180, '< 30 minutes apart >', 11, C.red, 'center');
+    }
+
+    // Correlation engine fires
+    if (p > 0.5) {
+      roundedRect(240, 340, 800, 100, 10);
+      ctx.fillStyle = 'rgba(239,68,68,0.1)';
+      ctx.fill();
+      ctx.strokeStyle = C.red + '60';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      drawText(280, 365, 'CORRELATION ENGINE', 12, C.red, 'left', '700');
+      drawText(280, 388, 'Rule: "Code change + IAM modification + external email within 30 min"', 12, C.text, 'left');
+      drawText(280, 408, 'Pattern matched across 3 systems. Individual scores overridden.', 12, C.muted, 'left');
+
+      drawPill(900, 380, 'ESCALATE → Wave 5', C.w5, 'normal');
+    }
+
+    // Result
+    if (p > 0.7) {
+      drawText(640, 500, 'All 3 actions held for operator review.', 14, C.red, 'center', '600');
+      drawText(640, 525, 'Each action was Wave 3 individually. The cross-system pattern triggered Wave 5.', 12, C.muted, 'center');
+    }
+
+    drawText(640, 620, 'Per-system monitoring misses this. Surfit sees across all systems.', 13, C.blue, 'center');
+  }
+
+  function drawScene7(t, p, pulse) {
+    // Governance Evidence
+    drawHeading(40, 30, 'Governance Evidence', 'Not logging — proof.');
+
+    // Receipt chain
+    const receipts = [
+      { id: '0x3a8f...', sys: 'Slack', action: 'post_message', wave: 1, decision: 'Auto' },
+      { id: '0x7c2d...', sys: 'GitHub', action: 'merge_pr', wave: 4, decision: 'Approved' },
+      { id: '0xb1e4...', sys: 'AWS', action: 'deploy_lambda', wave: 3, decision: 'Auto' },
+      { id: '0xf5a9...', sys: 'Gmail', action: 'send_email', wave: 2, decision: 'Auto' },
+    ];
+
+    const chainX = 180;
+    receipts.forEach((r, i) => {
+      const ry = 160 + i * 90;
+      if (p > i * 0.15) {
+        roundedRect(chainX, ry, 480, 68, 8);
+        ctx.fillStyle = C.panel;
+        ctx.fill();
+        ctx.strokeStyle = C.panelBorder;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        drawText(chainX + 14, ry + 18, r.sys + ' / ' + r.action, 13, C.text, 'left', '600');
+        drawText(chainX + 14, ry + 38, 'Hash: ' + r.id, 11, C.blue, 'left');
+        drawText(chainX + 14, ry + 54, r.decision + ' by ' + (r.wave >= 4 ? 'operator' : 'engine'), 10, C.muted, 'left');
+
+        const wc = [C.w1, C.w2, C.w3, C.w4, C.w5][r.wave - 1];
+        drawPill(chainX + 420, ry + 20, 'Wave ' + r.wave, wc, 'small');
+        drawPill(chainX + 420, ry + 48, '✓ Verified', C.green, 'small');
+
+        // Chain link
+        if (i > 0) {
+          drawStraightArrow(chainX + 240, ry - 22, chainX + 240, ry, C.blue + '40');
+          drawText(chainX + 260, ry - 11, 'prev_hash links', 9, C.blue + '60', 'left');
+        }
+      }
+    });
+
+    // Right side — compliance report
+    if (p > 0.5) {
+      roundedRect(720, 160, 380, 220, 10);
+      ctx.fillStyle = 'rgba(34,197,94,0.06)';
+      ctx.fill();
+      ctx.strokeStyle = C.green + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      drawText(740, 185, 'COMPLIANCE REPORT', 11, C.green, 'left', '700');
+      drawText(740, 210, 'Date range: March 1 - April 6, 2026', 11, C.text, 'left');
+      drawText(740, 235, 'Total governed actions: 847', 11, C.text, 'left');
+      drawText(740, 255, 'Auto-executed: 712 (84%)', 11, C.green, 'left');
+      drawText(740, 275, 'Held for approval: 135 (16%)', 11, C.orange, 'left');
+      drawText(740, 295, 'Credential access events: 55', 11, C.text, 'left');
+      drawText(740, 320, 'Hash chain: ✓ Integrity verified', 11, C.green, 'left');
+      drawText(740, 345, 'Exportable • Auditable • Tamper-evident', 10, C.muted, 'left');
+    }
+
+    drawText(640, 560, 'Every action receipted. Every receipt hash-chained.', 13, C.blue, 'center');
+    drawText(640, 585, 'If any receipt is modified, the chain breaks. Cryptographically detectable.', 12, C.muted, 'center');
+  }
+
+  function drawScene8(t, p, pulse) {
+    // Category Definition
+    drawHeading(40, 30, 'Category Definition', 'Everyone builds smart and safe. Surfit is correct.');
+
+    // Full stack visual
+    const layers = [
+      { label: 'LAYER 1 — MODEL', desc: '"Is the output safe?"', tools: 'Guardrails AI • CTGT • NeMo Guardrails', color: C.green, tag: 'Smart' },
+      { label: 'LAYER 2 — RUNTIME', desc: '"Is this allowed?"', tools: 'IronCurtain • NemoClaw • Cisco • Microsoft • CrowdStrike', color: C.purple, tag: 'Safe' },
+      { label: 'LAYER 3 — DECISION', desc: '"Should this happen right now?"', tools: 'Surfit', color: C.blue, tag: 'Correct' },
+    ];
+
+    layers.forEach((l, i) => {
+      const ly = 130 + i * 130;
+      const lw = i === 2 ? 700 : 600;
+      const lx = i === 2 ? 290 : 340;
+
+      if (p > i * 0.15) {
+        roundedRect(lx, ly, lw, 100, 10);
+        ctx.fillStyle = i === 2 ? 'rgba(38,194,255,0.08)' : 'rgba(255,255,255,0.02)';
+        ctx.fill();
+        ctx.strokeStyle = l.color + (i === 2 ? '80' : '30');
+        ctx.lineWidth = i === 2 ? 2 : 1;
+        ctx.stroke();
+
+        drawText(lx + 16, ly + 20, l.label, 12, l.color, 'left', '700');
+        drawText(lx + 16, ly + 42, l.desc, 14, C.text, 'left', '500');
+        drawText(lx + 16, ly + 64, l.tools, 11, C.muted, 'left');
+
+        // Tag on right
+        drawPill(lx + lw - 50, ly + 20, l.tag, l.color, 'small');
+
+        // "Agent still executes" for layers 1 & 2
+        if (i < 2 && p > 0.4) {
+          drawText(lx + lw - 20, ly + 70, 'The agent still executes on its own →', 10, C.red, 'right');
+        }
+      }
+    });
+
+    // Arrow from L1/L2 showing gap, L3 catching it
+    if (p > 0.5) {
+      drawText(640, 520, 'Every tool above says "allowed."', 16, C.text, 'center', '600');
+    }
+    if (p > 0.6) {
+      drawText(640, 548, 'Only Surfit asks "correct for your business right now?"', 16, C.blue, 'center', '600');
+    }
+    if (p > 0.75) {
+      roundedRect(240, 580, 800, 60, 8);
+      ctx.fillStyle = 'rgba(38,194,255,0.06)';
+      ctx.fill();
+      ctx.strokeStyle = C.blue + '40';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      drawText(280, 602, 'The agent cannot bypass Surfit because it does not hold the credentials.', 13, C.text, 'left');
+      drawText(280, 622, 'This is architectural enforcement, not policy. The execution boundary.', 12, C.blue, 'left');
+    }
+
+    if (p > 0.9) {
+      ctx.font = '700 20px "Righteous", cursive';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = C.blue;
+      ctx.fillText('SURFIT', 610, 680);
+      ctx.fillStyle = C.orange;
+      ctx.fillText('.AI', 676, 680);
+    }
+  }
+
+  // ── Main Render Loop ──
 
   function render(now) {
-    const elapsed = running
-      ? (now - startMs - pauseMs) / 1000
-      : (pausedAt - startMs - pauseMs) / 1000;
-
-    let t = Math.max(0, elapsed);
-    if (loop) {
-      t = t % totalSeconds;
-    } else {
-      t = Math.min(t, totalSeconds);
-      if (t >= totalSeconds) running = false;
+    const elapsed = now - startMs - pauseMs;
+    let t = elapsed / 1000;
+    if (t >= totalSeconds) {
+      t = 0;
+      startMs = now;
+      pauseMs = 0;
     }
 
     const meta = sceneAt(t);
@@ -605,159 +911,30 @@
     progressFill.style.width = `${(t / totalSeconds) * 100}%`;
 
     drawBg(t);
-    const pulse = ((t * 0.65) % 1);
+    const pulse = (t * 0.65) % 1;
 
-    if (meta.i === 0) {
-      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-      drawLink(agents[0].x + 105, agents[0].y, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.1) % 1);
-      drawLink(agents[1].x + 105, agents[1].y, systems[1].x - 105, systems[1].y, 'active', (pulse + 0.3) % 1);
-      drawLink(agents[1].x + 105, agents[1].y + 8, systems[2].x - 105, systems[2].y - 8, 'active', (pulse + 0.42) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, systems[3].x - 105, systems[3].y, 'active', (pulse + 0.55) % 1);
-      drawActionTag(305, 148, 'commit_file', 'allow');
-      drawActionTag(328, 284, 'merge_pull_request', 'allow');
-      drawActionTag(350, 462, 'infrastructure_change', 'allow');
-      drawSystemProblemBadges(meta.p);
+    switch (meta.i) {
+      case 0: drawScene0(t, meta.p, pulse); break;
+      case 1: drawScene1(t, meta.p, pulse); break;
+      case 2: drawScene2(t, meta.p, pulse); break;
+      case 3: drawScene3(t, meta.p, pulse); break;
+      case 4: drawScene4(t, meta.p, pulse); break;
+      case 5: drawScene5(t, meta.p, pulse); break;
+      case 6: drawScene6(t, meta.p, pulse); break;
+      case 7: drawScene7(t, meta.p, pulse); break;
+      case 8: drawScene8(t, meta.p, pulse); break;
     }
-
-    if (meta.i === 1) {
-      drawNode(86, 270, 'Agent 1', '#2b7fbc', 'rgba(12,34,59,0.95)');
-      drawNode(86, 360, 'Agent 2', '#2b7fbc', 'rgba(12,34,59,0.95)');
-      drawNode(86, 450, 'Agent 3', '#2b7fbc', 'rgba(12,34,59,0.95)');
-      drawNode(300, 360, 'Orchestrator', '#2b7fbc', 'rgba(12,34,59,0.95)');
-      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-      drawSurfitBoundary(t, 1, false);
-
-      drawLink(191, 270, 196, 332, 'active', (pulse + 0.1) % 1);
-      drawLink(191, 360, 196, 360, 'active', (pulse + 0.3) % 1);
-      drawLink(191, 450, 196, 388, 'active', (pulse + 0.55) % 1);
-      drawLink(405, 360, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.2) % 1);
-
-      drawLink(surfit.x + surfit.w / 2, 250, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.05) % 1);
-      drawLink(surfit.x + surfit.w / 2, 328, systems[1].x - 105, systems[1].y, 'active', (pulse + 0.2) % 1);
-      drawLink(surfit.x + surfit.w / 2, 406, systems[2].x - 105, systems[2].y, 'active', (pulse + 0.35) % 1);
-      drawLink(surfit.x + surfit.w / 2, 486, systems[3].x - 105, systems[3].y, 'active', (pulse + 0.55) % 1);
-
-      drawActionTag(640, 524, 'Agents / Orchestrators', 'allow');
-      drawSegment2Narrative();
-    }
-
-    if (meta.i === 2) {
-      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-      drawSurfitBoundary(t, 1, false);
-
-      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', pulse);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.2) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (pulse + 0.4) % 1);
-
-      drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
-      drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
-      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.2) % 1);
-      drawActionTag(312, 144, 'commit', 'deny');
-      drawActionTag(334, 322, 'merge', 'allow');
-      drawActionTag(350, 502, 'infra_change', 'deny');
-      drawSmallPill(534, 214, 'DENY', 'deny');
-      drawSmallPill(534, 506, 'DENY', 'deny');
-      drawSmallPill(1020, 212, 'ALLOW -> GitHub', 'allow');
-      drawDecisionReasonsBottom();
-    }
-
-    if (meta.i === 3) {
-      drawNode(agents[1].x, agents[1].y, agents[1].name, agents[1].c, 'rgba(12,34,59,0.95)');
-      drawNode(systems[0].x, systems[0].y, systems[0].name, '#3c6e9b', 'rgba(12,34,59,0.95)');
-      drawSurfitBoundary(t, 1, false);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', pulse);
-      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', pulse);
-      drawEvidencePipeline(meta.p);
-      drawEvidenceBoard(meta.p);
-    }
-
-    if (meta.i === 4) {
-      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-      drawSurfitBoundary(t, 1, false);
-      drawApprovalFlow(meta.p);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', pulse);
-      if (meta.p > 0.62) {
-        drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', pulse);
-        drawActionTag(980, 240, 'human approval artifact attached', 'allow');
-      } else {
-        drawLink(surfit.x + surfit.w / 2, 360, surfit.x + surfit.w / 2 + 44, 360, 'deny', pulse);
-        drawStopMarker(surfit.x + surfit.w / 2 + 44, 360);
-        drawActionTag(980, 240, 'awaiting human approval artifact', 'deny');
-      }
-    }
-
-    if (meta.i === 5) {
-      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-      drawNode(systems[0].x, systems[0].y, systems[0].name, '#3c6e9b', 'rgba(12,34,59,0.95)');
-      drawSurfitBoundary(t, 1, false);
-
-      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, 'deny', pulse);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, 'active', (pulse + 0.25) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, 'deny', (pulse + 0.45) % 1);
-      drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
-      drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
-      drawLink(surfit.x + surfit.w / 2, 360, systems[0].x - 105, systems[0].y, 'active', (pulse + 0.25) % 1);
-      drawBoundaryLaneHints();
-      drawCrossAgentSummary();
-    }
-
-    if (meta.i === 6) {
-      agents.forEach(a => drawNode(a.x, a.y, a.name, a.c, 'rgba(12,34,59,0.95)'));
-      systems.forEach(s => drawNode(s.x, s.y, s.name, '#3c6e9b', 'rgba(12,34,59,0.95)'));
-      drawSurfitBoundary(t, 1, false);
-      const cyc = meta.p;
-      const burst = Math.floor(meta.p * 10) % 10;
-
-      const topMode = burst % 2 ? 'active' : 'deny';
-      const midMode = 'active';
-      const lowMode = burst % 3 ? 'deny' : 'active';
-
-      drawLink(agents[0].x + 105, agents[0].y, surfit.x - surfit.w / 2, 232, topMode, (pulse + cyc) % 1);
-      drawLink(agents[1].x + 105, agents[1].y, surfit.x - surfit.w / 2, 360, midMode, (pulse + 0.27 + cyc) % 1);
-      drawLink(agents[2].x + 105, agents[2].y, surfit.x - surfit.w / 2, 488, lowMode, (pulse + 0.61 + cyc) % 1);
-      if (topMode === 'deny') drawStopMarker(surfit.x - surfit.w / 2 + 2, 232);
-      if (lowMode === 'deny') drawStopMarker(surfit.x - surfit.w / 2 + 2, 488);
-
-      const topAllowed = topMode === 'active';
-      const midAllowed = true;
-      const lowAllowed = lowMode === 'active';
-
-      const topOutY = 300; // OpenClaw lane -> GitHub
-      const midOutY = burst % 2 ? 360 : 420; // LangGraph alternates AWS/Databases
-      const lowOutY = 430; // Internal lane -> Internal APIs
-
-      if (topAllowed) {
-        drawLink(surfit.x + surfit.w / 2, topOutY, systems[0].x - 105, systems[0].y, 'active', (pulse + cyc + 0.08) % 1);
-      } else {
-        drawLink(surfit.x + surfit.w / 2, topOutY, surfit.x + surfit.w / 2 + 42, topOutY, 'deny', (pulse + cyc + 0.08) % 1);
-        drawStopMarker(surfit.x + surfit.w / 2 + 42, topOutY);
-      }
-
-      drawLink(surfit.x + surfit.w / 2, midOutY, (burst % 2 ? systems[1] : systems[2]).x - 105, (burst % 2 ? systems[1] : systems[2]).y, midAllowed ? 'active' : 'deny', (pulse + cyc + 0.24) % 1);
-
-      if (lowAllowed) {
-        drawLink(surfit.x + surfit.w / 2, lowOutY, systems[3].x - 105, systems[3].y, 'active', (pulse + cyc + 0.42) % 1);
-      } else {
-        drawLink(surfit.x + surfit.w / 2, lowOutY, surfit.x + surfit.w / 2 + 42, lowOutY, 'deny', (pulse + cyc + 0.42) % 1);
-        drawStopMarker(surfit.x + surfit.w / 2 + 42, lowOutY);
-      }
-
-      drawBoundaryLaneHints();
-      drawClosingRecapPanel();
-    }
-
-    drawOverlay(meta.scene.title, overlayLineForScene(meta.i, meta.p));
 
     rafId = requestAnimationFrame(render);
   }
+
+  // ── Controls ──
 
   function pause() {
     if (!running) return;
     running = false;
     pausedAt = performance.now();
+    cancelAnimationFrame(rafId);
     playPauseBtn.textContent = 'Play';
   }
 
@@ -766,89 +943,51 @@
     running = true;
     pauseMs += performance.now() - pausedAt;
     playPauseBtn.textContent = 'Pause';
+    rafId = requestAnimationFrame(render);
   }
 
-  function restart(keepLoop = true) {
+  function restart() {
     startMs = performance.now();
     pauseMs = 0;
-    pausedAt = 0;
-    running = true;
-    loop = keepLoop;
-    playPauseBtn.textContent = 'Pause';
-  }
-
-  async function renderWebMBlob() {
-    const mimeCandidates = [
-      'video/webm;codecs=vp9',
-      'video/webm;codecs=vp8',
-      'video/webm',
-    ];
-    const mimeType = mimeCandidates.find(m => MediaRecorder.isTypeSupported(m)) || 'video/webm';
-
-    const stream = canvas.captureStream(30);
-    const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8_500_000 });
-    const chunks = [];
-
-    recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
-    };
-
-    const done = new Promise((resolve) => {
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType }));
-    });
-
-    restart(false);
-    recorder.start(250);
-
-    await new Promise(r => setTimeout(r, (totalSeconds + 0.8) * 1000));
-    recorder.stop();
-
-    const blob = await done;
-    stream.getTracks().forEach(t => t.stop());
-    loop = true;
-    restart(true);
-    return blob;
-  }
-
-  async function blobToDataURL(blob) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(fr.result);
-      fr.onerror = reject;
-      fr.readAsDataURL(blob);
-    });
-  }
-
-  async function exportWebM() {
-    exportBtn.disabled = true;
-    exportBtn.textContent = 'Rendering...';
-    exportPathHint.textContent = `Rendering ${Math.round(totalSeconds)}s WebM locally...`;
-    try {
-      const blob = await renderWebMBlob();
-      const url = URL.createObjectURL(blob);
-      exportPreview.src = url;
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `surfit-visualization-${Math.round(totalSeconds)}s.webm`;
-      a.click();
-      exportPathHint.textContent = `Generated ${Math.round(blob.size / (1024 * 1024) * 10) / 10} MB WebM.`;
-      return blob;
-    } finally {
-      exportBtn.disabled = false;
-      exportBtn.textContent = 'Export WebM';
+    if (!running) {
+      running = true;
+      playPauseBtn.textContent = 'Pause';
+      rafId = requestAnimationFrame(render);
     }
   }
 
-  // Exposed for headless local export script.
-  window.renderWebMDataURL = async () => {
-    const blob = await renderWebMBlob();
-    return blobToDataURL(blob);
-  };
+  playPauseBtn.addEventListener('click', () => running ? pause() : play());
+  restartBtn.addEventListener('click', restart);
 
-  playPauseBtn.addEventListener('click', () => (running ? pause() : play()));
-  restartBtn.addEventListener('click', () => restart(true));
-  exportBtn.addEventListener('click', exportWebM);
+  // Export WebM
+  exportBtn.addEventListener('click', async () => {
+    exportBtn.disabled = true;
+    exportBtn.textContent = 'Recording...';
+    const stream = canvas.captureStream(30);
+    const recorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+    const chunks = [];
+    recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      exportPreview.src = url;
+      exportPreview.style.display = 'block';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'surfit-visualization.webm';
+      a.click();
+      exportBtn.disabled = false;
+      exportBtn.textContent = 'Export WebM';
+      exportPathHint.textContent = 'Export complete. Video downloaded.';
+    };
+    // Restart and record
+    restart();
+    recorder.start();
+    setTimeout(() => {
+      recorder.stop();
+    }, totalSeconds * 1000 + 500);
+  });
 
-  restart(true);
+  // Start
   rafId = requestAnimationFrame(render);
 })();
