@@ -88,7 +88,7 @@
     ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.fillStyle = C.text;
-    ctx.font = '600 15px "DM Sans", sans-serif';
+    ctx.font = '600 16px "DM Sans", sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(label, x, y);
@@ -141,7 +141,7 @@
 
   function drawPill(x, y, text, color, size) {
     size = size || 'normal';
-    ctx.font = size === 'small' ? '600 10px "DM Sans", sans-serif' : '600 12px "DM Sans", sans-serif';
+    ctx.font = size === 'small' ? '600 12px "DM Sans", sans-serif' : '600 14px "DM Sans", sans-serif';
     const tw = ctx.measureText(text).width;
     const pw = tw + 16, ph = size === 'small' ? 20 : 24;
     roundedRect(x - pw / 2, y - ph / 2, pw, ph, ph / 2);
@@ -217,7 +217,7 @@
   }
 
   function drawText(x, y, text, size, color, align, font) {
-    ctx.font = (font || '500') + ' ' + (size || 14) + 'px "DM Sans", sans-serif';
+    ctx.font = (font || '500') + ' ' + (size || 16) + 'px "DM Sans", sans-serif';
     ctx.fillStyle = color || C.text;
     ctx.textAlign = align || 'left';
     ctx.textBaseline = 'middle';
@@ -225,21 +225,21 @@
   }
 
   function drawHeading(x, y, text, subtitle) {
-    roundedRect(x, y, 520, subtitle ? 58 : 42, 8);
+    roundedRect(x, y, 560, subtitle ? 65 : 46, 8);
     ctx.fillStyle = 'rgba(15,37,67,0.92)';
     ctx.fill();
     ctx.strokeStyle = C.panelBorder;
     ctx.lineWidth = 1;
     ctx.stroke();
-    ctx.font = '700 18px "DM Sans", sans-serif';
+    ctx.font = '700 22px "DM Sans", sans-serif';
     ctx.fillStyle = C.text;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     ctx.fillText(text, x + 16, y + 10);
     if (subtitle) {
-      ctx.font = '400 13px "DM Sans", sans-serif';
+      ctx.font = '400 14px "DM Sans", sans-serif';
       ctx.fillStyle = C.muted;
-      ctx.fillText(subtitle, x + 16, y + 34);
+      ctx.fillText(subtitle, x + 16, y + 38);
     }
   }
 
@@ -466,27 +466,27 @@
 
     // Default waves example — X post
     if (p < 0.5) {
-      drawNode(200, 250, 'X Agent', C.blue, 160, 44);
-      drawSurfitNode(580, 320, 260, 180, t, false);
-      drawNode(1000, 250, 'X (Twitter)', C.panelBorder, 160, 44);
+      drawNode(180, 280, 'X Agent', C.blue, 160, 48);
+      drawSurfitNode(540, 340, 300, 250, t, false);
+      drawNode(960, 280, 'X (Twitter)', C.panelBorder, 170, 48);
 
-      drawArrow(280, 250, 450, 290, C.blue, (pulse + 0.1) % 1);
-      drawPill(360, 230, 'post_tweet', C.blue, 'small');
+      drawArrow(260, 280, 390, 310, C.blue, (pulse + 0.1) % 1);
+      drawPill(320, 258, 'post_tweet', C.blue, 'small');
 
       // Inside Surfit — wave calculation
-      drawText(580, 260, 'System: X → base 2', 14, C.text, 'center');
-      drawText(580, 285, 'Action: post_tweet → +0', 14, C.text, 'center');
-      drawText(580, 310, 'Content: neutral → +0', 14, C.text, 'center');
-      drawText(580, 345, 'Final: Wave 2', 18, C.w2, 'center', '700');
-      drawText(580, 372, 'Auto-execute ✓', 14, C.green, 'center', '600');
+      drawText(540, 290, 'System: X → base 2', 15, C.text, 'center');
+      drawText(540, 316, 'Action: post_tweet → +0', 15, C.text, 'center');
+      drawText(540, 342, 'Content: neutral → +0', 15, C.text, 'center');
+      drawText(540, 378, 'Final: Wave 2', 20, C.w2, 'center', '700');
+      drawText(540, 406, 'Auto-execute ✓', 16, C.green, 'center', '600');
 
       if (p > 0.3) {
-        drawArrow(710, 280, 920, 250, C.green, (pulse + 0.3) % 1);
-        drawPill(830, 240, 'Wave 2 — Automatic', C.w2, 'small');
+        drawArrow(690, 310, 875, 280, C.green, (pulse + 0.3) % 1);
+        drawPill(810, 258, 'Wave 2 — Automatic', C.w2, 'small');
       }
 
       // Wave scale at bottom
-      const waveY = 500;
+      const waveY = 530;
       const waveColors = [C.w1, C.w2, C.w3, C.w4, C.w5];
       const waveLabels = ['Auto', 'Auto', 'Auto', 'Approval', 'Approval'];
       for (let i = 0; i < 5; i++) {
@@ -498,10 +498,10 @@
         ctx.strokeStyle = waveColors[i];
         ctx.lineWidth = 2;
         ctx.stroke();
-        drawText(wx, waveY, String(i + 1), 16, waveColors[i], 'center', '700');
-        drawText(wx, waveY + 34, waveLabels[i], 11, C.muted, 'center');
+        drawText(wx, waveY, String(i + 1), 20, waveColors[i], 'center', '700');
+        drawText(wx, waveY + 36, waveLabels[i], 13, C.muted, 'center');
       }
-      drawText(640, 560, '80%+ of actions auto-execute at Wave 1-3. Zero human involvement.', 12, C.muted, 'center');
+      drawText(540, 595, '80%+ of actions auto-execute at Wave 1-3. Zero human involvement.', 15, C.muted, 'center');
 
     } else { // Custom policy section - more time
       // Custom policy example via NL parser
@@ -522,28 +522,28 @@
       drawPill(740, 270, 'Parse Policy', C.blue, 'small');
 
       // Parsed rules
-      drawInfoBox(140, 300, 500, 100, [
-        { text: 'PARSED RESULT', size: 10, color: C.green, bold: true },
-        { text: 'Gmail / send_email → Wave 4 (Approval)', color: C.text },
-        { text: 'Destination: NOT @acme.com', color: C.muted },
-        { text: 'Context: has_attachment = true', color: C.muted },
+      drawInfoBox(120, 290, 520, 115, [
+        { text: 'PARSED RESULT', size: 13, color: C.green, bold: true },
+        { text: 'Gmail / send_email → Wave 4 (Approval)', color: C.text, size: 14 },
+        { text: 'Destination: NOT @acme.com', color: C.muted, size: 13 },
+        { text: 'Context: has_attachment = true', color: C.muted, size: 13 },
       ], C.green);
 
-      drawInfoBox(140, 420, 500, 80, [
-        { text: 'EXCEPTION RULE', size: 10, color: C.w2, bold: true },
-        { text: 'Gmail / send_email → Wave 2 (Auto)', color: C.text },
-        { text: 'Destination: @acme.com — trusted partner domain', color: C.muted },
+      drawInfoBox(120, 420, 520, 95, [
+        { text: 'EXCEPTION RULE', size: 13, color: C.w2, bold: true },
+        { text: 'Gmail / send_email → Wave 2 (Auto)', color: C.text, size: 14 },
+        { text: 'Destination: @acme.com — trusted partner', color: C.muted, size: 13 },
       ], C.w2);
 
       // Visual representation
-      drawNode(920, 470, 'Gmail', C.panelBorder, 150, 48);
-      drawArrow(640, 460, 830, 450, C.w4, (pulse + 0.3) % 1);
-      drawPill(750, 430, 'Wave 4 ⏸', C.w4, 'small');
-      drawArrow(640, 540, 830, 490, C.green, (pulse + 0.5) % 1);
-      drawPill(750, 520, 'Wave 2 ✓ @acme.com', C.w2, 'small');
+      drawNode(920, 440, 'Gmail', C.panelBorder, 160, 52);
+      drawArrow(640, 420, 840, 430, C.w4, (pulse + 0.3) % 1);
+      drawPill(730, 398, 'Wave 4 ⏸', C.w4, 'small');
+      drawArrow(640, 500, 840, 460, C.green, (pulse + 0.5) % 1);
+      drawPill(730, 478, 'Wave 2 ✓ @acme.com', C.w2, 'small');
 
-      drawText(640, 560, 'Business rules in plain english → deterministic enforcement.', 13, C.muted, 'center');
-      drawText(640, 585, 'LLM parses the rule. No LLM in the scoring path.', 12, C.blue, 'center');
+      drawText(540, 570, 'Business rules in plain english → deterministic enforcement.', 15, C.muted, 'center');
+      drawText(540, 595, 'LLM parses the rule. No LLM in the scoring path.', 14, C.blue, 'center');
     }
   }
 
