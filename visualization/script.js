@@ -342,35 +342,35 @@
 
     // Layer 1 box
     const l1x = 340, l1y = 200;
-    roundedRect(l1x - 80, l1y - 60, 160, 120, 10);
+    roundedRect(l1x - 90, l1y - 60, 180, 130, 10);
     ctx.fillStyle = 'rgba(34,197,94,0.08)';
     ctx.fill();
     ctx.strokeStyle = C.green + '60';
     ctx.lineWidth = 1;
     ctx.stroke();
-    drawText(l1x, l1y - 40, 'LAYER 1', 10, C.green, 'center', '700');
-    drawText(l1x, l1y - 18, 'Guardrails AI', 11, C.text, 'center', '500');
-    drawText(l1x, l1y, 'NeMo Guardrails', 11, C.text, 'center', '500');
-    drawText(l1x, l1y + 18, 'CTGT / Mentat', 11, C.text, 'center', '500');
+    drawText(l1x, l1y - 40, 'LAYER 1', 13, C.green, 'center', '700');
+    drawText(l1x, l1y - 18, 'Guardrails AI', 14, C.text, 'center', '500');
+    drawText(l1x, l1y, 'NeMo Guardrails', 14, C.text, 'center', '500');
+    drawText(l1x, l1y + 18, 'CTGT / Mentat', 14, C.text, 'center', '500');
     if (p > 0.15) drawPill(l1x, l1y + 48, '✓ output safe', C.green, 'small');
 
     // Layer 2 box
     const l2x = 560, l2y = 200;
-    roundedRect(l2x - 90, l2y - 60, 180, 120, 10);
+    roundedRect(l2x - 100, l2y - 60, 200, 130, 10);
     ctx.fillStyle = 'rgba(167,139,250,0.08)';
     ctx.fill();
     ctx.strokeStyle = C.purple + '60';
     ctx.lineWidth = 1;
     ctx.stroke();
-    drawText(l2x, l2y - 40, 'LAYER 2', 10, C.purple, 'center', '700');
-    drawText(l2x, l2y - 18, 'IronCurtain', 11, C.text, 'center', '500');
-    drawText(l2x, l2y, 'NemoClaw / OpenShell', 11, C.text, 'center', '500');
-    drawText(l2x, l2y + 18, 'Cisco DefenseClaw', 11, C.text, 'center', '500');
+    drawText(l2x, l2y - 40, 'LAYER 2', 13, C.purple, 'center', '700');
+    drawText(l2x, l2y - 18, 'IronCurtain', 14, C.text, 'center', '500');
+    drawText(l2x, l2y, 'NemoClaw / OpenShell', 14, C.text, 'center', '500');
+    drawText(l2x, l2y + 18, 'Cisco DefenseClaw', 14, C.text, 'center', '500');
     if (p > 0.3) drawPill(l2x, l2y + 48, '✓ access permitted', C.purple, 'small');
 
     // Empty Layer 3
     const l3x = 790, l3y = 200;
-    roundedRect(l3x - 70, l3y - 40, 140, 80, 10);
+    roundedRect(l3x - 80, l3y - 40, 160, 90, 10);
     ctx.fillStyle = 'rgba(255,255,255,0.02)';
     ctx.fill();
     ctx.strokeStyle = C.red + '40';
@@ -378,8 +378,8 @@
     ctx.setLineDash([4, 4]);
     ctx.stroke();
     ctx.setLineDash([]);
-    drawText(l3x, l3y - 14, 'LAYER 3', 10, C.red, 'center', '700');
-    drawText(l3x, l3y + 6, 'NO LAYER HERE', 12, C.red, 'center', '600');
+    drawText(l3x, l3y - 14, 'LAYER 3', 13, C.red, 'center', '700');
+    drawText(l3x, l3y + 6, 'NO LAYER HERE', 15, C.red, 'center', '600');
 
     // System
     drawNode(1050, 360, 'Production', C.panelBorder);
@@ -399,9 +399,9 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       drawText(800, 445, 'CATASTROPHE', 14, C.red, 'left', '700');
-      drawText(800, 468, 'Agent merges untested code to production.', 12, C.text, 'left');
-      drawText(800, 488, 'Payments break. 14,000 transactions fail.', 12, C.text, 'left');
-      drawText(800, 508, 'Every layer said yes. Nobody checked business context.', 11, C.muted, 'left');
+      drawText(800, 468, 'Agent merges untested code to production.', 14, C.text, 'left');
+      drawText(800, 488, 'Payments break. 14,000 transactions fail.', 14, C.text, 'left');
+      drawText(800, 508, 'Every layer said yes. Nobody checked business context.', 13, C.muted, 'left');
     }
 
     // Bottom repeating line
@@ -417,7 +417,7 @@
     // Agent side
     drawNode(130, 300, 'AI Agent', C.blue);
     drawPill(130, 255, 'No credentials', C.orange, 'small');
-    drawText(130, 345, 'Proposes action', 11, C.muted, 'center');
+    drawText(130, 345, 'Proposes action', 13, C.muted, 'center');
 
     // Surfit
     drawSurfitNode(520, 360, 340, 280, t, true);
@@ -425,11 +425,11 @@
     // Inside Surfit labels
     const sx = 520, sy = 360;
     if (p > 0.2) drawText(sx, sy - 55, 'EVALUATE', 14, C.blue, 'center', '700');
-    if (p > 0.3) drawText(sx, sy - 32, 'Business context • Risk • Destination', 12, C.muted, 'center');
+    if (p > 0.3) drawText(sx, sy - 32, 'Business context • Risk • Destination', 14, C.muted, 'center');
     if (p > 0.4) drawText(sx, sy + 0, 'CLASSIFY', 14, C.orange, 'center', '700');
-    if (p > 0.45) drawText(sx, sy + 22, 'Wave 1-5 deterministic scoring', 12, C.muted, 'center');
+    if (p > 0.45) drawText(sx, sy + 22, 'Wave 1-5 deterministic scoring', 14, C.muted, 'center');
     if (p > 0.55) drawText(sx, sy + 52, 'ENFORCE', 14, C.green, 'center', '700');
-    if (p > 0.6) drawText(sx, sy + 74, 'Execute or hold for approval', 12, C.muted, 'center');
+    if (p > 0.6) drawText(sx, sy + 74, 'Execute or hold for approval', 14, C.muted, 'center');
 
     // Systems
     drawNode(1020, 190, 'Slack', C.panelBorder, 150, 44);
@@ -514,8 +514,8 @@
       ctx.strokeStyle = C.blue + '40';
       ctx.lineWidth = 1;
       ctx.stroke();
-      drawText(160, 210, '"External emails with attachments should require', 12, C.text, 'left');
-      drawText(160, 228, '  approval unless the recipient is at @acme.com"', 12, C.text, 'left');
+      drawText(160, 210, '"External emails with attachments should require', 14, C.text, 'left');
+      drawText(160, 228, '  approval unless the recipient is at @acme.com"', 14, C.text, 'left');
 
       // Arrow to parsed result
       drawStraightArrow(640, 250, 640, 290, C.blue, (pulse + 0.2) % 1);
@@ -538,9 +538,9 @@
       // Visual representation
       drawNode(920, 440, 'Gmail', C.panelBorder, 160, 52);
       drawArrow(640, 420, 840, 430, C.w4, (pulse + 0.3) % 1);
-      drawPill(730, 398, 'Wave 4 ⏸', C.w4, 'small');
+      drawPill(750, 395, 'Wave 4 ⏸', C.w4, 'small');
       drawArrow(640, 500, 840, 460, C.green, (pulse + 0.5) % 1);
-      drawPill(730, 478, 'Wave 2 ✓ @acme.com', C.w2, 'small');
+      drawPill(750, 510, 'Wave 2 ✓ @acme.com', C.w2, 'small');
 
       drawText(540, 570, 'Business rules in plain english → deterministic enforcement.', 15, C.muted, 'center');
       drawText(540, 595, 'LLM parses the rule. No LLM in the scoring path.', 14, C.blue, 'center');
@@ -569,7 +569,7 @@
     nodes.forEach((n, i) => {
       if (p > i * 0.25) {
         drawNode(n.x, n.y, n.label, C.panelBorder, 140, 44);
-        drawText(n.x, n.y + 36, n.action, 11, C.muted, 'center');
+        drawText(n.x, n.y + 36, n.action, 14, C.muted, 'center');
       }
     });
 
@@ -583,8 +583,8 @@
       ctx.strokeStyle = C.blue + '60';
       ctx.lineWidth = 1;
       ctx.stroke();
-      drawText(340, 292, 'Wave 3', 11, C.w3, 'center', '700');
-      drawText(340, 308, 'Auto ✓', 10, C.green, 'center');
+      drawText(340, 292, 'Wave 3', 14, C.w3, 'center', '700');
+      drawText(340, 308, 'Auto ✓', 13, C.green, 'center');
       drawStraightArrow(380, 300, 430, 300, C.green, (pulse + 0.2) % 1);
     }
 
@@ -596,8 +596,8 @@
       ctx.strokeStyle = C.blue + '60';
       ctx.lineWidth = 1;
       ctx.stroke();
-      drawText(660, 292, 'Wave 1', 11, C.w1, 'center', '700');
-      drawText(660, 308, 'Auto ✓', 10, C.green, 'center');
+      drawText(660, 292, 'Wave 1', 14, C.w1, 'center', '700');
+      drawText(660, 308, 'Auto ✓', 13, C.green, 'center');
       drawStraightArrow(700, 300, 750, 300, C.green, (pulse + 0.4) % 1);
     }
 
@@ -609,20 +609,20 @@
       ctx.strokeStyle = C.w4 + '60';
       ctx.lineWidth = 1.5;
       ctx.stroke();
-      drawText(980, 292, 'Wave 4', 11, C.w4, 'center', '700');
-      drawText(980, 308, 'Held ⏸', 10, C.orange, 'center');
+      drawText(980, 292, 'Wave 4', 14, C.w4, 'center', '700');
+      drawText(980, 308, 'Held ⏸', 13, C.orange, 'center');
       drawStopX(1040, 300);
     }
 
     // Visual flow label
     if (p > 0.3) {
-      drawText(340, 400, '→ PR merges (Wave 3, auto)', 12, C.green, 'center');
+      drawText(340, 400, '→ PR merges (Wave 3, auto)', 14, C.green, 'center');
     }
     if (p > 0.5) {
-      drawText(660, 400, '→ Slack notifies (Wave 1, auto)', 12, C.green, 'center');
+      drawText(660, 400, '→ Slack notifies (Wave 1, auto)', 14, C.green, 'center');
     }
     if (p > 0.7) {
-      drawText(980, 400, '→ AWS deploy held (Wave 4)', 12, C.orange, 'center');
+      drawText(980, 400, '→ AWS deploy held (Wave 4)', 14, C.orange, 'center');
     }
 
     // Ripple visualization — connecting wave lines
@@ -642,7 +642,7 @@
     }
 
     drawText(640, 560, 'One trigger. Multiple systems. Each step scored independently.', 13, C.blue, 'center');
-    drawText(640, 585, 'Different risk at every step. Same governance chain.', 12, C.muted, 'center');
+    drawText(640, 585, 'Different risk at every step. Same governance chain.', 14, C.muted, 'center');
   }
 
   function drawScene5(t, p, pulse) {
@@ -666,7 +666,7 @@
       ctx.stroke();
 
       drawText(ax, ay - 30, a.name, 14, C.text, 'center', '600');
-      drawText(ax, ay - 8, a.status, 11, a.color, 'center', '600');
+      drawText(ax, ay - 8, a.status, 14, a.color, 'center', '600');
 
       // Trust bar
       const barW = 200, barH = 8, barX = ax - barW / 2, barY = ay + 16;
@@ -679,9 +679,9 @@
         ctx.fillStyle = a.color;
         ctx.fill();
       }
-      drawText(ax + barW / 2 + 10, barY + 4, String(a.trust), 12, a.color, 'left', '700');
+      drawText(ax + barW / 2 + 10, barY + 4, String(a.trust), 14, a.color, 'left', '700');
 
-      drawText(ax - 80, ay + 50, a.actions + ' actions', 12, C.muted, 'left');
+      drawText(ax - 80, ay + 50, a.actions + ' actions', 14, C.muted, 'left');
       // Individual stats
       if (p > 0.3) {
         const stats = [
@@ -690,35 +690,35 @@
           ['Budget: 200/day', 'Budget: 500/day', 'Budget: 50/day'],
         ];
         stats.forEach((row, si) => {
-          drawText(ax - 80, ay + 68 + si * 14, row[i], 10, C.muted, 'left');
+          drawText(ax - 80, ay + 68 + si * 14, row[i], 13, C.muted, 'left');
         });
       }
     });
 
     // Key insight box
     if (p > 0.4) {
-      roundedRect(140, 400, 500, 70, 8);
+      roundedRect(100, 400, 540, 80, 8);
       ctx.fillStyle = 'rgba(255,115,30,0.08)';
       ctx.fill();
       ctx.strokeStyle = C.orange + '40';
       ctx.lineWidth = 1;
       ctx.stroke();
-      drawText(160, 420, 'CRITICAL: Trust scores DO NOT lower Wave classification.', 12, C.orange, 'left', '600');
-      drawText(160, 440, 'A trusted agent (score 91) still gets Wave 5 on modify_iam.', 12, C.text, 'left');
-      drawText(160, 458, 'Trust affects budget gates and session limits — never risk scoring.', 11, C.muted, 'left');
+      drawText(120, 420, 'CRITICAL: Trust scores DO NOT lower Wave classification.', 14, C.orange, 'left', '600');
+      drawText(120, 440, 'A trusted agent (score 91) still gets Wave 5 on modify_iam.', 14, C.text, 'left');
+      drawText(120, 458, 'Trust affects budget gates and session limits — never risk scoring.', 13, C.muted, 'left');
     }
 
     // Anomaly detection
     if (p > 0.6) {
-      roundedRect(700, 400, 440, 70, 8);
+      roundedRect(680, 400, 480, 80, 8);
       ctx.fillStyle = 'rgba(239,68,68,0.08)';
       ctx.fill();
       ctx.strokeStyle = C.red + '40';
       ctx.lineWidth = 1;
       ctx.stroke();
-      drawText(720, 420, 'ANOMALY DETECTED', 11, C.red, 'left', '700');
-      drawText(720, 440, 'email-agent: 200 actions in 10 minutes (baseline: 5/hour)', 12, C.text, 'left');
-      drawText(720, 458, 'Burst activity flagged → escalated to operator', 11, C.muted, 'left');
+      drawText(700, 420, 'ANOMALY DETECTED', 14, C.red, 'left', '700');
+      drawText(700, 440, 'email-agent: 200 actions in 10 minutes (baseline: 5/hour)', 14, C.text, 'left');
+      drawText(700, 458, 'Burst activity flagged → escalated to operator', 13, C.muted, 'left');
     }
 
     drawText(640, 560, 'Behavioral monitoring without compromising deterministic scoring.', 13, C.blue, 'center');
@@ -752,7 +752,7 @@
       ctx.moveTo(380, 200); ctx.lineTo(900, 200);
       ctx.stroke();
       ctx.setLineDash([]);
-      drawText(640, 180, '< 30 minutes apart >', 11, C.red, 'center');
+      drawText(640, 180, '< 30 minutes apart >', 14, C.red, 'center');
     }
 
     // Correlation engine fires
@@ -806,8 +806,8 @@
         ctx.stroke();
 
         drawText(chainX + 14, ry + 18, r.sys + ' / ' + r.action, 13, C.text, 'left', '600');
-        drawText(chainX + 14, ry + 38, 'Hash: ' + r.id, 11, C.blue, 'left');
-        drawText(chainX + 14, ry + 54, r.decision + ' by ' + (r.wave >= 4 ? 'operator' : 'engine'), 10, C.muted, 'left');
+        drawText(chainX + 14, ry + 38, 'Hash: ' + r.id, 13, C.blue, 'left');
+        drawText(chainX + 14, ry + 54, r.decision + ' by ' + (r.wave >= 4 ? 'operator' : 'engine'), 13, C.muted, 'left');
 
         const wc = [C.w1, C.w2, C.w3, C.w4, C.w5][r.wave - 1];
         drawPill(chainX + 420, ry + 20, 'Wave ' + r.wave, wc, 'small');
@@ -823,25 +823,25 @@
 
     // Right side — compliance report
     if (p > 0.5) {
-      roundedRect(720, 160, 380, 220, 10);
+      roundedRect(700, 160, 420, 240, 10);
       ctx.fillStyle = 'rgba(34,197,94,0.06)';
       ctx.fill();
       ctx.strokeStyle = C.green + '40';
       ctx.lineWidth = 1;
       ctx.stroke();
 
-      drawText(740, 185, 'COMPLIANCE REPORT', 11, C.green, 'left', '700');
-      drawText(740, 210, 'Date range: March 1 - April 6, 2026', 11, C.text, 'left');
-      drawText(740, 235, 'Total governed actions: 847', 11, C.text, 'left');
-      drawText(740, 255, 'Auto-executed: 712 (84%)', 11, C.green, 'left');
-      drawText(740, 275, 'Held for approval: 135 (16%)', 11, C.orange, 'left');
-      drawText(740, 295, 'Credential access events: 55', 11, C.text, 'left');
-      drawText(740, 320, 'Hash chain: ✓ Integrity verified', 11, C.green, 'left');
-      drawText(740, 345, 'Exportable • Auditable • Tamper-evident', 10, C.muted, 'left');
+      drawText(720, 185, 'COMPLIANCE REPORT', 14, C.green, 'left', '700');
+      drawText(720, 210, 'Date range: March 1 - April 6, 2026', 13, C.text, 'left');
+      drawText(720, 235, 'Total governed actions: 847', 13, C.text, 'left');
+      drawText(720, 255, 'Auto-executed: 712 (84%)', 13, C.green, 'left');
+      drawText(720, 275, 'Held for approval: 135 (16%)', 13, C.orange, 'left');
+      drawText(720, 295, 'Credential access events: 55', 13, C.text, 'left');
+      drawText(720, 320, 'Hash chain: ✓ Integrity verified', 13, C.green, 'left');
+      drawText(720, 345, 'Exportable • Auditable • Tamper-evident', 13, C.muted, 'left');
     }
 
     drawText(640, 560, 'Every action receipted. Every receipt hash-chained.', 13, C.blue, 'center');
-    drawText(640, 585, 'If any receipt is modified, the chain breaks. Cryptographically detectable.', 12, C.muted, 'center');
+    drawText(640, 585, 'If any receipt is modified, the chain breaks. Cryptographically detectable.', 14, C.muted, 'center');
   }
 
   function drawScene8(t, p, pulse) {
@@ -868,16 +868,16 @@
         ctx.lineWidth = i === 2 ? 2 : 1;
         ctx.stroke();
 
-        drawText(lx + 16, ly + 20, l.label, 12, l.color, 'left', '700');
+        drawText(lx + 16, ly + 20, l.label, 14, l.color, 'left', '700');
         drawText(lx + 16, ly + 42, l.desc, 14, C.text, 'left', '500');
-        drawText(lx + 16, ly + 64, l.tools, 11, C.muted, 'left');
+        drawText(lx + 16, ly + 64, l.tools, 13, C.muted, 'left');
 
         // Tag on right
         drawPill(lx + lw - 50, ly + 20, l.tag, l.color, 'small');
 
         // "Agent still executes" for layers 1 & 2
         if (i < 2 && p > 0.4) {
-          drawText(lx + lw - 20, ly + 70, 'The agent still executes on its own →', 10, C.red, 'right');
+          drawText(lx + lw - 20, ly + 70, 'The agent still executes on its own →', 13, C.red, 'right');
         }
       }
     });
@@ -897,7 +897,7 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       drawText(280, 602, 'The agent cannot bypass Surfit because it does not hold the credentials.', 13, C.text, 'left');
-      drawText(280, 622, 'This is architectural enforcement, not policy. The execution boundary.', 12, C.blue, 'left');
+      drawText(280, 622, 'This is architectural enforcement, not policy. The execution boundary.', 14, C.blue, 'left');
     }
 
     if (p > 0.9) {
