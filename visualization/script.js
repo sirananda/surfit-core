@@ -11,6 +11,8 @@
 
   const W = canvas.width;
   const H = canvas.height;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   const scenes = [
     { dur: 20, title: 'The Shift' },
@@ -418,44 +420,44 @@
     drawText(130, 345, 'Proposes action', 11, C.muted, 'center');
 
     // Surfit
-    drawSurfitNode(550, 360, 300, 240, t, true);
+    drawSurfitNode(520, 360, 340, 280, t, true);
 
     // Inside Surfit labels
-    const sx = 550, sy = 360;
-    if (p > 0.2) drawText(sx, sy - 40, 'EVALUATE', 11, C.blue, 'center', '700');
-    if (p > 0.3) drawText(sx, sy - 20, 'Business context • Risk • Destination', 10, C.muted, 'center');
-    if (p > 0.4) drawText(sx, sy + 10, 'CLASSIFY', 11, C.orange, 'center', '700');
-    if (p > 0.45) drawText(sx, sy + 28, 'Wave 1-5 deterministic scoring', 10, C.muted, 'center');
-    if (p > 0.55) drawText(sx, sy + 56, 'ENFORCE', 11, C.green, 'center', '700');
-    if (p > 0.6) drawText(sx, sy + 74, 'Execute or hold for approval', 10, C.muted, 'center');
+    const sx = 520, sy = 360;
+    if (p > 0.2) drawText(sx, sy - 55, 'EVALUATE', 14, C.blue, 'center', '700');
+    if (p > 0.3) drawText(sx, sy - 32, 'Business context • Risk • Destination', 12, C.muted, 'center');
+    if (p > 0.4) drawText(sx, sy + 0, 'CLASSIFY', 14, C.orange, 'center', '700');
+    if (p > 0.45) drawText(sx, sy + 22, 'Wave 1-5 deterministic scoring', 12, C.muted, 'center');
+    if (p > 0.55) drawText(sx, sy + 52, 'ENFORCE', 14, C.green, 'center', '700');
+    if (p > 0.6) drawText(sx, sy + 74, 'Execute or hold for approval', 12, C.muted, 'center');
 
     // Systems
-    drawNode(1000, 200, 'Slack', C.panelBorder, 140, 40);
-    drawNode(1000, 280, 'GitHub', C.panelBorder, 140, 40);
-    drawNode(1000, 360, 'AWS', C.panelBorder, 140, 40);
-    drawNode(1000, 440, 'Gmail', C.panelBorder, 140, 40);
+    drawNode(1020, 190, 'Slack', C.panelBorder, 150, 44);
+    drawNode(1020, 280, 'GitHub', C.panelBorder, 150, 44);
+    drawNode(1020, 370, 'AWS', C.panelBorder, 150, 44);
+    drawNode(1020, 460, 'Gmail', C.panelBorder, 150, 44);
 
     // Arrows
-    drawArrow(220, 300, 400, 340, C.blue, (pulse + 0.1) % 1);
+    drawArrow(220, 300, 350, 340, C.blue, (pulse + 0.1) % 1);
     if (p > 0.5) {
-      drawArrow(700, 280, 930, 200, C.green, (pulse + 0.2) % 1);
-      drawPill(850, 190, 'Wave 1 ✓', C.w1, 'small');
-      drawArrow(700, 320, 930, 280, C.green, (pulse + 0.35) % 1);
-      drawPill(850, 270, 'Wave 2 ✓', C.w2, 'small');
+      drawArrow(690, 270, 945, 190, C.green, (pulse + 0.2) % 1);
+      drawPill(870, 170, 'Wave 1 ✓', C.w1, 'small');
+      drawArrow(690, 310, 945, 280, C.green, (pulse + 0.35) % 1);
+      drawPill(870, 258, 'Wave 2 ✓', C.w2, 'small');
     }
     if (p > 0.65) {
-      drawArrow(700, 380, 930, 360, C.orange, (pulse + 0.5) % 1);
-      drawPill(850, 350, 'Wave 4 ⏸', C.w4, 'small');
-      drawStopX(820, 380);
+      drawArrow(690, 380, 945, 370, C.orange, (pulse + 0.5) % 1);
+      drawPill(870, 348, 'Wave 4 ⏸', C.w4, 'small');
+      drawStopX(830, 390);
     }
     if (p > 0.75) {
-      drawArrow(700, 420, 930, 440, C.green, (pulse + 0.65) % 1);
-      drawPill(850, 430, 'Wave 2 ✓', C.w2, 'small');
+      drawArrow(690, 430, 945, 460, C.green, (pulse + 0.65) % 1);
+      drawPill(870, 484, 'Wave 2 ✓', C.w2, 'small');
     }
 
     // Bottom text
-    drawText(640, 640, 'The agent cannot reach any system without going through Surfit.', 14, C.blue, 'center', '500');
-    drawText(640, 665, 'Architectural enforcement — not policy.', 13, C.muted, 'center');
+    drawText(640, 635, 'The agent cannot reach any system without going through Surfit.', 16, C.blue, 'center', '600');
+    drawText(640, 662, 'Architectural enforcement — not policy.', 14, C.muted, 'center');
   }
 
   function drawScene3(t, p, pulse) {
@@ -463,7 +465,7 @@
     drawHeading(40, 30, 'Wave Classification', 'Deterministic. Explainable. Sub-100ms. No LLM.');
 
     // Default waves example — X post
-    if (p < 0.55) {
+    if (p < 0.5) {
       drawNode(200, 250, 'X Agent', C.blue, 160, 44);
       drawSurfitNode(580, 320, 260, 180, t, false);
       drawNode(1000, 250, 'X (Twitter)', C.panelBorder, 160, 44);
@@ -472,11 +474,11 @@
       drawPill(360, 230, 'post_tweet', C.blue, 'small');
 
       // Inside Surfit — wave calculation
-      drawText(580, 270, 'System: X → base 2', 11, C.text, 'center');
-      drawText(580, 290, 'Action: post_tweet → +0', 11, C.text, 'center');
-      drawText(580, 310, 'Content: neutral → +0', 11, C.text, 'center');
-      drawText(580, 340, 'Final: Wave 2', 14, C.w2, 'center', '700');
-      drawText(580, 362, 'Auto-execute ✓', 12, C.green, 'center', '600');
+      drawText(580, 260, 'System: X → base 2', 14, C.text, 'center');
+      drawText(580, 285, 'Action: post_tweet → +0', 14, C.text, 'center');
+      drawText(580, 310, 'Content: neutral → +0', 14, C.text, 'center');
+      drawText(580, 345, 'Final: Wave 2', 18, C.w2, 'center', '700');
+      drawText(580, 372, 'Auto-execute ✓', 14, C.green, 'center', '600');
 
       if (p > 0.3) {
         drawArrow(710, 280, 920, 250, C.green, (pulse + 0.3) % 1);
@@ -501,7 +503,7 @@
       }
       drawText(640, 560, '80%+ of actions auto-execute at Wave 1-3. Zero human involvement.', 12, C.muted, 'center');
 
-    } else {
+    } else { // Custom policy section - more time
       // Custom policy example via NL parser
       drawText(640, 150, 'Custom Policy via Natural Language Parser', 16, C.blue, 'center', '600');
 
@@ -534,11 +536,11 @@
       ], C.w2);
 
       // Visual representation
-      drawNode(900, 350, 'Gmail', C.panelBorder, 140, 44);
-      drawArrow(640, 380, 830, 350, C.w4, (pulse + 0.3) % 1);
-      drawPill(750, 340, 'Wave 4 ⏸', C.w4, 'small');
-      drawArrow(640, 440, 830, 370, C.green, (pulse + 0.5) % 1);
-      drawPill(750, 410, 'Wave 2 ✓ @acme.com', C.w2, 'small');
+      drawNode(920, 470, 'Gmail', C.panelBorder, 150, 48);
+      drawArrow(640, 460, 830, 450, C.w4, (pulse + 0.3) % 1);
+      drawPill(750, 430, 'Wave 4 ⏸', C.w4, 'small');
+      drawArrow(640, 540, 830, 490, C.green, (pulse + 0.5) % 1);
+      drawPill(750, 520, 'Wave 2 ✓ @acme.com', C.w2, 'small');
 
       drawText(640, 560, 'Business rules in plain english → deterministic enforcement.', 13, C.muted, 'center');
       drawText(640, 585, 'LLM parses the rule. No LLM in the scoring path.', 12, C.blue, 'center');
@@ -656,7 +658,7 @@
 
     agentData.forEach((a, i) => {
       const ax = 200 + i * 320, ay = 200;
-      roundedRect(ax - 130, ay - 50, 260, 160, 10);
+      roundedRect(ax - 130, ay - 50, 260, 200, 10);
       ctx.fillStyle = C.panel;
       ctx.fill();
       ctx.strokeStyle = a.color + '40';
@@ -679,7 +681,18 @@
       }
       drawText(ax + barW / 2 + 10, barY + 4, String(a.trust), 12, a.color, 'left', '700');
 
-      drawText(ax - 80, ay + 50, a.actions + ' actions', 11, C.muted, 'left');
+      drawText(ax - 80, ay + 50, a.actions + ' actions', 12, C.muted, 'left');
+      // Individual stats
+      if (p > 0.3) {
+        const stats = [
+          ['Approved: 142 | Rejected: 14', 'Approved: 408 | Rejected: 12', 'Approved: 10 | Rejected: 8'],
+          ['Systems: X, Slack', 'Systems: GitHub, AWS, Slack', 'Systems: Gmail, Outlook'],
+          ['Budget: 200/day', 'Budget: 500/day', 'Budget: 50/day'],
+        ];
+        stats.forEach((row, si) => {
+          drawText(ax - 80, ay + 68 + si * 14, row[i], 10, C.muted, 'left');
+        });
+      }
     });
 
     // Key insight box
@@ -717,16 +730,16 @@
 
     // Show 3 individual actions
     const actions = [
-      { sys: 'GitHub', action: 'merge_pr', wave: 3, x: 300, y: 200 },
+      { sys: 'GitHub', action: 'merge_pr', wave: 3, x: 280, y: 200 },
       { sys: 'AWS', action: 'modify_iam', wave: 3, x: 640, y: 200 },
-      { sys: 'Gmail', action: 'send_email (external)', wave: 3, x: 980, y: 200 },
+      { sys: 'Gmail', action: 'send_email (ext)', wave: 3, x: 1000, y: 200 },
     ];
 
     actions.forEach((a, i) => {
       if (p > i * 0.12) {
-        drawNode(a.x, a.y, a.sys, C.panelBorder, 160, 44);
-        drawPill(a.x, a.y + 38, a.action, C.w3, 'small');
-        drawPill(a.x, a.y + 62, 'Wave ' + a.wave + ' — looks safe', C.w3, 'small');
+        drawNode(a.x, a.y, a.sys, C.panelBorder, 180, 50);
+        drawPill(a.x, a.y + 42, a.action, C.w3);
+        drawPill(a.x, a.y + 68, 'Wave ' + a.wave + ' — looks safe', C.w3);
       }
     });
 
@@ -744,24 +757,26 @@
 
     // Correlation engine fires
     if (p > 0.5) {
-      roundedRect(240, 340, 800, 100, 10);
+      roundedRect(180, 340, 920, 130, 10);
       ctx.fillStyle = 'rgba(239,68,68,0.1)';
       ctx.fill();
       ctx.strokeStyle = C.red + '60';
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      drawText(280, 365, 'CORRELATION ENGINE', 12, C.red, 'left', '700');
-      drawText(280, 388, 'Rule: "Code change + IAM modification + external email within 30 min"', 12, C.text, 'left');
-      drawText(280, 408, 'Pattern matched across 3 systems. Individual scores overridden.', 12, C.muted, 'left');
+      drawText(220, 368, 'CORRELATION ENGINE — SUSPICIOUS PATTERN DETECTED', 14, C.red, 'left', '700');
+      drawText(220, 395, 'Rule: "Code change + IAM modification + external email within 30 min"', 14, C.text, 'left');
+      drawText(220, 418, 'Agent may be compromised. Pattern matches known exfiltration sequence.', 13, C.muted, 'left');
+      drawText(220, 441, 'Individual scores overridden. All actions escalated.', 13, C.muted, 'left');
 
-      drawPill(900, 380, 'ESCALATE → Wave 5', C.w5, 'normal');
+      drawPill(940, 370, 'ESCALATE → Wave 5', C.w5, 'normal');
     }
 
     // Result
     if (p > 0.7) {
-      drawText(640, 500, 'All 3 actions held for operator review.', 14, C.red, 'center', '600');
-      drawText(640, 525, 'Each action was Wave 3 individually. The cross-system pattern triggered Wave 5.', 12, C.muted, 'center');
+      drawText(640, 520, 'All 3 actions held for operator review.', 16, C.red, 'center', '600');
+      drawText(640, 548, 'Each action was Wave 3 individually. The cross-system pattern triggered Wave 5.', 13, C.muted, 'center');
+      drawText(640, 572, 'Possible compromised agent — rogue or prompt-injected.', 13, C.orange, 'center');
     }
 
     drawText(640, 620, 'Per-system monitoring misses this. Surfit sees across all systems.', 13, C.blue, 'center');
@@ -886,12 +901,17 @@
     }
 
     if (p > 0.9) {
-      ctx.font = '700 20px "Righteous", cursive';
+      ctx.font = '700 32px "Righteous", cursive';
       ctx.textAlign = 'center';
       ctx.fillStyle = C.blue;
-      ctx.fillText('SURFIT', 610, 680);
+      const sw = ctx.measureText('SURFIT').width;
+      ctx.fillText('SURFIT', 620, 680);
+      ctx.fillStyle = C.muted;
+      ctx.font = '700 22px "Righteous", cursive';
+      ctx.fillText('.', 620 + sw / 2 + 4, 680);
       ctx.fillStyle = C.orange;
-      ctx.fillText('.AI', 676, 680);
+      ctx.font = '700 32px "Righteous", cursive';
+      ctx.fillText('AI', 620 + sw / 2 + 16, 680);
     }
   }
 
